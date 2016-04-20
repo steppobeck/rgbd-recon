@@ -32,7 +32,8 @@ include(FindBoost)
 include(FindCGAL)
 # squish
 include(FindSquish)
-
+# FastDXT
+include(FindFastDXT)
 
 add_definitions(-DFENSTERCHEN_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 option(FENSTERCHEN_IN_SOURCE_BUILD "FENSTERCHEN_IN_SOURCE_BUILD" OFF)
@@ -72,6 +73,9 @@ include_directories(${CGAL_INCLUDE_DIRS})
 ################################
 # squish
 include_directories(${SQUISH_INCLUDE_DIRS})
+################################
+# FastDXT
+include_directories(${FASTDXT_INCLUDE_DIRS})
 
 
 ################################
@@ -79,7 +83,7 @@ include_directories(${SQUISH_INCLUDE_DIRS})
 
 ################################
 # zmq and other libraries
-set(LIBRARIES glfw ${GLFW_LIBRARIES} ${ZMQ_LIBRARIES} ${OPENCV_LIBRARIES} ${CGAL_LIBRARIES} ${BOOST_LIBRARIES} ${SQUISH_LIBRARIES})
+set(LIBRARIES glfw GLU glut ${GLFW_LIBRARIES} ${ZMQ_LIBRARIES} ${OPENCV_LIBRARIES} ${CGAL_LIBRARIES} ${BOOST_LIBRARIES} ${SQUISH_LIBRARIES} ${FASTDXT_LIBRARIES})
 
 set(CATCH_DIRECTORY catch-1.1)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/${CATCH_DIRECTORY})
@@ -94,6 +98,8 @@ link_directories(${BOOST_LIBRARY_DIRS})
 link_directories(${CGAL_LIBRARY_DIRS})
 # squish
 link_directories(${SQUISH_LIBRARY_DIRS})
+# FastDXT
+link_directories(${FASTDXT_LIBRARY_DIRS})
 
 ################################
 # Add output directory
