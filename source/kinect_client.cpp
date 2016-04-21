@@ -11,9 +11,6 @@
 #include <PerspectiveCamera.h>
 #include <CameraNavigator.h>
 #include <FourTiledWindow.h>
-#include <KinectSurface.h>
-#include <KinectSurface3.h>
-#include <KinectSurfaceV2.h>
 #include <CalibVolume.h>
 #include <KinectSurfaceV3.h>
 #include <NetKinectArray.h>
@@ -52,10 +49,6 @@ void motionFunc(int mouse_h, int mouse_v);
 void mouseFunc(int button, int state, int mouse_h, int mouse_v);
 void idle(void);
 
-std::vector<kinect::KinectSurface* >  g_ks; // 0
-std::vector<kinect::KinectSurface* > g_ks2;// 1
-std::vector<kinect::KinectSurface3* > g_ks3;// 2
-std::vector<kinect::KinectSurfaceV2* > g_ksV2;// 3
 std::vector<kinect::KinectSurfaceV3* > g_ksV3;// 4
 unsigned g_ks_mode = 0;
 
@@ -240,23 +233,7 @@ void init(std::vector<std::string> args){
   for(unsigned i = 0; i < args.size(); ++i){
     const std::string ext(args[i].substr(args[i].find_last_of(".") + 1));
     std::cerr << ext << std::endl;
-    if("ks" == ext){
-      g_ks.push_back(new kinect::KinectSurface(args[i].c_str()));
-      g_ks_mode = 0;
-    }
-    else if("ks2" == ext){
-      g_ks2.push_back(new kinect::KinectSurface(args[i].c_str()));
-      g_ks_mode = 1;
-    }
-    else if("ks3" == ext){
-      g_ks3.push_back(new kinect::KinectSurface3(args[i].c_str()));
-      g_ks_mode = 2;
-    }
-    else if("ksV2" == ext){
-      g_ksV2.push_back(new kinect::KinectSurfaceV2(args[i].c_str()));
-      g_ks_mode = 3;
-    }
-    else if("ksV3" == ext){
+   if("ksV3" == ext){
       g_ksV3.push_back(new kinect::KinectSurfaceV3(args[i].c_str()));
       g_ks_mode = 4;
     }
@@ -379,26 +356,6 @@ void draw3d(void)
     gloost::Matrix t;
     t.setIdentity();
     g_stats->setInfoSlot("quality-based fusion", 0);
-    for(unsigned i = 0; i < g_ks2.size(); ++i){
-      glPushMatrix();
-      t.setTranslate(i, 0.0,0.0);
-      glMultMatrixf(t.data());
-      
-      g_ks2[i]->draw(g_play, scale);
-      glPopMatrix();
-    }
-    for(unsigned i = 0; i < g_ks.size(); ++i){
-      if(g_play)
-        g_ks[i]->getNetKinectArray()->update();
-    }
-    for(unsigned i = 0; i < g_ks3.size(); ++i){
-      if(g_play)
-        g_ks3[i]->getNetKinectArray()->update();
-    }
-    for(unsigned i = 0; i < g_ksV2.size(); ++i){
-      if(g_play)
-        g_ksV2[i]->getNetKinectArray()->update();
-    }
     for(unsigned i = 0; i < g_ksV3.size(); ++i){
       if(g_play)
         g_ksV3[i]->getNetKinectArray()->update();
@@ -408,25 +365,6 @@ void draw3d(void)
     gloost::Matrix t;
     t.setIdentity();
     g_stats->setInfoSlot("z-buffer-based fusion", 0);
-    for(unsigned i = 0; i < g_ks.size(); ++i){
-      glPushMatrix();
-      t.setTranslate(i, 0.0,0.0);
-      glMultMatrixf(t.data());
-      g_ks[i]->draw(g_play, scale, g_warpviz);
-      glPopMatrix();
-    }
-    for(unsigned i = 0; i < g_ks2.size(); ++i){
-      if(g_play)
-        g_ks2[i]->getNetKinectArray()->update();
-    }
-    for(unsigned i = 0; i < g_ks3.size(); ++i){
-      if(g_play)
-        g_ks3[i]->getNetKinectArray()->update();
-    }
-    for(unsigned i = 0; i < g_ksV2.size(); ++i){
-      if(g_play)
-        g_ksV2[i]->getNetKinectArray()->update();
-    }
     for(unsigned i = 0; i < g_ksV3.size(); ++i){
       if(g_play)
         g_ksV3[i]->getNetKinectArray()->update();
@@ -436,26 +374,6 @@ void draw3d(void)
     gloost::Matrix t;
     t.setIdentity();
     g_stats->setInfoSlot("quality-based accumulation", 0);
-    for(unsigned i = 0; i < g_ks3.size(); ++i){
-      glPushMatrix();
-      t.setTranslate(i, 0.0,0.0);
-      glMultMatrixf(t.data());
-      
-      g_ks3[i]->draw(g_play, scale);
-      glPopMatrix();
-    }
-    for(unsigned i = 0; i < g_ks.size(); ++i){
-      if(g_play)
-        g_ks[i]->getNetKinectArray()->update();
-    }
-    for(unsigned i = 0; i < g_ks2.size(); ++i){
-      if(g_play)
-        g_ks2[i]->getNetKinectArray()->update();
-    }
-    for(unsigned i = 0; i < g_ksV2.size(); ++i){
-      if(g_play)
-        g_ksV2[i]->getNetKinectArray()->update();
-    }
     for(unsigned i = 0; i < g_ksV3.size(); ++i){
       if(g_play)
         g_ksV3[i]->getNetKinectArray()->update();
@@ -464,28 +382,6 @@ void draw3d(void)
   else if(g_ks_mode == 3){
     gloost::Matrix t;
     t.setIdentity();
-    g_ksV2[0]->lookup ? g_stats->setInfoSlot("Volume Based Mapping", 0) : g_stats->setInfoSlot("Explicit Mapping", 0);    
-    for(unsigned i = 0; i < g_ksV2.size(); ++i){
-
-      glPushMatrix();
-      t.setTranslate(i, 0.0,0.0);
-      glMultMatrixf(t.data());
-      
-      g_ksV2[i]->draw(g_play, scale);
-      glPopMatrix();
-    }
-    for(unsigned i = 0; i < g_ks.size(); ++i){
-      if(g_play)
-        g_ks[i]->getNetKinectArray()->update();
-    }
-    for(unsigned i = 0; i < g_ks2.size(); ++i){
-      if(g_play)
-        g_ks2[i]->getNetKinectArray()->update();
-    }
-    for(unsigned i = 0; i < g_ks3.size(); ++i){
-      if(g_play)
-        g_ks3[i]->getNetKinectArray()->update();
-    }
     for(unsigned i = 0; i < g_ksV3.size(); ++i){
       if(g_play)
         g_ksV3[i]->getNetKinectArray()->update();
@@ -507,22 +403,6 @@ void draw3d(void)
 
       glPopMatrix();
     }
-    for(unsigned i = 0; i < g_ks.size(); ++i){
-      if(g_play)
-        g_ks[i]->getNetKinectArray()->update();
-    }
-    for(unsigned i = 0; i < g_ks2.size(); ++i){
-      if(g_play)
-        g_ks2[i]->getNetKinectArray()->update();
-    }
-    for(unsigned i = 0; i < g_ks3.size(); ++i){
-      if(g_play)
-        g_ks3[i]->getNetKinectArray()->update();
-    }
-    for(unsigned i = 0; i < g_ksV2.size(); ++i){
-      if(g_play)
-        g_ksV2[i]->getNetKinectArray()->update();
-    }
   }
 
 #endif
@@ -539,38 +419,6 @@ void draw3d(void)
     g_stats->setInfoSlot("navigation mode", 1);
   }
   g_lsr->draw(g_ssmt->getMeasurePoints());
-
-
-
-
-
-
-  if(g_ksV2.size() == 1 && g_reference){
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
-    //glDisable(GL_DEPTH_TEST);
-    mvt::GlPrimitives::get()->drawCoords();
-    //glEnable(GL_DEPTH_TEST);
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
-    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
-    
-    mvt::CameraView* v = (mvt::CameraView*) g_ksV2[0]->getNetKinectArray()->getCalibs()[0];
-    v->updateMatrices();
-      
-    glPushMatrix();
-    gloostMultMatrix(v->eye_d_to_world.data());
-    glColor4f(0.0,0.0,0.0,1.0);
-    v->drawFrustum();
-    glPopMatrix();
-    /*  
-    glPushMatrix();
-    gloostMultMatrix(v->eye_rgb_to_world.data());
-    glColor4f(0.0,1.0,0.0,0.0);
-    v->drawFrustumColor();
-    glPopMatrix();
-    */
-    
-    glPopAttrib();
-  }
 
   if(g_reference && g_ksV3.size()){
     glPushAttrib(GL_ALL_ATTRIB_BITS);
@@ -610,37 +458,6 @@ void draw3d(void)
 
 
 
-  }
-
-  if(g_reference && g_ksV2.size()){
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
-    //glDisable(GL_DEPTH_TEST);
-    mvt::GlPrimitives::get()->drawCoords();
-
-    for(unsigned idx = 0; idx  < g_ksV2[0]->getNetKinectArray()->getCalibs().size(); ++idx){
-      
-    
-      glPushAttrib(GL_ALL_ATTRIB_BITS);
-      glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
-      
-      mvt::CameraView* v = (mvt::CameraView*) g_ksV2[0]->getNetKinectArray()->getCalibs()[idx];
-      v->updateMatrices();
-      
-      glPushMatrix();
-      gloostMultMatrix(v->eye_d_to_world.data());
-      glColor4f(1.0,0.0,0.0,1.0);
-      v->drawFrustum();
-      glPopMatrix();
-      /*  
-	  glPushMatrix();
-	  gloostMultMatrix(v->eye_rgb_to_world.data());
-	  glColor4f(0.0,1.0,0.0,0.0);
-	  v->drawFrustumColor();
-	  glPopMatrix();
-      */
-      glPopAttrib();
-    }
-    glPopAttrib();
   }
 
   { // draw black grid on floor for fancy look
@@ -764,13 +581,6 @@ void key(unsigned char key, int x, int y)
   case 'w':
     g_wire = !g_wire;
     break;
-  case 'd':
-    for(unsigned i = 0; i < g_ksV2.size(); ++i){
-      g_ksV2[i]->dumpCalibVolumesSamplingPoints();
-    }
-    break;
-
-
   case '+':
     
     if(g_ksV3[0]->viztype_num < (g_ksV3[0]->getNetKinectArray()->getCalibs().size() - 1))
@@ -791,18 +601,6 @@ void key(unsigned char key, int x, int y)
     break;
 #endif
   case 's':
-    for(unsigned i = 0; i < g_ks2.size(); ++i){
-      g_ks2[i]->reloadShader();
-    }
-    for(unsigned i = 0; i < g_ks.size(); ++i){
-      g_ks[i]->reloadShader();
-    }
-    for(unsigned i = 0; i < g_ks3.size(); ++i){
-      g_ks3[i]->reloadShader();
-    }
-    for(unsigned i = 0; i < g_ksV2.size(); ++i){
-      g_ksV2[i]->reloadShader();
-    }
     for(unsigned i = 0; i < g_ksV3.size(); ++i){
       g_ksV3[i]->reloadShader();
     }
@@ -815,9 +613,6 @@ void key(unsigned char key, int x, int y)
     break;
 
   case 't':
-    for(unsigned i = 0; i < g_ksV2.size(); ++i){
-      g_ksV2[i]->lookup = (int) !g_ksV2[i]->lookup;
-    }
     for(unsigned i = 0; i < g_ksV3.size(); ++i){
       g_ksV3[i]->lookup = (int) !g_ksV3[i]->lookup;
     }
@@ -826,27 +621,6 @@ void key(unsigned char key, int x, int y)
   case 'i':
     for(unsigned i = 0; i < g_ksV3.size(); ++i){
       g_ksV3[i]->switchCalibVolume();
-    }
-    break;
-
-  case ' ':
-    for(unsigned i = 0; i < g_ksV2.size(); ++i){
-      g_ksV2[i]->do_capture = true;
-    }
-    break;
-  case 'z':
-    for(unsigned i = 0; i < g_ksV2.size(); ++i){
-      g_ksV2[i]->do_apply = true;
-    }
-    break;
-  case 'c':
-    for(unsigned i = 0; i < g_ksV2.size(); ++i){
-      g_ksV2[i]->do_clear = true;
-    }
-    break;
-  case 'x':
-    for(unsigned i = 0; i < g_ksV2.size(); ++i){
-      g_ksV2[i]->toggleCalibMode();
     }
     break;
   case'f':
