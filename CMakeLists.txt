@@ -78,14 +78,17 @@ include_directories(${FASTDXT_INCLUDE_DIRS})
 # gloost
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/gloost)
 include_directories(${GLOOST_INCLUDE_DIRS})
-
+################################
+# svg
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/svg)
+include_directories(${SVG_INCLUDE_DIRS})
 
 ################################
 # Add libraries to executables
 
 ################################
 # zmq and other libraries
-set(LIBRARIES glfw GLU glut ${GLFW_LIBRARIES} ${ZMQ_LIBRARIES} ${OPENCV_LIBRARIES} ${CGAL_LIBRARIES} ${BOOST_LIBRARIES} ${SQUISH_LIBRARIES} ${FASTDXT_LIBRARIES} ${GLOOST_LIBRARIES})
+set(LIBRARIES glfw GLU glut ${GLFW_LIBRARIES} ${ZMQ_LIBRARIES} ${OPENCV_LIBRARIES} ${CGAL_LIBRARIES} ${BOOST_LIBRARIES} ${SQUISH_LIBRARIES} ${FASTDXT_LIBRARIES} ${GLOOST_LIBRARIES} ${SVG_LIBRARIES})
 
 set(CATCH_DIRECTORY catch-1.1)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/${CATCH_DIRECTORY})
