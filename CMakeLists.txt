@@ -30,6 +30,14 @@ include(FindOpenCV)
 include(FindBoost)
 # boost
 include(FindCGAL)
+#gmp
+set(DEP GMP)
+set(GMP_HEADER "gmp.h")
+set(GMP_INCLUDE_SEARCH_DIR "/opt/gmp/include")
+set(GMP_LIB "libgmp")
+set(GMP_LIBRARY_SEARCH_DIR "/opt/gmp/lib")
+include(FindLibrary)
+include_directories(${GMP_INCLUDE_DIRS})
 
 add_definitions(-DFENSTERCHEN_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 option(FENSTERCHEN_IN_SOURCE_BUILD "FENSTERCHEN_IN_SOURCE_BUILD" OFF)
@@ -65,7 +73,7 @@ include_directories(SYSTEM ${OPENCV_INCLUDE_DIRS})
 include_directories(SYSTEM ${BOOST_INCLUDE_DIRS})
 ################################
 # cgal
-include_directories(SYSTEM ${CGAL_INCLUDE_DIRS})
+include_directories(SYSTEM ${CGAL_INCLUDE_DIR})
 ################################
 # squish
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/squish)
@@ -88,7 +96,7 @@ include_directories(${SVG_INCLUDE_DIRS})
 
 ################################
 # zmq and other libraries
-set(LIBRARIES glfw GLU glut ${GLFW_LIBRARIES} ${ZMQ_LIBRARIES} ${OPENCV_LIBRARIES} ${CGAL_LIBRARIES} ${BOOST_LIBRARIES} ${SQUISH_LIBRARIES} ${FASTDXT_LIBRARIES} ${GLOOST_LIBRARIES} ${SVG_LIBRARIES})
+set(LIBRARIES glfw GLU glut ${GLFW_LIBRARIES} ${ZMQ_LIBRARIES} ${OPENCV_LIBRARIES} ${CGAL_LIBRARIES} ${BOOST_LIBRARIES} ${SQUISH_LIBRARIES} ${FASTDXT_LIBRARIES} ${GLOOST_LIBRARIES} ${SVG_LIBRARIES} ${GMP_LIBRARIES})
 
 set(CATCH_DIRECTORY catch-1.1)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/${CATCH_DIRECTORY})
@@ -100,7 +108,7 @@ link_directories(${OPENCV_LIBRARY_DIRS})
 # boost
 link_directories(${BOOST_LIBRARY_DIRS})
 # cgal
-link_directories(${CGAL_LIBRARY_DIRS})
+# link_directories(${CGAL_LIBRARY_DIRS})
 
 ################################
 # Add output directory

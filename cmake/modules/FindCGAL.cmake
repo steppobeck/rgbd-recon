@@ -1,4 +1,45 @@
-set(CGAL_INCLUDE_DIRS /opt/cgal/include /opt/gmp/include /opt/mpfr/include)
-set(CGAL_LIBRARY_DIRS /opt/cgal/lib/ /opt/gmp/lib /opt/mpfr/lib)
-set(CGAL_LIBRARIES CGAL_Core CGAL CGAL_ImageIO gmp mpfr)
-#set(CGAL_LIBRARIES CGAL gmp mpfr)
+# http://code.google.com/p/pixelstruct/source/browse/trunk/cmake/FindCGAL.cmake?r=29
+#
+# - Find CGAL
+# adapted from
+#   <http://pgrouting.postlbs.org/browser/trunk/cmake/FindCGAL.cmake?rev=53>
+# Find the CGAL includes and client library
+# This module defines
+#  CGAL_DEFINITIONS: compiler flags for compiling with CGAL
+#  CGAL_INCLUDE_DIR: where to find CGAL.h
+#  CGAL_LIBRARIES: the libraries needed to use CGAL
+#  CGAL_FOUND: if false, do not try to use CGAL
+
+IF(CGAL_INCLUDE_DIR AND CGAL_LIBRARIES)
+    SET(CGAL_FOUND TRUE)
+ELSE(CGAL_INCLUDE_DIR AND CGAL_LIBRARIES)
+    FIND_PATH(CGAL_INCLUDE_DIR basic.h
+        /usr/include/CGAL
+        /usr/local/include/CGAL
+        /opt/cgal/include
+        $ENV{ProgramFiles}/CGAL/*/include/CGAL
+        $ENV{SystemDrive}/CGAL/*/include/CGAL
+    )
+    FIND_LIBRARY(CGAL_LIBRARIES NAMES CGAL libCGAL
+        PATHS
+        /usr/lib
+        /usr/local/lib
+        /usr/lib/CGAL
+        /usr/lib64
+        /usr/local/lib64
+        /usr/lib64/CGAL
+        /opt/cgal/lib/
+        $ENV{ProgramFiles}/CGAL/*/lib/ms
+        $ENV{SystemDrive}/CGAL/*/lib/ms
+    )
+    
+    IF(CGAL_INCLUDE_DIR AND CGAL_LIBRARIES)
+        SET(CGAL_FOUND TRUE)
+        MESSAGE(STATUS "Found CGAL: ${CGAL_INCLUDE_DIR}, ${CGAL_LIBRARIES}")
+    ELSE(CGAL_INCLUDE_DIR AND CGAL_LIBRARIES)
+        SET(CGAL_FOUND FALSE)
+        MESSAGE(STATUS "CGAL not found.")
+    ENDIF(CGAL_INCLUDE_DIR AND CGAL_LIBRARIES)
+    
+    MARK_AS_ADVANCED(CGAL_INCLUDE_DIR CGAL_LIBRARIES)
+ENDIF(CGAL_INCLUDE_DIR AND CGAL_LIBRARIES)
