@@ -7,7 +7,6 @@
 #include <GL/glew.h>
 #include <GL/gl.h>
 
-#include <ARTListener.h>
 #include <Matrix.h>
 
 #include <string>
@@ -91,10 +90,6 @@ namespace kinect{
     void writeCurrentTexture(std::string prefix);
     void writeBMP(std::string, std::vector<unsigned char> const&, unsigned int offset, unsigned int bytesPerPixel);
     
-    gloost::Matrix getArtlsensorMatrix(unsigned int sensorNumber) const;
-
-    ARTListener* getARTL();
-
     bool isRecording();
     bool isPhoto();
 
@@ -134,8 +129,6 @@ namespace kinect{
     std::string m_serverport;
     unsigned m_trigger;
     static bool s_glewInit;
-
-    ARTListener* m_artl;
 
     bool m_isrecording;
 

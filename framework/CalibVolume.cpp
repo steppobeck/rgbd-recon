@@ -1,7 +1,6 @@
 #include "CalibVolume.h"
 
 #include <KinectCalibrationFile.h>
-#include <ARTListener.h>
 #include <PoseTracker.h>
 #include <OpenCVChessboardCornerDetector.h>
 
@@ -125,7 +124,7 @@ namespace kinect{
 
   /*static*/ std::string CalibVolume::serverendpoint("tcp://141.54.147.22:7001");
 
-  CalibVolume::CalibVolume(const std::vector<KinectCalibrationFile*>& calibs, ARTListener* artl):
+  CalibVolume::CalibVolume(const std::vector<KinectCalibrationFile*>& calibs):
     m_calibs(calibs),
     m_cv_xyz_filenames(),
     m_cv_uv_filenames(),
@@ -140,7 +139,6 @@ namespace kinect{
     m_cv_uvs(),
     m_cv_valids(),
     m_poseoffset(),
-    m_artl(artl),
     m_sampleThread(0),
     m_cb_width(7),
     m_cb_height(5),
@@ -201,147 +199,6 @@ namespace kinect{
       glDeleteTextures(1, &(m_cv_uv_ids[i]));
     }
   }
-  
-
-  void
-  CalibVolume::drawChessboardPoints(bool do_capture){
-
-    ++m_frame_count;
-    
-    
-    bool measure = false;
-
-    {
-      boost::mutex::scoped_lock lock(*m_mutex);
-      if(do_swap){
-	std::swap(m_sps_front, m_sps_back);
-	
-      }
-      do_swap = false;
-    }
-    
-    
-    if(0 == m_artl){
-      return;
-    }
-
-    if(!m_artl->isOpen()){
-#ifdef LCDSIDE
-      m_artl->open(5000); // 5000 for LCD-Wall
-#else
-      m_artl->open(5002); // 5002 for DLP-Wall
-#endif
-    }
-
-    m_artl->listen();
-    sleep(sensor::timevalue::const_050_ms);
-
-    {
-      glPushAttrib(GL_ALL_ATTRIB_BITS);
-      glDisable(GL_DEPTH_TEST);
-      glPushMatrix();
-
-
-#ifdef LCDSIDE
-      gloost::Matrix cb_transform(m_artl->getMatrices()[6]); // on LCD side 6
-#else
-      gloost::Matrix cb_transform(m_artl->getMatrices()[27]); // on DLP side 27
-#endif
-      static gloost::PoseTracker pt;
-#ifdef LCDSIDE
-      bool is_stable(pt.isStable(cb_transform, 0.00100, 10)); // LCD side
-#else
-      bool is_stable(pt.isStable(cb_transform, 0.00100, 10)); // DLP side
-#endif
-
-#if 0
-      if( is_stable )
-	std::cerr << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
-      else
-	std::cerr << "-" << std::endl;
-#endif
-
-
-      
-      glMultMatrixf(cb_transform.data());
-
-#if 0
-      glPointSize(2.0);
-      glColor3f(0.0,1.0,0.0);      
-      glBegin(GL_POINTS);
-      for(unsigned i = 0; i < m_cb_points_local.size(); ++i)
-	glVertex3fv(m_cb_points_local[i].data());
-      glEnd();
-#endif
-      glPopMatrix();
-
-      if((*m_sps_front)[0].size() == m_cb_width * m_cb_height && is_stable ){
-	measure = true;
-	glPointSize(2.0);
-	glColor3f(1.0,0.0,0.0);      
-	glBegin(GL_POINTS);
-	for(unsigned i = 0; i < (*m_sps_front)[0].size(); ++i){
-	  const unsigned cv_width = m_cv_widths[0];
-	  const unsigned cv_height = m_cv_heights[0];
-	  const unsigned cv_depth = m_cv_depths[0];
-	  const float x = cv_width *  ( (*m_sps_front)[0][i].tex_depth.u)/ m_calibs[0]->getWidth();
-	  const float y = cv_height *  ( (*m_sps_front)[0][i].tex_depth.v)/ m_calibs[0]->getHeight();
-	  const float z = cv_depth * (  (*m_sps_front)[0][i].depth - m_cv_min_ds[0])/(m_cv_max_ds[0] - m_cv_min_ds[0]);
-	  xyz pos = getTrilinear(m_cv_xyzs[0], cv_width, cv_height, cv_depth, x , y , z );
-	  glVertex3f(pos.x, pos.y, pos.z);
-
-	  uv  tex = getTrilinear(m_cv_uvs[0], cv_width, cv_height, cv_depth, x , y , z );
-
-	  (*m_sps_front)[0][i].pos_real = (m_poseoffset * cb_transform) * m_cb_points_local[i];
-	  (*m_sps_front)[0][i].pos_offset.x = (*m_sps_front)[0][i].pos_real[0] - pos.x;
-	  (*m_sps_front)[0][i].pos_offset.y = (*m_sps_front)[0][i].pos_real[1] - pos.y;
-	  (*m_sps_front)[0][i].pos_offset.z = (*m_sps_front)[0][i].pos_real[2] - pos.z;
-
-	  (*m_sps_front)[0][i].tex_offset.u = (*m_sps_front)[0][i].tex_color.u/m_calibs[0]->getWidthC() - tex.u;
-	  (*m_sps_front)[0][i].tex_offset.v = (*m_sps_front)[0][i].tex_color.v/m_calibs[0]->getHeightC() - tex.v;
-
-	  uv err;	  
-	  err.u = gloost::Vector3((*m_sps_front)[0][i].pos_offset.x,(*m_sps_front)[0][i].pos_offset.y,(*m_sps_front)[0][i].pos_offset.z).length();
-	  err.v = gloost::Vector3((*m_sps_front)[0][i].tex_offset.u * m_calibs[0]->getWidthC(),(*m_sps_front)[0][i].tex_offset.v * m_calibs[0]->getHeightC(),0.0).length();
-	  
-	  //std::cerr << "error 3D: " << err.u << " error 2D: " << err.v << std::endl;
-	  if( err.u > 0.6 ||
-	      (*m_sps_front)[0][i].depth < m_cv_min_ds[0] ||
-	      (*m_sps_front)[0][i].depth > m_cv_max_ds[0]){
-	    std::cerr << "error 3D: " << err.u << " error 2D: " << err.v << " depth " << (*m_sps_front)[0][i].depth << std::endl;
-	    measure = false;
-	    m_frame_count = 1;
-	  }
-
-	  // automatic capturering
-	  if(measure && calib_mode && (m_frame_count%200 == 0)){
-	    (*m_sps)[0].push_back((*m_sps_front)[0][i]);
-	    (*m_errors)[0].push_back(err);
-	  }
-
-	}
-	glEnd();
-      }
-      glPopAttrib();
-    }
-
-
-
-    // automatic applying
-    if(measure && calib_mode && (m_frame_count%200 == 0)){
-
-      std::cerr << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! taking samples !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
-      system("/usr/bin/aplay click_x.wav");
-
-      //applySamples();
-      //clearSamples();
-      m_frame_count = 1;
-    }
-    
-    drawSamplePoints();
-
-  }
-
 
 
   void

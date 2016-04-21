@@ -18,16 +18,13 @@ namespace boost{
 namespace kinect{
 
   class KinectCalibrationFile;
-  class ARTListener;
 
   class CalibVolume{
 
-
   public:
-    CalibVolume(const std::vector<KinectCalibrationFile*>& calibs, ARTListener* artl);
+    CalibVolume(const std::vector<KinectCalibrationFile*>& calibs);
     virtual ~CalibVolume();
 
-    void drawChessboardPoints(bool do_capture);
     void drawSamplePoints();
     bool reload();
     bool save();
@@ -84,7 +81,6 @@ namespace kinect{
     
     float gauss(float x, float sigma, float mean);
     gloost::Matrix m_poseoffset;
-    ARTListener* m_artl;
     boost::thread* m_sampleThread;
     unsigned m_cb_width;
     unsigned m_cb_height;

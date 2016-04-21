@@ -25,7 +25,6 @@ namespace boost{
 namespace kinect{
 
   class NetKinectArray;
-  class ARTListener;
   class CalibVolume;
   class EvaluationVolumes;
   class VolumeSliceRenderer;
@@ -81,8 +80,6 @@ namespace kinect{
     CalibVolume* m_cv;
     EvaluationVolumes* m_ev;
 
-    void trackloop();
-    boost::thread* m_trackThread;
     boost::mutex* m_mutex;
     bool m_running;
     gloost::Matrix m_trackposeART;

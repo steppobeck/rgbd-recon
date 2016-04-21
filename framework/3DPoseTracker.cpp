@@ -1,6 +1,5 @@
 #include "3DPoseTracker.h"
 
-#include <ARTListener.h>
 #include <CornerTracker.h>
 #include <DataTypes.h>
 #include <CalibVolume.h>
@@ -24,24 +23,13 @@ namespace kinect{
 
 
   C3DPoseTracker::C3DPoseTracker(int num_images, unsigned width, unsigned height, int bitsperchannels, int cb_width, int cb_height):
-    m_artl(0),
     m_ct(0)
   {
-    m_artl = new kinect::ARTListener("");
-    m_artl->open(5000);
     m_ct = new CornerTracker(num_images, width, height, 1, bitsperchannels, cb_width, cb_height);
   }
 
   C3DPoseTracker::~C3DPoseTracker()
   {}
-  
-  gloost::Matrix
-  C3DPoseTracker::getPoseMatrixART(){
-    m_artl->listen();
-    gloost::Matrix pose_art(m_artl->getMatrices()[6]);
-    return pose_art;
-  }
-
 
   gloost::Matrix
   C3DPoseTracker::getPoseMatrixKinect(std::vector<unsigned char* > irdata, std::vector<float* > depthdata, CalibVolume* cv, std::vector<KinectCalibrationFile*>& calibs){

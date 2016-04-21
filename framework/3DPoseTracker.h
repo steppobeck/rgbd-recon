@@ -7,7 +7,6 @@
 #include <vector>
 
 namespace kinect{
-  class ARTListener;
   class CornerTracker;
   class CalibVolume;
   class C3DPoseTracker{
@@ -21,7 +20,6 @@ namespace kinect{
     gloost::Matrix getPoseMatrixKinect2(std::vector<unsigned char* > irdata, std::vector<float* > depthdata, CalibVolume* cv, std::vector<KinectCalibrationFile*>& calibs);
 
   private:
-    ARTListener* m_artl;
     kinect::CornerTracker* m_ct;
 
   };

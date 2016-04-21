@@ -6,7 +6,6 @@
 #include <Obj.h>
 #include <GlPrimitives.h>
 #include <NetKinectArray.h>
-#include <ARTListener.h>
 #include <ProxyMeshGridV2.h>
 #include <KinectCalibrationFile.h>
 #include <CalibVolume.h>
@@ -57,18 +56,14 @@ namespace kinect{
       m_cv(0),
       m_ev(0),
       lookup(true),
-      m_trackThread(0),
       m_mutex(new boost::mutex),
       m_running(true),
-      m_trackposeART(),
-      m_trackposeKinect(),
       viztype(0),
       viztype_num(0),
       black(false)
       
   {
     init(config);
-    m_trackThread = new boost::thread(boost::bind(&KinectSurfaceV3::trackloop, this));
   }
 
 
@@ -97,79 +92,6 @@ namespace kinect{
 // on orpheus  "tcp://141.54.147.58:7001"
 // on boreas   "tcp://141.54.147.32:7001"
 #define SERVERENDPOINT "tcp://141.54.147.33:7010"
-
-  void
-  KinectSurfaceV3::trackloop(){
-
-    
-
-    std::vector<KinectCalibrationFile*>& calibs(m_nka->getCalibs());
-
-
-    const unsigned num_kinects(calibs.size());
-    zmq::context_t ctx(1); // means single threaded
-    zmq::socket_t  socket(ctx, ZMQ_SUB); // means a subscriber
-
-    socket.setsockopt(ZMQ_SUBSCRIBE, "", 0);
-    uint64_t hwm = 1;
-    socket.setsockopt(ZMQ_HWM,&hwm, sizeof(hwm));
-
-    std::string endpoint(SERVERENDPOINT);
-
-    socket.connect(endpoint.c_str());
-
-    const unsigned pixelcount = calibs[0]->getWidth() * calibs[0]->getHeight();
-    const unsigned irsize = pixelcount * sizeof(unsigned char);
-    const unsigned depthsize = pixelcount * sizeof(float);
-
-
-    std::vector<float*> depth_buffers;
-    std::vector<unsigned char*> ir_buffers;
-    for(unsigned i = 0; i < num_kinects; ++i){
-      depth_buffers.push_back(new float [pixelcount]);
-      ir_buffers.push_back(new unsigned char [pixelcount]);
-    }
-
-    C3DPoseTracker pt(num_kinects, calibs[0]->getWidth(), calibs[0]->getHeight(), 8, 7, 5);
-    unsigned fc = 0;
-    while(m_running){
-      std::cerr << "trackloop: " << ++fc << std::endl;
-
-      std::cerr << "before recv"<< std::endl;
-      zmq::message_t zmqm((depthsize + irsize) * num_kinects);
-      socket.recv(&zmqm); // blocking
-      std::cerr << "after recv"<< std::endl;
-
-      unsigned offset = 0;
-      // receive data
-      for(unsigned i = 0; i < num_kinects; ++i){
-		
-	memcpy( (unsigned char*) depth_buffers[i], (unsigned char*) zmqm.data() + offset, depthsize);
-	offset += depthsize;
-	
-	memcpy( (unsigned char*)    ir_buffers[i], (unsigned char*) zmqm.data() + offset, irsize);
-	offset += irsize;
-      }
-
-
-      
-      {
-	gloost::Matrix tmpmat(pt.getPoseMatrixART());
-	std::cerr << "before CHESS"<< std::endl;
-	gloost::Matrix tmpmat2(pt.getPoseMatrixKinect2(ir_buffers, depth_buffers, m_cv, calibs));
-	std::cerr << "after CHESS"<< std::endl;
-	std::cerr << "before lock"<< std::endl;
-	boost::mutex::scoped_lock lock(*m_mutex);
-	std::cerr << "after lock"<< std::endl;
-	m_trackposeART = tmpmat;
-	m_trackposeKinect = tmpmat2;
-      }
-
-
-    }
-
-  }
-
 
   void
   KinectSurfaceV3::draw(bool update, float scale){
@@ -466,42 +388,8 @@ namespace kinect{
 #endif
 
 
-    m_nka->drawGeometry();
-
-
-
-
-#if 1
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
-    glDisable(GL_DEPTH_TEST);
-    glPushMatrix();
-    {
-      boost::mutex::scoped_lock lock(*m_mutex);
-      glMultMatrixf(m_trackposeART.data());
-    }
-    mvt::GlPrimitives::get()->drawCoords();
-    glPopMatrix();
-    glPopAttrib();
-
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
-    glDisable(GL_DEPTH_TEST);
-    glPushMatrix();
-    {
-      boost::mutex::scoped_lock lock(*m_mutex);
-      glMultMatrixf(m_trackposeKinect.data());
-    }
-    mvt::GlPrimitives::get()->drawCoords2();
-    glPopMatrix();
-    glPopAttrib();
-#endif
-
-
-
-
+    // m_nka->drawGeometry();
   }
-
-
-
 
   void
   KinectSurfaceV3::drawMesh(bool update, float scale){
@@ -593,7 +481,7 @@ namespace kinect{
     }
     glPopAttrib();
 
-    m_nka->drawGeometry();
+    // m_nka->drawGeometry();
 
   }
 
@@ -648,7 +536,7 @@ namespace kinect{
 
 
 
-    m_cv = new CalibVolume(m_nka->getCalibs(), 0/*m_nka->getARTL()*/);
+    m_cv = new CalibVolume(m_nka->getCalibs());
     m_cv->reload();
 #if 0
     m_ev = new EvaluationVolumes(m_nka->getCalibs(), m_cv);

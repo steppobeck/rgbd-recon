@@ -65,7 +65,6 @@ namespace kinect{
       m_running(true),
       m_serverport(""),
       m_trigger(10), // means no update at the beginning
-      m_artl(new ARTListener(config)),
       m_isrecording(false),
       m_readfromfile(readfromfile),
       m_isphoto(false),
@@ -145,7 +144,6 @@ namespace kinect{
       m_running(true),
       m_serverport(""),
       m_trigger(10), // means no update at the beginning
-      m_artl(0),
       m_isrecording(false),
       m_readfromfile(readfromfile),
       m_isphoto(false),
@@ -169,6 +167,7 @@ namespace kinect{
     init();
 
   }
+#define ARTLISTENERNUMSENSORS 50
 
 
   bool
@@ -375,8 +374,6 @@ namespace kinect{
 	
 	current_poses = m_depthsCPU3.current_poses;
 	
-	m_artl->get(m_colorsCPU3.matrixdata_front);
-
 	m_colorsCPU3.needSwap = false;
 	m_trigger = 0;
       }
@@ -716,12 +713,6 @@ namespace kinect{
 
   }
 
-
-  void
-  NetKinectArray::drawGeometry(){
-    //m_artl->draw();
-  }
-
   void
   NetKinectArray::writeCurrentTexture(std::string prefix){
     //depths
@@ -901,31 +892,6 @@ namespace kinect{
 
     file.close();
   }
-  
-  gloost::Matrix NetKinectArray::getArtlsensorMatrix(unsigned int sensorNumber) const
-  {
-//  	gloost::Matrix mat[ARTLISTENERNUMSENSORS] {};
-//	m_artl->fill(&mat[0]);
-//	
-//	return mat[sensorNumber];
-	
-	
-//  	gloost::Matrix* mat2 = new gloost::Matrix[ARTLISTENERNUMSENSORS];
-//	m_artl->fill(&(mat2[0]));
-//	gloost::Matrix mat3 (mat2[sensorNumber]);
-////	gloost::Matrix mat3;
-//	delete[] mat2;
-//	return mat3;
-	
-	// 18 statt 16 da vptr in matrix class
-	return gloost::Matrix(&m_colorsCPU3.matrixdata_front[sensorNumber*18 + 2]);
-  }
-
-  ARTListener*
-  NetKinectArray::getARTL(){
-    return m_artl;
-  }
-
 
   void
   NetKinectArray::readFromFiles(){
