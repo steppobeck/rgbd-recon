@@ -13,8 +13,6 @@
 #include <VolumeSliceRenderer.h>
 #include <ViewArray.h>
 
-#include <3DPoseTracker.h>
-
 #include <FileValue.h>
 
 #include <gl_util.h>
