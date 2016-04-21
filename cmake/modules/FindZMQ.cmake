@@ -5,6 +5,7 @@ SET(ZMQ_INCLUDE_SEARCH_DIRS
   ${GLOBAL_EXT_DIR}/inc/zmq
   ${ZMQ_INCLUDE_DIRS}
   ${ZMQ_INCLUDE_SEARCH_DIR}
+  "/usr/include"
   "/opt/zmq/current/include"
 )
 
@@ -12,6 +13,8 @@ SET(ZMQ_LIBRARY_SEARCH_DIRS
   ${GLOBAL_EXT_DIR}/lib
   ${ZMQ_LIBRARY_DIRS}
   ${ZMQ_LIBRARY_SEARCH_DIR}
+  "/usr/lib/"
+  "/usr/lib/x86_64-linux-gnu/"
   "/opt/zmq/current/lib"
 )
 

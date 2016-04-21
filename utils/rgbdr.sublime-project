@@ -1,0 +1,20 @@
+{
+    "folders":
+    [
+        {
+            "follow_symlinks": true,
+            "path": ".",
+            "folder_exclude_patterns": ["install", "build", "bin"],
+            "file_exclude_patterns": ["*.nfs*"]
+        }
+    ],
+    "build_systems":
+    [
+      {
+        "name": "rgbd-recon",
+        "file_regex": "^(..[^:]*):(.*)$",
+        "working_dir": "${project_path}/../build",
+        "cmd":  ["make -j8"]
+      }
+    ]
+}
