@@ -125,6 +125,7 @@ if(MSVC)
 endif(MSVC)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/framework)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/framework/calibration)
 add_subdirectory(framework)
 
 add_subdirectory(source)
