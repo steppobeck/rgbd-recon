@@ -58,18 +58,22 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/${GLFW_DIRECTORY}/inclu
 set(GLM_DIRECTORY glm-0.9.5.3)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/${GLM_DIRECTORY})
 
+# gloost
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/gloost)
+include_directories(${GLOOST_INCLUDE_DIRS})
+
 ################################
 # zmq
-include_directories(${ZMQ_INCLUDE_DIRS})
+include_directories(SYSTEM ${ZMQ_INCLUDE_DIRS})
 ################################
 # OpenCV
-include_directories(${OPENCV_INCLUDE_DIRS})
+include_directories(SYSTEM ${OPENCV_INCLUDE_DIRS})
 ################################
 # boost
-include_directories(${BOOST_INCLUDE_DIRS})
+include_directories(SYSTEM ${BOOST_INCLUDE_DIRS})
 ################################
-# boost
-include_directories(${CGAL_INCLUDE_DIRS})
+# cgal
+include_directories(SYSTEM ${CGAL_INCLUDE_DIRS})
 ################################
 # squish
 include_directories(${SQUISH_INCLUDE_DIRS})
@@ -83,7 +87,7 @@ include_directories(${FASTDXT_INCLUDE_DIRS})
 
 ################################
 # zmq and other libraries
-set(LIBRARIES glfw GLU glut ${GLFW_LIBRARIES} ${ZMQ_LIBRARIES} ${OPENCV_LIBRARIES} ${CGAL_LIBRARIES} ${BOOST_LIBRARIES} ${SQUISH_LIBRARIES} ${FASTDXT_LIBRARIES})
+set(LIBRARIES glfw GLU glut ${GLFW_LIBRARIES} ${ZMQ_LIBRARIES} ${OPENCV_LIBRARIES} ${CGAL_LIBRARIES} ${BOOST_LIBRARIES} ${SQUISH_LIBRARIES} ${FASTDXT_LIBRARIES} ${GLOOST_LIBRARIES})
 
 set(CATCH_DIRECTORY catch-1.1)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/${CATCH_DIRECTORY})

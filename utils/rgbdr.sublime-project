@@ -3,7 +3,7 @@
     [
         {
             "follow_symlinks": true,
-            "path": ".",
+            "path": "..",
             "folder_exclude_patterns": ["install", "build", "bin"],
             "file_exclude_patterns": ["*.nfs*"]
         }
@@ -14,7 +14,7 @@
         "name": "rgbd-recon",
         "file_regex": "^(..[^:]*):(.*)$",
         "working_dir": "${project_path}/../build",
-        "cmd":  ["make -j8"]
+        "cmd":  ["make", "-j8"]
       }
     ]
 }
