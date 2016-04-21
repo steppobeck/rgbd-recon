@@ -5,8 +5,6 @@
 #include <Timer.h>
 #include <TextureArray.h>
 
-#include <FrameTimeAdjuster.h>
-
 #include <KinectCalibrationFile.h>
 #include <gl_util.h>
 #include <Shader.h>
@@ -602,7 +600,6 @@ namespace kinect{
     const unsigned colorsize = m_colorsize;
     const unsigned depthsize = m_depthsize;//pixelcount * sizeof(float);
 
-    kinect::FrameTimeAdjuster fta;
     bool drop = false;
     sensor::timevalue ts(sensor::clock::time());
     unsigned framenr = 0;
@@ -683,13 +680,6 @@ namespace kinect{
 	m_colorsCPU3.needSwap = true;
 	
       }
-
-      //drop = fta.putTime(ts);
-#if 0
-      if(m_isrecording){
-	bool tmp_drop = fta.putTime(ts);
-      }
-#endif
     }
   }
 
