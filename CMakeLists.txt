@@ -127,6 +127,7 @@ endif(MSVC)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/framework)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/framework/calibration)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/framework/navigation)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/framework/measurement)
 add_subdirectory(framework)
 
 add_subdirectory(source)
