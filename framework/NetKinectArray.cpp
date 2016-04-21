@@ -632,12 +632,7 @@ namespace kinect{
 	  memcpy((unsigned char*) m_colorsCPU3.back + i*colorsize , (unsigned char*) zmqm.data() + offset, colorsize);
 	  offset += colorsize;
 	  memcpy((unsigned char*) m_depthsCPU3.back + i*depthsize , (unsigned char*) zmqm.data() + offset, depthsize);
-	  
-	  if(m_kinectcs[i]->isSensored()){
-	    // This is new and works only for one Kinect
-	    memcpy(m_depthsCPU3.current_poses[i].data(), (unsigned char*) zmqm.data() + offset, 16 * sizeof(float));
-	  }
-	  
+
 	  offset += depthsize;
 	}
 
@@ -934,13 +929,6 @@ namespace kinect{
 
       //memcpy((unsigned char*) m_depthsCPU3.back + i*depthsize , (unsigned char*) zmqm.data() + offset, depthsize);
       fbs[i]->read((unsigned char*) m_depthsCPU3.back + i*depthsize, depthsize);
-
-
-      
-      if(m_kinectcs[i]->isSensored()){
-	// This is new and works only for one Kinect
-	std::cerr << "NetKinectArray:: ERROR: this is not supported right now"<< std::endl;
-      }
       
       offset += depthsize;
     }

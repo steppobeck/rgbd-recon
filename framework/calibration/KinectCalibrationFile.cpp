@@ -1,14 +1,5 @@
-
-
 /// kinect system includes
 #include <KinectCalibrationFile.h>
-
-
-#include <sensor.h>
-#include <devicemanager.h>
-#include <device.h>
-
-
 
 /// cpp includes
 #include <string>
@@ -68,7 +59,6 @@ namespace kinect
   \remarks ...
 */
 
-  /*static*/ bool KinectCalibrationFile::s_use_sensor = true;
   /*static*/ bool KinectCalibrationFile::s_use_proxy  = true;
   /*static*/ bool KinectCalibrationFile::s_compress   = false;
   /*static*/ int  KinectCalibrationFile::s_compress_rgb = -1;
@@ -108,8 +98,6 @@ KinectCalibrationFile::KinectCalibrationFile(const std::string& filePath)
     _baumer_serial(),
     _iscompressedrgb(1),
     _iscompresseddepth(false),
-    _sensor(0),
-    _is_sensored(false),
     use_bf(true),
     min_length(0.0125),
     num_channels_rgb(3),
@@ -122,7 +110,6 @@ KinectCalibrationFile::KinectCalibrationFile(const std::string& filePath)
     pos_max(),
     neg_min(),
     neg_max(),
-    _sensor_matrix(),
     _pcoords(),
     cv_xyz(0),
     cv_uv(0),
@@ -437,27 +424,6 @@ KinectCalibrationFile::parse()
       float dummy  = getNextFloat(infile);
       
     }
-    else if(token == "dtrack_sensor:"){
-      std::cerr << std::endl << "dtrack_sensor:";
-      advanceToNextToken("[", infile);
-      unsigned sensor_id = (unsigned) getNextTokenAsFloat(infile);
-      unsigned sensor_port  = (unsigned) getNextFloat(infile);
-      _is_sensored = true;
-
-      _iscompresseddepth = false;
-
-      if(s_use_sensor){
-	
-	_sensor = new sensor::sensor(sensor::devicemanager::the()->get_dtrack(sensor_port, sensor::timevalue::const_050_ms), sensor_id);
-
-	gloost::Matrix xmitterOffset;
-	xmitterOffset.setIdentity();
-	_sensor->setTransmitterOffset(xmitterOffset);
-	gloost::Matrix receiverOffset;
-	receiverOffset.setIdentity();
-	_sensor->setReceiverOffset(receiverOffset);
-      }
-    }
     else if(token == "dtrack_proxy:"){
       std::cerr << std::endl << "dtrack_proxy:";
       advanceToNextToken("[", infile);
@@ -479,14 +445,6 @@ KinectCalibrationFile::parse()
 #endif
 
   infile.close();
-
-  { // .sensor
-    std::string i_filepath(_filePath.c_str());
-    i_filepath.replace( i_filepath.end() - 3, i_filepath.end(), "sensor");
-    _sensor_matrix.setIdentity();
-    gloost::load(_sensor_matrix, i_filepath.c_str());
-  }
-
 
   { // .ext
     std::string e_filepath(_filePath.c_str());
@@ -1102,18 +1060,6 @@ KinectCalibrationFile::saveExtrinsic(){
     
     outfile.close();
   }
-
-
-  if(_sensor){
-
-    std::string i_filepath(_filePath.c_str());
-    i_filepath.replace( i_filepath.end() - 3, i_filepath.end(), "sensor");
-    _sensor_matrix = _sensor->getMatrix();
-    gloost::save(_sensor_matrix, i_filepath.c_str());
-    std::cerr << "KinectCalibrationFile::saveExtrinsic() " << this << " saving to " << i_filepath << std::endl;
-  }
-
-
 }
 
 
@@ -1208,13 +1154,6 @@ KinectCalibrationFile::updateMatrices(){
   gloost::Matrix w;
 
   eye_d_to_world = _local_r * _local_t * eye_d_to_world;
-
-  if(_sensor){
-    gloost::Matrix s(_sensor->getMatrix());
-    eye_d_to_world = s * _sensor_matrix.inverted() * eye_d_to_world;
-  }
-
-
 
   eye_d_to_eye_rgb = relativeTransformMat;
   eye_d_to_eye_rgb.setTranslate(relativeTranslate[0],relativeTranslate[1],relativeTranslate[2]);
@@ -1459,16 +1398,6 @@ KinectCalibrationFile::applyCoordinateSystem3(const CoordinateSystem& c){
   void
   KinectCalibrationFile::toggleCompressedDepth(){
     _iscompresseddepth = !_iscompresseddepth;
-  }
-
-  bool
-  KinectCalibrationFile::hasSensor(){
-    return _sensor != 0;
-  }
-
-  bool
-  KinectCalibrationFile::isSensored(){
-    return _is_sensored;
   }
 
   const std::vector<gloost::Vector2>&

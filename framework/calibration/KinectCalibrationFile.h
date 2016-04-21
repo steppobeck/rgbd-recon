@@ -102,9 +102,6 @@ namespace kinect
     bool isCompressedDepth();
     void toggleCompressedDepth();
 
-    bool hasSensor();
-    bool isSensored();
-
     void resetExtrinsic(bool saveover);
 
   protected:

@@ -487,7 +487,6 @@ namespace kinect{
   /*virtual*/ void
   KinectSurfaceV3::init(const char* config){
 
-    KinectCalibrationFile::s_use_sensor = false;
     //KinectCalibrationFile::s_compress   = true;
 
     char hostname[1024];
