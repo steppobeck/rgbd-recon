@@ -1,7 +1,6 @@
 #include "CalibVolume.h"
 
 #include <KinectCalibrationFile.h>
-#include <PoseTracker.h>
 #include <OpenCVChessboardCornerDetector.h>
 
 #include <NaturalNeighbourInterpolator.h>
