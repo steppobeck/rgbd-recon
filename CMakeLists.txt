@@ -30,8 +30,6 @@ include(FindOpenCV)
 include(FindBoost)
 # boost
 include(FindCGAL)
-# squish
-include(FindSquish)
 
 add_definitions(-DFENSTERCHEN_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 option(FENSTERCHEN_IN_SOURCE_BUILD "FENSTERCHEN_IN_SOURCE_BUILD" OFF)
@@ -70,7 +68,8 @@ include_directories(SYSTEM ${BOOST_INCLUDE_DIRS})
 include_directories(SYSTEM ${CGAL_INCLUDE_DIRS})
 ################################
 # squish
-include_directories(${SQUISH_INCLUDE_DIRS})
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/squish)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/squish)
 ################################
 # FastDXT
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/fastdxt)
@@ -99,8 +98,6 @@ link_directories(${OPENCV_LIBRARY_DIRS})
 link_directories(${BOOST_LIBRARY_DIRS})
 # cgal
 link_directories(${CGAL_LIBRARY_DIRS})
-# squish
-link_directories(${SQUISH_LIBRARY_DIRS})
 
 ################################
 # Add output directory

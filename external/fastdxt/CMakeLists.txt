@@ -13,7 +13,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 set(CMAKE_CXX_FLAGS "-O3 -funroll-loops -fomit-frame-pointer -fPIC -msse2 -DDXT_INTR")
 add_library(lib${PROJECT_NAME} STATIC ${${PROJECT_NAME}_SOURCES})
 
-message("adding library ${FOLDER_NAME}")
 #set output variables for linking
 string(TOUPPER ${FOLDER_NAME} PROJECT_CAPS)
 set(${PROJECT_CAPS}_LIBRARIES lib${PROJECT_NAME} CACHE STRING " librarie filnames")
