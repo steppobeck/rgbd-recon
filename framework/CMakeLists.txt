@@ -6,6 +6,7 @@ source_group("Inline Files" FILES ${FRAMEWORK_INLINE})
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/..)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/calibration)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/navigation)
 
 add_library(framework STATIC glew.c
   ${FRAMEWORK_SOURCE}
