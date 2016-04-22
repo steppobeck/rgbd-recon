@@ -38,6 +38,14 @@ set(GMP_LIB "libgmp")
 set(GMP_LIBRARY_SEARCH_DIR "/opt/gmp/lib")
 include(FindLibrary)
 include_directories(${GMP_INCLUDE_DIRS})
+#mpfr
+set(DEP MPFR)
+set(MPFR_HEADER "mpfr.h")
+set(MPFR_INCLUDE_SEARCH_DIR "/opt/mpfr/include")
+set(MPFR_LIB "libmpfr")
+set(MPFR_LIBRARY_SEARCH_DIR "/opt/mpfr/lib")
+include(FindLibrary)
+include_directories(${MPFR_INCLUDE_DIRS})
 
 add_definitions(-DFENSTERCHEN_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 option(FENSTERCHEN_IN_SOURCE_BUILD "FENSTERCHEN_IN_SOURCE_BUILD" OFF)
@@ -73,7 +81,7 @@ include_directories(SYSTEM ${OPENCV_INCLUDE_DIRS})
 include_directories(SYSTEM ${BOOST_INCLUDE_DIRS})
 ################################
 # cgal
-include_directories(SYSTEM ${CGAL_INCLUDE_DIR})
+include_directories(SYSTEM ${CGAL_INCLUDE_DIRS})
 ################################
 # squish
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/squish)
@@ -96,8 +104,7 @@ include_directories(${SVG_INCLUDE_DIRS})
 
 ################################
 # zmq and other libraries
-set(LIBRARIES glfw GLU glut ${GLFW_LIBRARIES} ${ZMQ_LIBRARIES} ${OPENCV_LIBRARIES} ${CGAL_LIBRARIES} ${BOOST_LIBRARIES} ${SQUISH_LIBRARIES} ${FASTDXT_LIBRARIES} ${GLOOST_LIBRARIES} ${SVG_LIBRARIES} ${GMP_LIBRARIES})
-
+set(LIBRARIES glfw GLU glut ${GLFW_LIBRARIES} ${ZMQ_LIBRARIES} ${OPENCV_LIBRARIES} ${CGAL_LIBRARIES} ${BOOST_LIBRARIES} ${SQUISH_LIBRARIES} ${FASTDXT_LIBRARIES} ${GLOOST_LIBRARIES} ${SVG_LIBRARIES} ${GMP_LIBRARIES} ${MPFR_LIBRARIES})
 set(CATCH_DIRECTORY catch-1.1)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/${CATCH_DIRECTORY})
 ################################
@@ -108,7 +115,7 @@ link_directories(${OPENCV_LIBRARY_DIRS})
 # boost
 link_directories(${BOOST_LIBRARY_DIRS})
 # cgal
-# link_directories(${CGAL_LIBRARY_DIRS})
+link_directories(${CGAL_LIBRARY_DIRS})
 
 ################################
 # Add output directory
