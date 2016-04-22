@@ -237,12 +237,12 @@ namespace mvt{
   }
 
   unsigned
-  FourTiledWindow::getWidth(unsigned windowNum){
+  FourTiledWindow::getWidth(){
     return 0.5 * m_width;
   }
    
   unsigned
-  FourTiledWindow::getHeight(unsigned windowNum){
+  FourTiledWindow::getHeight(){
     return 0.5 * m_height;
   }
 

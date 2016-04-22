@@ -67,8 +67,7 @@ namespace kinect{
     mvt::ProxyMeshGridV2* m_proxyMesh;
     mvt::ViewArray*     m_va_pass_depth;
     mvt::ViewArray*     m_va_pass_accum;
-
-
+    
     gloost::Shader*     m_shader_pass_volviz;
     gloost::UniformSet* m_uniforms_pass_volviz;
     mvt::ViewArray*     m_va_pass_volviz;
@@ -82,10 +81,6 @@ namespace kinect{
 
     boost::mutex* m_mutex;
     bool m_running;
-    gloost::Matrix m_trackposeART;
-    gloost::Matrix m_trackposeKinect;
-
-    
 
   public:
     int lookup;

@@ -39,8 +39,8 @@ namespace mvt{
 
     void drawCursor();
 
-    unsigned getWidth(unsigned windowNum);
-    unsigned getHeight(unsigned windowNum);
+    unsigned getWidth();
+    unsigned getHeight();
 
   private:
     unsigned findActive(int x, int y);

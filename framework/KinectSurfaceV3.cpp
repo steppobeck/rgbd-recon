@@ -32,6 +32,7 @@ namespace kinect{
 
   KinectSurfaceV3::KinectSurfaceV3(const char* config)
     : m_config(config),
+      m_hostname(),
       m_nka(0),
       m_shader_pass_depth(0),
       m_shader_pass_accum(0),
@@ -47,15 +48,14 @@ namespace kinect{
       m_uniforms_pass_volviz(0),
       m_va_pass_volviz(0),
       m_vsr(0),
-      m_hostname(),
       m_shader(0),
       m_uniforms(0),
       m_obj(0),
       m_cv(0),
       m_ev(0),
-      lookup(true),
       m_mutex(new boost::mutex),
       m_running(true),
+      lookup(true),
       viztype(0),
       viztype_num(0),
       black(false)

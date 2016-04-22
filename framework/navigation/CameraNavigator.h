@@ -27,8 +27,8 @@ public:
   void motion(int mouse_h, int mouse_v);
   void resize(GLsizei w, GLsizei h);
 
-  virtual void special(int key){};
-  virtual void keyboard(unsigned char key){};
+  // virtual void special(int key){};
+  // virtual void keyboard(unsigned char key){};
 
   virtual gloost::Matrix get( gloost::Point3& speed);
 
