@@ -21,6 +21,7 @@ if(("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang") OR ("${CMAKE_CXX_COMPILER_ID}" 
   set(CMAKE_CXX_FLAGS "-std=c++0x")
 endif()
 
+include(FindDependency)
 ################################
 # zmq
 include(FindZMQ)
@@ -29,28 +30,19 @@ include(FindOpenCV)
 # boost
 include(FindBoost)
 #CGAL
-set(DEP CGAL)
-set(CGAL_HEADER "CGAL/basic.h")
 set(CGAL_INCLUDE_SEARCH_DIR "/opt/cgal/include")
-set(CGAL_LIB "libCGAL")
 set(CGAL_LIBRARY_SEARCH_DIR "/opt/cgal/lib/")
-include(FindLibrary)
+find_dependency(CGAL "CGAL/basic.h" "libCGAL")
 include_directories(${CGAL_INCLUDE_DIRS})
 #gmp
-set(DEP GMP)
-set(GMP_HEADER "gmp.h")
 set(GMP_INCLUDE_SEARCH_DIR "/opt/gmp/include")
-set(GMP_LIB "libgmp")
 set(GMP_LIBRARY_SEARCH_DIR "/opt/gmp/lib")
-include(FindLibrary)
+find_dependency(GMP "gmp.h" "libgmp")
 include_directories(${GMP_INCLUDE_DIRS})
 #mpfr
-set(DEP MPFR)
-set(MPFR_HEADER "mpfr.h")
 set(MPFR_INCLUDE_SEARCH_DIR "/opt/mpfr/include")
-set(MPFR_LIB "libmpfr")
 set(MPFR_LIBRARY_SEARCH_DIR "/opt/mpfr/lib")
-include(FindLibrary)
+find_dependency(MPFR "mpfr.h" "libmpfr")
 include_directories(${MPFR_INCLUDE_DIRS})
 
 add_definitions(-DFENSTERCHEN_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")

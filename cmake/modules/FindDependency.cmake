@@ -11,6 +11,7 @@
 #output variables
 #DEP_INCLUDE_DIRS
 #DEP_LIBRARY
+MACRO(find_dependency DEP DEP_HEADER DEP_LIB)
 ##############################################################################
 # search paths
 ##############################################################################
@@ -30,7 +31,6 @@ SET(${DEP}_LIBRARY_SEARCH_DIRS
   "/usr/lib/"
   "/usr/lib/x86_64-linux-gnu/"
 )
-
 ##############################################################################
 # feedback to provide user-defined paths to search for ${DEP}
 ##############################################################################
@@ -61,14 +61,14 @@ ENDMACRO (request_dep_search_directories)
 ##############################################################################
 # search
 ##############################################################################
-message(STATUS "-- checking for ${DEP}")
+message(STATUS "Looking for ${DEP}")
 
 IF (NOT ${DEP}_INCLUDE_DIRS)
 
   SET(_${DEP}_FOUND_INC_DIRS "")
   FOREACH(_SEARCH_DIR ${${DEP}_INCLUDE_SEARCH_DIRS})
     FIND_PATH(_CUR_SEARCH
-      NAMES ${${DEP}_HEADER}
+      NAMES ${DEP_HEADER}
         PATHS ${_SEARCH_DIR}
         NO_DEFAULT_PATH)
     IF (_CUR_SEARCH)
@@ -88,9 +88,9 @@ IF (NOT ${DEP}_INCLUDE_DIRS)
 ENDIF (NOT ${DEP}_INCLUDE_DIRS)
 
 IF(UNIX)
-  SET(${DEP}_LIB_FILENAME "${${DEP}_LIB}.so")
+  SET(${DEP}_LIB_FILENAME "${DEP_LIB}.so")
 ELSEIF(WIN32)
-  SET(${DEP}_LIB_FILENAME "${${DEP}_LIB}.lib")
+  SET(${DEP}_LIB_FILENAME "${DEP_LIB}.lib")
 ENDIF(UNIX)
 
 IF ( NOT ${DEP}_LIBRARY_DIRS )
@@ -131,8 +131,12 @@ ENDIF ( NOT ${DEP}_LIBRARY_DIRS )
 ##############################################################################
 IF ( NOT ${DEP}_INCLUDE_DIRS OR NOT ${DEP}_LIBRARY_DIRS )
   request_dep_search_directories()
+  message(STATUS "Looking for ${DEP} - not found")
 ELSE ( NOT ${DEP}_INCLUDE_DIRS OR NOT ${DEP}_LIBRARY_DIRS ) 
   UNSET(${DEP}_INCLUDE_SEARCH_DIR CACHE)
   UNSET(${DEP}_LIBRARY_SEARCH_DIR CACHE)
-  MESSAGE(STATUS "--  found matching ${DEP} version")
+  # MESSAGE(STATUS "--  found matching ${DEP} version")
+  message(STATUS "Looking for ${DEP} - found")
 ENDIF ( NOT ${DEP}_INCLUDE_DIRS OR NOT ${DEP}_LIBRARY_DIRS )
+
+ENDMACRO(find_dependency)
