@@ -593,9 +593,7 @@ namespace kinect{
     std::string endpoint("tcp://" + m_serverport);
     socket.connect(endpoint.c_str());
 
-    //const unsigned pixelcountc = m_kinectcs[0]->getWidthC() * m_kinectcs[0]->getHeightC();
-    const unsigned pixelcount = m_kinectcs[0]->getWidth() * m_kinectcs[0]->getHeight();
-    
+    //const unsigned pixelcountc = m_kinectcs[0]->getWidthC() * m_kinectcs[0]->getHeightC();    
     const unsigned colorsize = m_colorsize;
     const unsigned depthsize = m_depthsize;//pixelcount * sizeof(float);
 
@@ -631,10 +629,10 @@ namespace kinect{
       if(!drop){
 	       memcpy((void *) m_colorsCPU3.matrixdata_back, zmqm.data(), ts_address /*ARTLISTENERNUMSENSORS * sizeof(gloost::Matrix)*/);
       }
-      memcpy(&ts,           zmqm.data() + ts_address, sizeof(sensor::timevalue));
+      memcpy(&ts, (byte*)zmqm.data() + ts_address, sizeof(sensor::timevalue));
       const unsigned framenr_address = ts_address + sizeof(sensor::timevalue);
       unsigned curr_framenr;
-      memcpy(&curr_framenr, zmqm.data() + framenr_address, sizeof(curr_framenr));
+      memcpy(&curr_framenr, (byte*)zmqm.data() + framenr_address, sizeof(curr_framenr));
       //std::cerr << "received frame " << curr_framenr << std::endl;
       if((curr_framenr < framenr) || (lastframenr == framenr)){
       	bool tmp_isphoto = (((framenr - curr_framenr) < 29) && m_isrecording) ? true : false;
@@ -698,7 +696,7 @@ namespace kinect{
       
       int offset = 0;
       
-      for (unsigned int k = 0; k < depth; ++k)
+      for (int k = 0; k < depth; ++k)
       {
         std::stringstream sstr;
         sstr << "output/" << prefix << "_d_" << k << ".bmp";
@@ -729,14 +727,14 @@ namespace kinect{
       std::vector<unsigned char> depths;
       depths.resize(depthsTmp.size());
       
-      for (unsigned int i = 0; i < width*height*depth; ++i)
+      for (int i = 0; i < width*height*depth; ++i)
       {
         depths[i] = (unsigned char)depthsTmp[i] * 255.0f;
       }
       
       int offset = 0;
       
-      for (unsigned int k = 0; k < depth; ++k)
+      for (int k = 0; k < depth; ++k)
       {
         std::stringstream sstr;
         sstr << "output/" << prefix << "_d_" << k << ".bmp";
@@ -765,9 +763,7 @@ namespace kinect{
       std::vector<unsigned char> depths;
       depths.resize(4*m_widthc*m_heightc);
     
-      int offset = 0;
-      
-      for (unsigned int k = 0; k < getNumLayers(); ++k)
+      for (unsigned k = 0; k < getNumLayers(); ++k)
       {
         squish::DecompressImage (&depths[0], m_widthc, m_heightc, &data[k*m_colorsize], squish::kDxt1);
         
@@ -796,7 +792,7 @@ namespace kinect{
       
       int offset = 0;
       
-      for (unsigned int k = 0; k < depth; ++k)
+      for (int k = 0; k < depth; ++k)
       {
         std::stringstream sstr;
         sstr << "output/" << prefix << "_col_" << k << ".bmp";
