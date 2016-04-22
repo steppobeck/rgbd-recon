@@ -113,7 +113,7 @@ IF ( NOT ${DEP}_LIBRARY_DIRS )
   IF (NOT _${DEP}_FOUND_LIB_DIR)
     request_dep_search_directories()
   ELSE (NOT _${DEP}_FOUND_LIB_DIR)
-    SET(${DEP}_LIBRARY_DIRS ${_${DEP}_FOUND_LIB_DIR} CACHE PATH "The ${DEP} library directory")
+    SET(${DEP}_LIBRARY_DIRS ${_${DEP}_FOUND_LIB_DIR} CACHE INTERNAL PATH "The ${DEP} library directory")
   ENDIF (NOT _${DEP}_FOUND_LIB_DIR)
 
   FOREACH(_LIB_DIR ${_${DEP}_FOUND_LIB_DIR})

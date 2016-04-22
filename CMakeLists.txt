@@ -23,7 +23,7 @@ include(FindDependency)
 set(ZMQ_INCLUDE_SEARCH_DIR "/opt/zmq/current/include")
 set(ZMQ_LIBRARY_SEARCH_DIR "/opt/zmq/current/lib")
 find_dependency(ZMQ "zmq.h" "libzmq")
-include_directories(${ZMQ_INCLUDE_DIRS})
+include_directories(SYSTEM ${ZMQ_INCLUDE_DIRS})
 # OpenCV
 # include(FindOpenCV)
 # boost
@@ -32,17 +32,17 @@ include(FindBoost)
 set(CGAL_INCLUDE_SEARCH_DIR "/opt/cgal/include")
 set(CGAL_LIBRARY_SEARCH_DIR "/opt/cgal/lib/")
 find_dependency(CGAL "CGAL/basic.h" "libCGAL")
-include_directories(${CGAL_INCLUDE_DIRS})
+include_directories(SYSTEM ${CGAL_INCLUDE_DIRS})
 #gmp
 set(GMP_INCLUDE_SEARCH_DIR "/opt/gmp/include")
 set(GMP_LIBRARY_SEARCH_DIR "/opt/gmp/lib")
 find_dependency(GMP "gmp.h" "libgmp")
-include_directories(${GMP_INCLUDE_DIRS})
+include_directories(SYSTEM ${GMP_INCLUDE_DIRS})
 #mpfr
 set(MPFR_INCLUDE_SEARCH_DIR "/opt/mpfr/include")
 set(MPFR_LIBRARY_SEARCH_DIR "/opt/mpfr/lib")
 find_dependency(MPFR "mpfr.h" "libmpfr")
-include_directories(${MPFR_INCLUDE_DIRS})
+include_directories(SYSTEM ${MPFR_INCLUDE_DIRS})
 
 add_definitions(-DFENSTERCHEN_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 option(FENSTERCHEN_IN_SOURCE_BUILD "FENSTERCHEN_IN_SOURCE_BUILD" OFF)
@@ -66,17 +66,11 @@ set(GLM_DIRECTORY glm-0.9.5.3)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/${GLM_DIRECTORY})
 
 ################################
-# zmq
-include_directories(SYSTEM ${ZMQ_INCLUDE_DIRS})
-################################
 # OpenCV
 # include_directories(SYSTEM ${OPENCV_INCLUDE_DIRS})
 ################################
 # boost
 include_directories(SYSTEM ${BOOST_INCLUDE_DIRS})
-################################
-# cgal
-include_directories(SYSTEM ${CGAL_INCLUDE_DIRS})
 ################################
 # squish
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/squish)
@@ -144,3 +138,12 @@ endif(MSVC)
 add_subdirectory(framework)
 
 add_subdirectory(source)
+
+
+# suppress displaying of external lib options  
+#GLFW
+mark_as_advanced(GLFW_BUILD_DOCS GLFW_BUILD_TESTS GLFW_INSTALL GLFW_BUILD_EXAMPLES
+ GLFW_DOCUMENT_INTERNALS GLFW_USE_EGL LIB_SUFFIX BUILD_SHARED_LIBS)
+#squish
+mark_as_advanced(BUILD_SQUISH_WITH_SSE2 BUILD_SQUISH_WITH_ALTIVEC
+ BUILD_SHARED_LIBS BUILD_SQUISH_EXTRA)
