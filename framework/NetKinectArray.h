@@ -89,7 +89,7 @@ namespace kinect{
 
     void drawGeometry();
     void writeCurrentTexture(std::string prefix);
-    void writeBMP(std::string, std::vector<unsigned char> const&, unsigned int offset, unsigned int bytesPerPixel);
+    void writeBMP(std::string, std::vector<std::uint8_t> const&, unsigned int offset, unsigned int bytesPerPixel);
     
     bool isRecording();
     bool isPhoto();

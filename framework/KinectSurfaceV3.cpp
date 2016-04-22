@@ -595,7 +595,7 @@ namespace kinect{
 
 #if 0
     {
-      unsigned char pbuffer[200000];
+      byte pbuffer[200000];
       GLsizei bufsize = 200000;
       GLsizei length;
       GLenum binaryFormat;
@@ -603,7 +603,7 @@ namespace kinect{
       glGetProgramBinary(m_shader_pass_accum->getShaderHandle(),  bufsize,  &length,  &binaryFormat,  &pbuffer);
       std::cout << "used: " << length << " of " << bufsize << std::endl;
       FILE* shaderfile = fopen("shaderfile.bin", "wb");
-      fwrite(&pbuffer, length, sizeof(unsigned char),  shaderfile);
+      fwrite(&pbuffer, length, sizeof(byte),  shaderfile);
       fclose(shaderfile);
       //exit(0);
     }

@@ -152,9 +152,9 @@ namespace mvt{
       for(unsigned y = 0; y < _height_sub; ++y){
 	for(unsigned x = 0; x < _width; ++x){
 
-	  unsigned char r = buff[i];++i;
-	  unsigned char g = buff[i];++i;
-	  unsigned char b = buff[i];++i;
+	  std::uint8_t r = buff[i];++i;
+	  std::uint8_t g = buff[i];++i;
+	  std::uint8_t b = buff[i];++i;
 	  const unsigned index = y * _width + x;
 	  _bgd[tid]->setBackground(index, r, g, b);
 
@@ -172,11 +172,11 @@ namespace mvt{
       for(unsigned y = 0; y < _height_sub; ++y){
 	for(unsigned x = 0; x < _width; ++x){
 
-	  unsigned char r = buff[i];
+	  std::uint8_t r = buff[i];
 	  ++i;
-	  unsigned char g = buff[i];
+	  std::uint8_t g = buff[i];
 	  ++i;
-	  unsigned char b = buff[i];
+	  std::uint8_t b = buff[i];
 	  ++i;
 	  const unsigned index = y * _width + x;
 	  const bool bg = _bgd[tid]->detectBackground(index, r, g, b);

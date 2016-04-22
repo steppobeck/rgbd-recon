@@ -187,7 +187,7 @@ namespace kinect{
       m_colorsize = 307200;
     }
     else{
-      m_colorsize = m_widthc * m_heightc * 3 * sizeof(unsigned char);
+      m_colorsize = m_widthc * m_heightc * 3 * sizeof(byte);
     }
 
     m_colorsCPU3.matrixdata_back = new float [ARTLISTENERNUMSENSORS * sizeof(gloost::Matrix)];
@@ -208,8 +208,8 @@ namespace kinect{
     glBindBuffer(GL_PIXEL_PACK_BUFFER,0);
 
     if(m_kinectcs[0]->isCompressedDepth()){
-      m_depthsCPU3.size = m_width * m_height * m_numLayers * sizeof(unsigned char);
-      m_depthsize =  m_width * m_height * sizeof(unsigned char);
+      m_depthsCPU3.size = m_width * m_height * m_numLayers * sizeof(byte);
+      m_depthsize =  m_width * m_height * sizeof(byte);
     }
     else{
       m_depthsCPU3.size = m_width * m_height * m_numLayers * sizeof(float);
@@ -689,7 +689,7 @@ namespace kinect{
       glGetTexLevelParameteriv (GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_HEIGHT, &height);
       glGetTexLevelParameteriv (GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_DEPTH, &depth);
       
-      std::vector<unsigned char> depths;
+      std::vector<std::uint8_t> depths;
       depths.resize(width*height*depth);
       
       glGetTexImage(GL_TEXTURE_2D_ARRAY, 0, GL_RED, GL_UNSIGNED_BYTE, (void*)&depths[0]); 
@@ -724,12 +724,12 @@ namespace kinect{
       
       glGetTexImage(GL_TEXTURE_2D_ARRAY, 0, GL_RED, GL_FLOAT, (void*)&depthsTmp[0]); 
       
-      std::vector<unsigned char> depths;
+      std::vector<std::uint8_t> depths;
       depths.resize(depthsTmp.size());
       
       for (int i = 0; i < width*height*depth; ++i)
       {
-        depths[i] = (unsigned char)depthsTmp[i] * 255.0f;
+        depths[i] = (std::uint8_t)depthsTmp[i] * 255.0f;
       }
       
       int offset = 0;
@@ -755,24 +755,24 @@ namespace kinect{
       int size;
       glGetTexLevelParameteriv (GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, &size);
       
-      std::vector<unsigned char> data;
+      std::vector<std::uint8_t> data;
       data.resize(size);
       
       glGetCompressedTexImage(GL_TEXTURE_2D_ARRAY, 0, (void*)&data[0]);
       
-      std::vector<unsigned char> depths;
-      depths.resize(4*m_widthc*m_heightc);
+      std::vector<std::uint8_t> colors;
+      colors.resize(4*m_widthc*m_heightc);
     
       for (unsigned k = 0; k < getNumLayers(); ++k)
       {
-        squish::DecompressImage (&depths[0], m_widthc, m_heightc, &data[k*m_colorsize], squish::kDxt1);
+        squish::DecompressImage (&colors[0], m_widthc, m_heightc, &data[k*m_colorsize], squish::kDxt1);
         
         std::stringstream sstr;
         sstr << "output/" << prefix << "_col_" << k << ".bmp";
         std::string filename (sstr.str());
         std::cout << "writing color texture for kinect " << k << " to file " << filename << std::endl;
 
-        writeBMP(filename, depths, 0, 4);
+        writeBMP(filename, colors, 0, 4);
       }
     }
     else
@@ -785,10 +785,10 @@ namespace kinect{
       glGetTexLevelParameteriv (GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_HEIGHT, &height);
       glGetTexLevelParameteriv (GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_DEPTH, &depth);
       
-      std::vector<unsigned char> depths;
-      depths.resize(3*width*height*depth);
+      std::vector<std::uint8_t> colors;
+      colors.resize(3*width*height*depth);
       
-      glGetTexImage(GL_TEXTURE_2D_ARRAY, 0, GL_RGB, GL_UNSIGNED_BYTE, (void*)&depths[0]); 
+      glGetTexImage(GL_TEXTURE_2D_ARRAY, 0, GL_RGB, GL_UNSIGNED_BYTE, (void*)&colors[0]); 
       
       int offset = 0;
       
@@ -799,7 +799,7 @@ namespace kinect{
         std::string filename (sstr.str());
         std::cout << "writing color texture for kinect " << k << " to file " << filename << std::endl;
 
-        writeBMP(filename, depths, offset, 3);
+        writeBMP(filename, colors, offset, 3);
         offset += 3 * width*height;
       }
     }
@@ -807,7 +807,7 @@ namespace kinect{
   }
   
   // no universal use! very unflexible, resolution depth = resolution color, no row padding
-  void NetKinectArray::writeBMP(std::string filename, std::vector<unsigned char> const& data, unsigned int offset, unsigned int bytesPerPixel)
+  void NetKinectArray::writeBMP(std::string filename, std::vector<std::uint8_t> const& data, unsigned int offset, unsigned int bytesPerPixel)
   {
     std::ofstream file (filename, std::ofstream::binary);
     char c;

@@ -1,4 +1,5 @@
 #include "FileBuffer.h"
+#include "DataTypes.h"
 
 
 #include <iostream>
@@ -120,7 +121,7 @@ namespace sys{
       }
     }
 
-    unsigned bytes = fread(buffer, sizeof (unsigned char), numbytes, m_file);
+    unsigned bytes = fread(buffer, sizeof (byte), numbytes, m_file);
     m_bytes_r += bytes;
 
     return bytes;
@@ -130,7 +131,7 @@ namespace sys{
   FileBuffer::write(void* buffer, unsigned numbytes){
     if(0 == m_file)
       return 0;
-    unsigned bytes = fwrite(buffer, sizeof (unsigned char), numbytes, m_file);
+    unsigned bytes = fwrite(buffer, sizeof (byte), numbytes, m_file);
     m_bytes_w += bytes;
     return bytes;
   }
