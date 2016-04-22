@@ -13,16 +13,8 @@ endif(UNIX)
 # Location where cmake first looks for modules.
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
-
-
 if(MSVC)
   set(BINARY_DIRECTORY build)
-endif()
-
-if(("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang") OR ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU") OR (("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Intel") AND UNIX))
-  set(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LANGUAGE_STANDARD "c++0x")
-  set(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY "libc++")
-  set(CMAKE_CXX_FLAGS "-std=c++0x")
 endif()
 
 include(FindDependency)
@@ -88,19 +80,21 @@ include_directories(SYSTEM ${CGAL_INCLUDE_DIRS})
 ################################
 # squish
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/squish)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/squish)
+include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/external/squish)
 ################################
 # FastDXT
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/fastdxt)
-include_directories(${FASTDXT_INCLUDE_DIRS})
+# suppress warnings
+target_compile_options(libfastdxt PRIVATE -w)
+include_directories(SYSTEM ${FASTDXT_INCLUDE_DIRS})
 ################################
 # gloost
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/gloost)
-include_directories(${GLOOST_INCLUDE_DIRS})
+include_directories(SYSTEM ${GLOOST_INCLUDE_DIRS})
 ################################
 # svg
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/svg)
-include_directories(${SVG_INCLUDE_DIRS})
+include_directories(SYSTEM ${SVG_INCLUDE_DIRS})
 
 ################################
 # Add libraries to executables
@@ -118,6 +112,22 @@ link_directories(${BOOST_LIBRARY_DIRS})
 ################################
 # Add output directory
 
+# activate C++ 11
+if(NOT MSVC)
+    add_definitions(-std=c++11)
+    # show warnings
+    add_definitions(-Wall)
+    # force linking  with c++11 lib
+    if(APPLE)
+        set(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LANGUAGE_STANDARD "c++0x")
+        set(CMAKE_XCODE_ATTRIBUTE_CLANG_CXX_LIBRARY "libc++")
+        add_definitions(-stdlib=libc++)
+    endif()
+else()
+    # build in parallel, show warnings
+    add_definitions(/MP /W3)
+endif()
+
 # MSVC & Xcode automatically create the build-type folders
 if(MSVC OR CMAKE_GENERATOR STREQUAL Xcode)
   SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR})
@@ -131,10 +141,6 @@ if(MSVC)
   add_definitions(-D_CRT_SECURE_NO_WARNINGS)
 endif(MSVC)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/framework)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/framework/calibration)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/framework/navigation)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/framework/measurement)
 add_subdirectory(framework)
 
 add_subdirectory(source)
