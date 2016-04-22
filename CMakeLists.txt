@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 2.8)
 project(rgbd-calib)
 
+#set the build type if its not set
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Debug CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel." FORCE)
+endif()
 
 if (UNIX)
   find_package(PkgConfig)
@@ -114,20 +118,14 @@ link_directories(${BOOST_LIBRARY_DIRS})
 ################################
 # Add output directory
 
-if(MSVC)
-  set(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/build/)
-  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(COPY_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/build/Debug/ )
-  else(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(COPY_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/build/Release/ )
-  endif(CMAKE_BUILD_TYPE STREQUAL "Debug")
-else(MSVC)
-  if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/build/Debug )
-  else(CMAKE_BUILD_TYPE STREQUAL "Debug")
-    set(EXECUTABLE_OUTPUT_PATH ${CMAKE_CURRENT_BINARY_DIR}/build/Release )
-  endif(CMAKE_BUILD_TYPE STREQUAL "Debug")
-endif(MSVC)
+# MSVC & Xcode automatically create the build-type folders
+if(MSVC OR CMAKE_GENERATOR STREQUAL Xcode)
+  SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR})
+  SET(LIBRARY_OUTPUT_PATH  ${PROJECT_BINARY_DIR})
+else()
+  SET(EXECUTABLE_OUTPUT_PATH ${PROJECT_BINARY_DIR}/${CMAKE_BUILD_TYPE})
+  SET(LIBRARY_OUTPUT_PATH  ${PROJECT_BINARY_DIR}/${CMAKE_BUILD_TYPE})
+endif()
 
 if(MSVC)
   add_definitions(-D_CRT_SECURE_NO_WARNINGS)
