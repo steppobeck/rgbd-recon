@@ -27,7 +27,7 @@ namespace kinect{
 
     void drawSamplePoints();
     bool reload();
-    bool save();
+    void save();
     
     void saveSamplePoints(const char* bfname, unsigned stride);
     void loadSamplePoints(const char* bfname);

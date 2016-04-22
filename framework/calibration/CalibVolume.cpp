@@ -129,6 +129,8 @@ namespace kinect{
     m_cv_xyzs(),
     m_cv_uvs(),
     m_cv_valids(),
+    bucket(false),
+    num_neighbours(10),
     m_poseoffset(),
     m_cb_width(7),
     m_cb_height(5),
@@ -141,9 +143,7 @@ namespace kinect{
     m_mutex(new boost::mutex),
     m_frame_count(0),
     do_swap(false),
-    calib_mode(false),
-    bucket(false),
-    num_neighbours(10)
+    calib_mode(false)
     {
 
       
@@ -346,7 +346,7 @@ namespace kinect{
     return true;
   }
 
-  bool
+  void
   CalibVolume::save(){
 
     for(unsigned i = 0; i < m_cv_xyz_filenames.size(); ++i){
@@ -880,7 +880,6 @@ namespace kinect{
     const unsigned cv_width = m_cv_widths[0];
     const unsigned cv_height = m_cv_heights[0];
     const unsigned cv_depth = m_cv_depths[0];
-    unsigned having = 0;
   
     for(unsigned z = 0; z < cv_depth; ++z){
       //std::cerr << "tid: having " << ++having << " from " << cv_depth / numthreads <<  std::endl; 
@@ -931,15 +930,11 @@ namespace kinect{
 
   void
   CalibVolume::applySamplesNNIAbsolute(bool doapply){
-
-
     std::cerr << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! applying " << (*m_sps)[0].size() << " for volume" << std::endl;
 
     std::vector<nniSample> nnisamples;
 
     for(unsigned s = 0; s < (*m_sps)[0].size(); ++s){
-      
-
       nniSample nnis;
       xyz pos_real;
       pos_real.x = (*m_sps)[0][s/*sample point*/].pos_real[0];
@@ -962,66 +957,43 @@ namespace kinect{
 
     NaturalNeighbourInterpolator nni(nnisamples);
 
-
     const unsigned cv_width = m_cv_widths[0];
     const unsigned cv_height = m_cv_heights[0];
     const unsigned cv_depth = m_cv_depths[0];
-    unsigned having = 0;
   
     for(unsigned z = 0; z < cv_depth; ++z){
       //std::cerr << "tid: having " << ++having << " from " << cv_depth / numthreads <<  std::endl; 
       for(unsigned y = 0; y < cv_height; ++y){
-	for(unsigned x = 0; x < cv_width; ++x){
-	  
-	  const unsigned cv_index = (z * cv_width * cv_height) + (y * cv_width) + x;
+      	for(unsigned x = 0; x < cv_width; ++x){
+      	  
+      	  const unsigned cv_index = (z * cv_width * cv_height) + (y * cv_width) + x;
 
-	  nniSample ipolant;
-	  ipolant.s_pos.x = x;
-	  ipolant.s_pos.y = y;
-	  ipolant.s_pos.z = z;
-	  
-	  ipolant.s_pos_off.x = 0.0;
-	  ipolant.s_pos_off.y = 0.0;
-	  ipolant.s_pos_off.z = 0.0;
+      	  nniSample ipolant;
+      	  ipolant.s_pos.x = x;
+      	  ipolant.s_pos.y = y;
+      	  ipolant.s_pos.z = z;
+      	  
+      	  ipolant.s_pos_off.x = 0.0;
+      	  ipolant.s_pos_off.y = 0.0;
+      	  ipolant.s_pos_off.z = 0.0;
 
-	  ipolant.s_tex_off.u = 0.0;
-	  ipolant.s_tex_off.v = 0.0;
+      	  ipolant.s_tex_off.u = 0.0;
+      	  ipolant.s_tex_off.v = 0.0;
 
-	  bool s_valid = nni.interpolate(ipolant);
+      	  bool s_valid = nni.interpolate(ipolant);
 
-	  if(doapply){
-	    m_cv_xyzs[0][cv_index] = ipolant.s_pos_off;
-	    m_cv_uvs[0][cv_index] = ipolant.s_tex_off;
-	  }
-	  m_cv_valids[0][cv_index] = s_valid;
-
-
-
-	}
+      	  if(doapply){
+      	    m_cv_xyzs[0][cv_index] = ipolant.s_pos_off;
+      	    m_cv_uvs[0][cv_index] = ipolant.s_tex_off;
+      	  }
+      	  m_cv_valids[0][cv_index] = s_valid;
+      	}
       }
     }
-
-
-
-
   }
-
-
-
-
-
-
-
-
-
-
-
-
 
   void
   CalibVolume::applySamplesByThreadIDW(const unsigned cv_width, const unsigned cv_height, const unsigned cv_depth, const unsigned i, const unsigned tid, const unsigned numthreads){
-
-
 
     gloost::Vector3 diameter(cv_width, cv_height, cv_depth);
     const float max_influence_dist = diameter.length();
@@ -1188,17 +1160,8 @@ namespace kinect{
 
   }
 
-
-
-
-
-
-
-
   void
   CalibVolume::applySamplesByThreadIDWAbsolute(const unsigned cv_width, const unsigned cv_height, const unsigned cv_depth, const unsigned i, const unsigned tid, const unsigned numthreads){
-
-
 
     gloost::Vector3 diameter(cv_width, cv_height, cv_depth);
     const float max_influence_dist = diameter.length();
@@ -1206,99 +1169,85 @@ namespace kinect{
     const float mean = 0;
     const float norm = 1.0f/gauss(0.0f, sigma, mean);
     
-    unsigned having = 0;
-  
     for(unsigned z = tid; z < cv_depth; z += numthreads){
       //std::cerr << "tid: having " << ++having << " from " << cv_depth / numthreads <<  std::endl; 
       for(unsigned y = 0; y < cv_height; ++y){
-	for(unsigned x = 0; x < cv_width; ++x){
-	  
-	  const unsigned cv_index = (z * cv_width * cv_height) + (y * cv_width) + x;
-	  
-	  gloost::Point3 vol_pos(x,y,z);
-	  
-	  xyz pos3D = m_cv_xyzs[i][cv_index];
-	  uv tex = m_cv_uvs[i][cv_index];
-	  
-	  double weight_d = 0.0;
-	  xyz_d pos_offset;
-	  pos_offset.x = 0.0;pos_offset.y = 0.0;pos_offset.z = 0.0;
-	  uv_d tex_offset;
-	  tex_offset.u = 0.0;tex_offset.v = 0.0;
-	  
+      	for(unsigned x = 0; x < cv_width; ++x){
+      	  
+      	  const unsigned cv_index = (z * cv_width * cv_height) + (y * cv_width) + x;
+      	  
+      	  gloost::Point3 vol_pos(x,y,z);
+      	  
+      	  double weight_d = 0.0;
+      	  xyz_d pos_offset;
+      	  pos_offset.x = 0.0;pos_offset.y = 0.0;pos_offset.z = 0.0;
+      	  uv_d tex_offset;
+      	  tex_offset.u = 0.0;tex_offset.v = 0.0;
+      	  
 
-	  // CandidateSample(const float w, const xyz& p_off, const uv& t_off)
-	  std::vector<CandidateSample> c_000;
+      	  // CandidateSample(const float w, const xyz& p_off, const uv& t_off)
+      	  std::vector<CandidateSample> c_000;
 
 
-	  for(unsigned s = 0; s < (*m_sps)[i/*kinect*/].size(); ++s){
-	    
-	    xyz pos_real;
-	    pos_real.x = (*m_sps)[i/*kinect*/][s/*sample point*/].pos_real[0];
-	    pos_real.y = (*m_sps)[i/*kinect*/][s/*sample point*/].pos_real[1];
-	    pos_real.z = (*m_sps)[i/*kinect*/][s/*sample point*/].pos_real[2];
+      	  for(unsigned s = 0; s < (*m_sps)[i/*kinect*/].size(); ++s){
+      	    
+      	    xyz pos_real;
+      	    pos_real.x = (*m_sps)[i/*kinect*/][s/*sample point*/].pos_real[0];
+      	    pos_real.y = (*m_sps)[i/*kinect*/][s/*sample point*/].pos_real[1];
+      	    pos_real.z = (*m_sps)[i/*kinect*/][s/*sample point*/].pos_real[2];
 
-	    const xyz s_pos_off = pos_real;
-	    const uv s_tex_off  = (*m_sps)[i/*kinect*/][s/*sample point*/].tex_color;
-	    // calculate distance from volume pos to sample pos
-	    
-	    const float s_x = cv_width *  ( (*m_sps)[i][s].tex_depth.u)/ m_calibs[i]->getWidth();
-	    const float s_y = cv_height *  ( (*m_sps)[i][s].tex_depth.v)/ m_calibs[i]->getHeight();
-	    const float s_z = cv_depth * (  (*m_sps)[i][s].depth - m_cv_min_ds[i])/(m_cv_max_ds[i] - m_cv_min_ds[i]);
-	    gloost::Point3 s_pos(s_x,s_y,s_z);
-	    const float influence_dist = std::min(max_influence_dist, (vol_pos - s_pos).length());
-	    const float s_weight = gauss(influence_dist, sigma, mean) * norm;
+      	    const xyz s_pos_off = pos_real;
+      	    const uv s_tex_off  = (*m_sps)[i/*kinect*/][s/*sample point*/].tex_color;
+      	    // calculate distance from volume pos to sample pos
+      	    
+      	    const float s_x = cv_width *  ( (*m_sps)[i][s].tex_depth.u)/ m_calibs[i]->getWidth();
+      	    const float s_y = cv_height *  ( (*m_sps)[i][s].tex_depth.v)/ m_calibs[i]->getHeight();
+      	    const float s_z = cv_depth * (  (*m_sps)[i][s].depth - m_cv_min_ds[i])/(m_cv_max_ds[i] - m_cv_min_ds[i]);
+      	    gloost::Point3 s_pos(s_x,s_y,s_z);
+      	    const float influence_dist = std::min(max_influence_dist, (vol_pos - s_pos).length());
+      	    const float s_weight = gauss(influence_dist, sigma, mean) * norm;
 
-	    CandidateSample cs(s_weight, s_pos_off, s_tex_off);
-	    c_000.push_back(cs);
+      	    CandidateSample cs(s_weight, s_pos_off, s_tex_off);
+      	    c_000.push_back(cs);
 
-	    /*
-	    weight_d += s_weight;
-	    pos_offset = pos_offset + s_weight * s_pos_off;
-	    tex_offset = tex_offset + s_weight * s_tex_off;
-	    */
-	  }
-	  // sort buckets
-	  std::sort(c_000.begin(), c_000.end());
+      	    /*
+      	    weight_d += s_weight;
+      	    pos_offset = pos_offset + s_weight * s_pos_off;
+      	    tex_offset = tex_offset + s_weight * s_tex_off;
+      	    */
+      	  }
+      	  // sort buckets
+      	  std::sort(c_000.begin(), c_000.end());
 
-	  const unsigned last_cs = num_neighbours;
-	  for(unsigned cs_idx = 0; cs_idx < c_000.size() && cs_idx < last_cs; ++cs_idx){
-	    weight_d += c_000[cs_idx].weight;
-	    pos_offset = pos_offset + c_000[cs_idx].weight * c_000[cs_idx].pos_off;
-	    tex_offset = tex_offset + c_000[cs_idx].weight * c_000[cs_idx].tex_off;
-	  }
+      	  const unsigned last_cs = num_neighbours;
+      	  for(unsigned cs_idx = 0; cs_idx < c_000.size() && cs_idx < last_cs; ++cs_idx){
+      	    weight_d += c_000[cs_idx].weight;
+      	    pos_offset = pos_offset + c_000[cs_idx].weight * c_000[cs_idx].pos_off;
+      	    tex_offset = tex_offset + c_000[cs_idx].weight * c_000[cs_idx].tex_off;
+      	  }
 
-	  if(weight_d > 0.01){
-	    xyz pos_offset_f;
-	    pos_offset_f.x = pos_offset.x/weight_d;
-	    pos_offset_f.y = pos_offset.y/weight_d;
-	    pos_offset_f.z = pos_offset.z/weight_d;
-	    uv tex_offset_f;
-	    tex_offset_f.u = tex_offset.u/weight_d;
-	    tex_offset_f.v = tex_offset.v/weight_d;
-	    
+      	  if(weight_d > 0.01){
+      	    xyz pos_offset_f;
+      	    pos_offset_f.x = pos_offset.x/weight_d;
+      	    pos_offset_f.y = pos_offset.y/weight_d;
+      	    pos_offset_f.z = pos_offset.z/weight_d;
+      	    uv tex_offset_f;
+      	    tex_offset_f.u = tex_offset.u/weight_d;
+      	    tex_offset_f.v = tex_offset.v/weight_d;
+      	    
 
-	    m_cv_xyzs[i][cv_index] = pos_offset_f;
-	    m_cv_uvs[i][cv_index] = tex_offset_f;
+      	    m_cv_xyzs[i][cv_index] = pos_offset_f;
+      	    m_cv_uvs[i][cv_index] = tex_offset_f;
 
-	    //m_cv_valids[0][cv_index] = true;
-	  }
-	  else{
-	    m_cv_valids[0][cv_index] = false;
-	  }
-
-
-
-	}
+      	    //m_cv_valids[0][cv_index] = true;
+      	  }
+      	  else{
+      	    m_cv_valids[0][cv_index] = false;
+      	  }
+      	}
       }
     }
-
-
   }
-
-
-
-
 
   void
   CalibVolume::applySamplesByThreadBucket(const unsigned cv_width, const unsigned cv_height, const unsigned cv_depth, const unsigned i, const unsigned tid, const unsigned numthreads){
@@ -1309,177 +1258,162 @@ namespace kinect{
     const float mean = 0;
     const float norm = 1.0f/gauss(0.0f, sigma, mean);
     
-    unsigned having = 0;
-  
     for(unsigned z = tid; z < cv_depth; z += numthreads){
       //std::cerr << "tid: having " << ++having << " from " << cv_depth / numthreads <<  std::endl; 
       for(unsigned y = 0; y < cv_height; ++y){
-	for(unsigned x = 0; x < cv_width; ++x){
-	  
-	  const unsigned cv_index = (z * cv_width * cv_height) + (y * cv_width) + x;
-	  
-	  gloost::Point3 vol_pos(x,y,z);
-	  
-	  xyz pos3D = m_cv_xyzs[i][cv_index];
-	  uv tex = m_cv_uvs[i][cv_index];
-	  
-	  double weight_d = 0.0;
-	  xyz_d pos_offset;
-	  pos_offset.x = 0.0;pos_offset.y = 0.0;pos_offset.z = 0.0;
-	  uv_d tex_offset;
-	  tex_offset.u = 0.0;tex_offset.v = 0.0;
-	  
+      	for(unsigned x = 0; x < cv_width; ++x){
+      	  
+      	  const unsigned cv_index = (z * cv_width * cv_height) + (y * cv_width) + x;
+      	  
+      	  gloost::Point3 vol_pos(x,y,z);
+      	  
+      	  xyz pos3D = m_cv_xyzs[i][cv_index];
+      	  uv tex = m_cv_uvs[i][cv_index];
+      	  
+      	  double weight_d = 0.0;
+      	  xyz_d pos_offset;
+      	  pos_offset.x = 0.0;pos_offset.y = 0.0;pos_offset.z = 0.0;
+      	  uv_d tex_offset;
+      	  tex_offset.u = 0.0;tex_offset.v = 0.0;
+      	  
+      	  // CandidateSample(const float w, const xyz& p_off, const uv& t_off)
+      	  std::vector<CandidateSample> c_000;
+      	  std::vector<CandidateSample> c_100;
+      	  std::vector<CandidateSample> c_110;
+      	  std::vector<CandidateSample> c_010;
+      	  std::vector<CandidateSample> c_001;
+      	  std::vector<CandidateSample> c_101;
+      	  std::vector<CandidateSample> c_111;
+      	  std::vector<CandidateSample> c_011;
 
-	  // CandidateSample(const float w, const xyz& p_off, const uv& t_off)
-	  std::vector<CandidateSample> c_000;
-	  std::vector<CandidateSample> c_100;
-	  std::vector<CandidateSample> c_110;
-	  std::vector<CandidateSample> c_010;
-	  std::vector<CandidateSample> c_001;
-	  std::vector<CandidateSample> c_101;
-	  std::vector<CandidateSample> c_111;
-	  std::vector<CandidateSample> c_011;
+      	  for(unsigned s = 0; s < (*m_sps)[i/*kinect*/].size(); ++s){
+      	    
+      	    const xyz s_pos_off = (*m_sps)[i/*kinect*/][s/*sample point*/].pos_offset;
+      	    const uv s_tex_off  = (*m_sps)[i/*kinect*/][s/*sample point*/].tex_offset;
+      	    // calculate distance from volume pos to sample pos
+      	    
+      	    const float s_x = cv_width *  ( (*m_sps)[i][s].tex_depth.u)/ m_calibs[i]->getWidth();
+      	    const float s_y = cv_height *  ( (*m_sps)[i][s].tex_depth.v)/ m_calibs[i]->getHeight();
+      	    const float s_z = cv_depth * (  (*m_sps)[i][s].depth - m_cv_min_ds[i])/(m_cv_max_ds[i] - m_cv_min_ds[i]);
+      	    gloost::Point3 s_pos(s_x,s_y,s_z);
+      	    const float influence_dist = std::min(max_influence_dist, (vol_pos - s_pos).length());
+      	    const float s_weight = gauss(influence_dist, sigma, mean) * norm;
 
-
-	  for(unsigned s = 0; s < (*m_sps)[i/*kinect*/].size(); ++s){
-	    
-	    const xyz s_pos_off = (*m_sps)[i/*kinect*/][s/*sample point*/].pos_offset;
-	    const uv s_tex_off  = (*m_sps)[i/*kinect*/][s/*sample point*/].tex_offset;
-	    // calculate distance from volume pos to sample pos
-	    
-	    const float s_x = cv_width *  ( (*m_sps)[i][s].tex_depth.u)/ m_calibs[i]->getWidth();
-	    const float s_y = cv_height *  ( (*m_sps)[i][s].tex_depth.v)/ m_calibs[i]->getHeight();
-	    const float s_z = cv_depth * (  (*m_sps)[i][s].depth - m_cv_min_ds[i])/(m_cv_max_ds[i] - m_cv_min_ds[i]);
-	    gloost::Point3 s_pos(s_x,s_y,s_z);
-	    const float influence_dist = std::min(max_influence_dist, (vol_pos - s_pos).length());
-	    const float s_weight = gauss(influence_dist, sigma, mean) * norm;
-
-	    CandidateSample cs(s_weight, s_pos_off, s_tex_off);
-	    if( (s_x <= x) && (s_y <= y) && (s_z <= z) ){
-	      c_000.push_back(cs);
-	    }
-	    else if( (s_x > x) && (s_y < y) && (s_z < z) ){
-	      c_100.push_back(cs);
-	    }
-	    else if( (s_x > x) && (s_y > y) && (s_z < z) ){
-	      c_110.push_back(cs);
-	    }
-	    else if( (s_x > x) && (s_y > y) && (s_z > z) ){
-	      c_111.push_back(cs);
-	    }
-	    else if( (s_x > x) && (s_y < y) && (s_z > z) ){
-	      c_101.push_back(cs);
-	    }
-	    else if( (s_x < x) && (s_y < y) && (s_z > z) ){
-	      c_001.push_back(cs);
-	    }
-	    else if( (s_x < x) && (s_y > y) && (s_z < z) ){
-	      c_010.push_back(cs);
-	    }
-	    else if( (s_x < x) && (s_y > y) && (s_z > z) ){
-	      c_011.push_back(cs);
-	    }
-	    else{
-	      std::cerr << "error sorting into buckets failed" << std::endl;
-	    }
+      	    CandidateSample cs(s_weight, s_pos_off, s_tex_off);
+      	    if( (s_x <= x) && (s_y <= y) && (s_z <= z) ){
+      	      c_000.push_back(cs);
+      	    }
+      	    else if( (s_x > x) && (s_y < y) && (s_z < z) ){
+      	      c_100.push_back(cs);
+      	    }
+      	    else if( (s_x > x) && (s_y > y) && (s_z < z) ){
+      	      c_110.push_back(cs);
+      	    }
+      	    else if( (s_x > x) && (s_y > y) && (s_z > z) ){
+      	      c_111.push_back(cs);
+      	    }
+      	    else if( (s_x > x) && (s_y < y) && (s_z > z) ){
+      	      c_101.push_back(cs);
+      	    }
+      	    else if( (s_x < x) && (s_y < y) && (s_z > z) ){
+      	      c_001.push_back(cs);
+      	    }
+      	    else if( (s_x < x) && (s_y > y) && (s_z < z) ){
+      	      c_010.push_back(cs);
+      	    }
+      	    else if( (s_x < x) && (s_y > y) && (s_z > z) ){
+      	      c_011.push_back(cs);
+      	    }
+      	    else{
+      	      std::cerr << "error sorting into buckets failed" << std::endl;
+      	    }
 
 
-	    /*
-	    weight_d += s_weight;
-	    pos_offset = pos_offset + s_weight * s_pos_off;
-	    tex_offset = tex_offset + s_weight * s_tex_off;
-	    */
-	  }
-	  // sort buckets
-	  std::sort(c_000.begin(), c_000.end());
-	  std::sort(c_001.begin(), c_001.end());
-	  std::sort(c_010.begin(), c_010.end());
-	  std::sort(c_011.begin(), c_011.end());
-	  std::sort(c_100.begin(), c_100.end());
-	  std::sort(c_101.begin(), c_101.end());
-	  std::sort(c_110.begin(), c_110.end());
-	  std::sort(c_111.begin(), c_111.end());
-	  
-	  // check sorting
-#if 0
-	  for(unsigned cs_idx = 0; cs_idx < c_000.size() ; ++cs_idx){
-	    std::cerr << cs_idx << " " << c_000[cs_idx].weight << std::endl;
-	  }
-#endif
+      	    /*
+      	    weight_d += s_weight;
+      	    pos_offset = pos_offset + s_weight * s_pos_off;
+      	    tex_offset = tex_offset + s_weight * s_tex_off;
+      	    */
+      	  }
+      	  // sort buckets
+      	  std::sort(c_000.begin(), c_000.end());
+      	  std::sort(c_001.begin(), c_001.end());
+      	  std::sort(c_010.begin(), c_010.end());
+      	  std::sort(c_011.begin(), c_011.end());
+      	  std::sort(c_100.begin(), c_100.end());
+      	  std::sort(c_101.begin(), c_101.end());
+      	  std::sort(c_110.begin(), c_110.end());
+      	  std::sort(c_111.begin(), c_111.end());
+      	  
+      	  // check sorting
+      #if 0
+      	  for(unsigned cs_idx = 0; cs_idx < c_000.size() ; ++cs_idx){
+      	    std::cerr << cs_idx << " " << c_000[cs_idx].weight << std::endl;
+      	  }
+      #endif
 
-	  // gather first from each bucket
-	  const unsigned last_cs = 1;
-	  for(unsigned cs_idx = 0; cs_idx < c_000.size() && cs_idx < last_cs; ++cs_idx){
-	    weight_d += c_000[cs_idx].weight;
-	    pos_offset = pos_offset + c_000[cs_idx].weight * c_000[cs_idx].pos_off;
-	    tex_offset = tex_offset + c_000[cs_idx].weight * c_000[cs_idx].tex_off;
-	  }
-	  for(unsigned cs_idx = 0; cs_idx < c_001.size() && cs_idx < last_cs; ++cs_idx){
-	    weight_d += c_001[cs_idx].weight;
-	    pos_offset = pos_offset + c_001[cs_idx].weight * c_001[cs_idx].pos_off;
-	    tex_offset = tex_offset + c_001[cs_idx].weight * c_001[cs_idx].tex_off;
-	  }
-	  for(unsigned cs_idx = 0; cs_idx < c_010.size() && cs_idx < last_cs; ++cs_idx){
-	    weight_d += c_010[cs_idx].weight;
-	    pos_offset = pos_offset + c_010[cs_idx].weight * c_010[cs_idx].pos_off;
-	    tex_offset = tex_offset + c_010[cs_idx].weight * c_010[cs_idx].tex_off;
-	  }
-	  for(unsigned cs_idx = 0; cs_idx < c_011.size() && cs_idx < last_cs; ++cs_idx){
-	    weight_d += c_011[cs_idx].weight;
-	    pos_offset = pos_offset + c_011[cs_idx].weight * c_011[cs_idx].pos_off;
-	    tex_offset = tex_offset + c_011[cs_idx].weight * c_011[cs_idx].tex_off;
-	  }
-	  for(unsigned cs_idx = 0; cs_idx < c_100.size() && cs_idx < last_cs; ++cs_idx){
-	    weight_d += c_100[cs_idx].weight;
-	    pos_offset = pos_offset + c_100[cs_idx].weight * c_100[cs_idx].pos_off;
-	    tex_offset = tex_offset + c_100[cs_idx].weight * c_100[cs_idx].tex_off;
-	  }
-	  for(unsigned cs_idx = 0; cs_idx < c_101.size() && cs_idx < last_cs; ++cs_idx){
-	    weight_d += c_101[cs_idx].weight;
-	    pos_offset = pos_offset + c_101[cs_idx].weight * c_101[cs_idx].pos_off;
-	    tex_offset = tex_offset + c_101[cs_idx].weight * c_101[cs_idx].tex_off;
-	  }
-	  for(unsigned cs_idx = 0; cs_idx < c_110.size() && cs_idx < last_cs; ++cs_idx){
-	    weight_d += c_110[cs_idx].weight;
-	    pos_offset = pos_offset + c_110[cs_idx].weight * c_110[cs_idx].pos_off;
-	    tex_offset = tex_offset + c_110[cs_idx].weight * c_110[cs_idx].tex_off;
-	  }
-	  for(unsigned cs_idx = 0; cs_idx < c_111.size() && cs_idx < last_cs; ++cs_idx){
-	    weight_d += c_111[cs_idx].weight;
-	    pos_offset = pos_offset + c_111[cs_idx].weight * c_111[cs_idx].pos_off;
-	    tex_offset = tex_offset + c_111[cs_idx].weight * c_111[cs_idx].tex_off;
-	  }
+      	  // gather first from each bucket
+      	  const unsigned last_cs = 1;
+      	  for(unsigned cs_idx = 0; cs_idx < c_000.size() && cs_idx < last_cs; ++cs_idx){
+      	    weight_d += c_000[cs_idx].weight;
+      	    pos_offset = pos_offset + c_000[cs_idx].weight * c_000[cs_idx].pos_off;
+      	    tex_offset = tex_offset + c_000[cs_idx].weight * c_000[cs_idx].tex_off;
+      	  }
+      	  for(unsigned cs_idx = 0; cs_idx < c_001.size() && cs_idx < last_cs; ++cs_idx){
+      	    weight_d += c_001[cs_idx].weight;
+      	    pos_offset = pos_offset + c_001[cs_idx].weight * c_001[cs_idx].pos_off;
+      	    tex_offset = tex_offset + c_001[cs_idx].weight * c_001[cs_idx].tex_off;
+      	  }
+      	  for(unsigned cs_idx = 0; cs_idx < c_010.size() && cs_idx < last_cs; ++cs_idx){
+      	    weight_d += c_010[cs_idx].weight;
+      	    pos_offset = pos_offset + c_010[cs_idx].weight * c_010[cs_idx].pos_off;
+      	    tex_offset = tex_offset + c_010[cs_idx].weight * c_010[cs_idx].tex_off;
+      	  }
+      	  for(unsigned cs_idx = 0; cs_idx < c_011.size() && cs_idx < last_cs; ++cs_idx){
+      	    weight_d += c_011[cs_idx].weight;
+      	    pos_offset = pos_offset + c_011[cs_idx].weight * c_011[cs_idx].pos_off;
+      	    tex_offset = tex_offset + c_011[cs_idx].weight * c_011[cs_idx].tex_off;
+      	  }
+      	  for(unsigned cs_idx = 0; cs_idx < c_100.size() && cs_idx < last_cs; ++cs_idx){
+      	    weight_d += c_100[cs_idx].weight;
+      	    pos_offset = pos_offset + c_100[cs_idx].weight * c_100[cs_idx].pos_off;
+      	    tex_offset = tex_offset + c_100[cs_idx].weight * c_100[cs_idx].tex_off;
+      	  }
+      	  for(unsigned cs_idx = 0; cs_idx < c_101.size() && cs_idx < last_cs; ++cs_idx){
+      	    weight_d += c_101[cs_idx].weight;
+      	    pos_offset = pos_offset + c_101[cs_idx].weight * c_101[cs_idx].pos_off;
+      	    tex_offset = tex_offset + c_101[cs_idx].weight * c_101[cs_idx].tex_off;
+      	  }
+      	  for(unsigned cs_idx = 0; cs_idx < c_110.size() && cs_idx < last_cs; ++cs_idx){
+      	    weight_d += c_110[cs_idx].weight;
+      	    pos_offset = pos_offset + c_110[cs_idx].weight * c_110[cs_idx].pos_off;
+      	    tex_offset = tex_offset + c_110[cs_idx].weight * c_110[cs_idx].tex_off;
+      	  }
+      	  for(unsigned cs_idx = 0; cs_idx < c_111.size() && cs_idx < last_cs; ++cs_idx){
+      	    weight_d += c_111[cs_idx].weight;
+      	    pos_offset = pos_offset + c_111[cs_idx].weight * c_111[cs_idx].pos_off;
+      	    tex_offset = tex_offset + c_111[cs_idx].weight * c_111[cs_idx].tex_off;
+      	  }
 
-
-
-
-	  if(weight_d > 0.01){
-	    xyz pos_offset_f;
-	    pos_offset_f.x = pos_offset.x/weight_d;
-	    pos_offset_f.y = pos_offset.y/weight_d;
-	    pos_offset_f.z = pos_offset.z/weight_d;
-	    uv tex_offset_f;
-	    tex_offset_f.u = tex_offset.u/weight_d;
-	    tex_offset_f.v = tex_offset.v/weight_d;
-	    xyz pos3D_new = pos3D + pos_offset_f;
-	    uv tex_new = tex + tex_offset_f;
-	    m_cv_xyzs[i][cv_index] = pos3D_new;
-	    m_cv_uvs[i][cv_index] = tex_new;
-	    //m_cv_valids[0][cv_index] = true;
-	  }
-	  else{
-	    m_cv_valids[0][cv_index] = false;
-	  }
-
-
-
-	}
+      	  if(weight_d > 0.01){
+      	    xyz pos_offset_f;
+      	    pos_offset_f.x = pos_offset.x/weight_d;
+      	    pos_offset_f.y = pos_offset.y/weight_d;
+      	    pos_offset_f.z = pos_offset.z/weight_d;
+      	    uv tex_offset_f;
+      	    tex_offset_f.u = tex_offset.u/weight_d;
+      	    tex_offset_f.v = tex_offset.v/weight_d;
+      	    xyz pos3D_new = pos3D + pos_offset_f;
+      	    uv tex_new = tex + tex_offset_f;
+      	    m_cv_xyzs[i][cv_index] = pos3D_new;
+      	    m_cv_uvs[i][cv_index] = tex_new;
+      	    //m_cv_valids[0][cv_index] = true;
+      	  }
+      	  else{
+      	    m_cv_valids[0][cv_index] = false;
+      	  }
+      	}
       }
     }
-
-
   }
-
-
-
 }
