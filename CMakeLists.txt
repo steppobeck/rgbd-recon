@@ -24,7 +24,10 @@ endif()
 include(FindDependency)
 ################################
 # zmq
-include(FindZMQ)
+set(ZMQ_INCLUDE_SEARCH_DIR "/opt/zmq/current/include")
+set(ZMQ_LIBRARY_SEARCH_DIR "/opt/zmq/current/lib")
+find_dependency(ZMQ "zmq.h" "libzmq")
+include_directories(${ZMQ_INCLUDE_DIRS})
 # OpenCV
 include(FindOpenCV)
 # boost
@@ -104,8 +107,6 @@ set(LIBRARIES glfw GLU glut ${GLFW_LIBRARIES} ${ZMQ_LIBRARIES} ${OPENCV_LIBRARIE
 set(CATCH_DIRECTORY catch-1.1)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/${CATCH_DIRECTORY})
 ################################
-# zmq
-link_directories(${ZMQ_LIBRARY_DIRS})
 # OpenCV
 link_directories(${OPENCV_LIBRARY_DIRS})
 # boost
