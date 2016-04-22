@@ -77,16 +77,12 @@ namespace kinect{
     //std::cerr << "_b * _n = " << _b * _n << std::endl;
 
     // test if a point generated is on the plane
-    gloost::Point3 p = _o + ((50 * gloost::crand()) * _a) + ((50 * gloost::crand()) * _b);
+    // gloost::Point3 p = _o + ((50 * gloost::crand()) * _a) + ((50 * gloost::crand()) * _b);
     //std::cerr << "distance from " << p << " to plane is " << (gloost::Vector3(p) * _n) + _d  << std::endl;
-
-
   }
-
       
   Plane3::~Plane3()
   {}
-
 
   float
   Plane3::distance(const gloost::Point3& p){

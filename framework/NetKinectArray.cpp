@@ -204,7 +204,7 @@ namespace kinect{
     glGenBuffers(1,&m_colorsCPU3.backID);
     glBindBuffer(GL_PIXEL_PACK_BUFFER,m_colorsCPU3.backID);
     glBufferData(GL_PIXEL_PACK_BUFFER, m_colorsCPU3.size, 0, GL_DYNAMIC_DRAW);
-    m_colorsCPU3.back = (unsigned char *) glMapBufferRange(GL_PIXEL_PACK_BUFFER,0 /*offset*/, m_colorsCPU3.size /*length*/, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+    m_colorsCPU3.back = (byte*) glMapBufferRange(GL_PIXEL_PACK_BUFFER,0 /*offset*/, m_colorsCPU3.size /*length*/, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
     glBindBuffer(GL_PIXEL_PACK_BUFFER,0);
 
     if(m_kinectcs[0]->isCompressedDepth()){
@@ -231,7 +231,7 @@ namespace kinect{
     glGenBuffers(1,&m_depthsCPU3.backID);
     glBindBuffer(GL_PIXEL_PACK_BUFFER,m_depthsCPU3.backID);
     glBufferData(GL_PIXEL_PACK_BUFFER, m_depthsCPU3.size, 0, GL_DYNAMIC_DRAW);
-    m_depthsCPU3.back = (unsigned char *) glMapBufferRange(GL_PIXEL_PACK_BUFFER,0 /*offset*/, m_depthsCPU3.size /*length*/, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+    m_depthsCPU3.back = (byte*) glMapBufferRange(GL_PIXEL_PACK_BUFFER,0 /*offset*/, m_depthsCPU3.size /*length*/, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
     glBindBuffer(GL_PIXEL_PACK_BUFFER,0);
 
 
@@ -362,11 +362,11 @@ namespace kinect{
 	m_depthsCPU3.swap();
 
 	glBindBuffer(GL_PIXEL_PACK_BUFFER,m_colorsCPU3.backID);
-	m_colorsCPU3.back = (unsigned char *) glMapBufferRange(GL_PIXEL_PACK_BUFFER,0 /*offset*/, m_colorsCPU3.size /*length*/, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+	m_colorsCPU3.back = (byte*) glMapBufferRange(GL_PIXEL_PACK_BUFFER,0 /*offset*/, m_colorsCPU3.size /*length*/, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 	glBindBuffer(GL_PIXEL_PACK_BUFFER,0);
 
 	glBindBuffer(GL_PIXEL_PACK_BUFFER,m_depthsCPU3.backID);
-	m_depthsCPU3.back = (unsigned char *) glMapBufferRange(GL_PIXEL_PACK_BUFFER,0 /*offset*/, m_depthsCPU3.size /*length*/, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+	m_depthsCPU3.back = (byte*) glMapBufferRange(GL_PIXEL_PACK_BUFFER,0 /*offset*/, m_depthsCPU3.size /*length*/, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 	glBindBuffer(GL_PIXEL_PACK_BUFFER,0);
 
 	
@@ -593,7 +593,6 @@ namespace kinect{
     std::string endpoint("tcp://" + m_serverport);
     socket.connect(endpoint.c_str());
 
- 
     //const unsigned pixelcountc = m_kinectcs[0]->getWidthC() * m_kinectcs[0]->getHeightC();
     const unsigned pixelcount = m_kinectcs[0]->getWidth() * m_kinectcs[0]->getHeight();
     
@@ -606,42 +605,31 @@ namespace kinect{
     unsigned lastframenr = 99;
 
     while(m_running){
-
-
-
       zmq::message_t zmqm((colorsize + depthsize) * m_kinectcs.size());
       
       socket.recv(&zmqm); // blocking
       
-
       if(!drop){
+      	while(m_colorsCPU3.needSwap){
+      	  ;
+      	}
 
-
-	while(m_colorsCPU3.needSwap){
-	  ;
-	}
-
-	unsigned offset = 0;
-	// receive data
+      	unsigned offset = 0;
+      	// receive data
         const unsigned number_of_kinects = m_kinectcs.size(); // is 5 in the current example
         // this loop goes over each kinect like K1_frame_1 K2_frame_1 K3_frame_1 
-	for(unsigned i = 0; i < number_of_kinects; ++i){
-	  memcpy((unsigned char*) m_colorsCPU3.back + i*colorsize , (unsigned char*) zmqm.data() + offset, colorsize);
-	  offset += colorsize;
-	  memcpy((unsigned char*) m_depthsCPU3.back + i*depthsize , (unsigned char*) zmqm.data() + offset, depthsize);
+      	for(unsigned i = 0; i < number_of_kinects; ++i){
+      	  memcpy((byte*) m_colorsCPU3.back + i*colorsize , (byte*) zmqm.data() + offset, colorsize);
+      	  offset += colorsize;
+      	  memcpy((byte*) m_depthsCPU3.back + i*depthsize , (byte*) zmqm.data() + offset, depthsize);
 
-	  offset += depthsize;
-	}
-
-
+      	  offset += depthsize;
+      	}
       }
-
-
-
       
       const unsigned ts_address = ARTLISTENERNUMSENSORS * sizeof(gloost::Matrix);
       if(!drop){
-	memcpy((void *) m_colorsCPU3.matrixdata_back, zmqm.data(), ts_address /*ARTLISTENERNUMSENSORS * sizeof(gloost::Matrix)*/);
+	       memcpy((void *) m_colorsCPU3.matrixdata_back, zmqm.data(), ts_address /*ARTLISTENERNUMSENSORS * sizeof(gloost::Matrix)*/);
       }
       memcpy(&ts,           zmqm.data() + ts_address, sizeof(sensor::timevalue));
       const unsigned framenr_address = ts_address + sizeof(sensor::timevalue);
@@ -649,36 +637,28 @@ namespace kinect{
       memcpy(&curr_framenr, zmqm.data() + framenr_address, sizeof(curr_framenr));
       //std::cerr << "received frame " << curr_framenr << std::endl;
       if((curr_framenr < framenr) || (lastframenr == framenr)){
-	bool tmp_isphoto = (((framenr - curr_framenr) < 29) && m_isrecording) ? true : false;
-	
-	if((tmp_isphoto) || (lastframenr == framenr)){
+      	bool tmp_isphoto = (((framenr - curr_framenr) < 29) && m_isrecording) ? true : false;
+      	
+      	if((tmp_isphoto) || (lastframenr == framenr)){
 
- 	  // check if ".rec" file is avaible
-	  size_t pos = m_config.rfind(".");
-	  std::string photoname = m_config.substr(0,pos);
-	  photoname = std::string("./recordings/") + photoname + ".photo";
-	  struct stat attrib;
-	  int ret = stat(photoname.c_str(), &attrib);
-	  if(0 == ret){
-	    m_isphoto = true; // maybe sync system?//true;
-	  }
-
-
-	}
+       	  // check if ".rec" file is avaible
+      	  size_t pos = m_config.rfind(".");
+      	  std::string photoname = m_config.substr(0,pos);
+      	  photoname = std::string("./recordings/") + photoname + ".photo";
+      	  struct stat attrib;
+      	  int ret = stat(photoname.c_str(), &attrib);
+      	  if(0 == ret){
+      	    m_isphoto = true; // maybe sync system?//true;
+      	  }
+      	}
       }
       lastframenr = framenr;
       framenr = curr_framenr;
       
       //std::cerr << "is photo " << (int) m_isphoto << std::endl;
-
-
-
-
-
       if(!drop){ // swap
-	boost::mutex::scoped_lock lock(*m_mutex);
-	m_colorsCPU3.needSwap = true;
-	
+      	boost::mutex::scoped_lock lock(*m_mutex);
+      	m_colorsCPU3.needSwap = true;
       }
     }
   }
@@ -913,12 +893,12 @@ namespace kinect{
     unsigned offset = 0;
     // receive data
     for(unsigned i = 0; i < m_kinectcs.size(); ++i){
-      //memcpy((unsigned char*) m_colorsCPU3.back + i*colorsize , (unsigned char*) zmqm.data() + offset, colorsize);
-      fbs[i]->read((unsigned char*) m_colorsCPU3.back + i*colorsize, colorsize);
+      //memcpy((byte*) m_colorsCPU3.back + i*colorsize , (byte*) zmqm.data() + offset, colorsize);
+      fbs[i]->read((byte*) m_colorsCPU3.back + i*colorsize, colorsize);
       offset += colorsize;
 
-      //memcpy((unsigned char*) m_depthsCPU3.back + i*depthsize , (unsigned char*) zmqm.data() + offset, depthsize);
-      fbs[i]->read((unsigned char*) m_depthsCPU3.back + i*depthsize, depthsize);
+      //memcpy((byte*) m_depthsCPU3.back + i*depthsize , (byte*) zmqm.data() + offset, depthsize);
+      fbs[i]->read((byte*) m_depthsCPU3.back + i*depthsize, depthsize);
       
       offset += depthsize;
     }

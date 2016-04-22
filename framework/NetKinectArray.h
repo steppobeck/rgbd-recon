@@ -12,6 +12,7 @@
 #include <string>
 #include <vector>
 #include <atomic>
+#include "DataTypes.h"
 
 namespace boost{
   class thread;
@@ -34,7 +35,7 @@ namespace kinect{
 
   struct double_pbo{
     unsigned size;
-    unsigned char* back;
+    byte* back;
     std::atomic<bool> needSwap;
     unsigned frontID;
     unsigned backID;

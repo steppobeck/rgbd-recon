@@ -20,20 +20,20 @@ namespace kinect{
       std::string error2D_filename = basefile + "cv_error2D_nni";
       std::string nnistats_filename = basefile + "cv_nnistats";
       
-      unsigned char* error3D       = new unsigned char [cv->m_cv_widths[i] * cv->m_cv_heights[i] * cv->m_cv_depths[i]];
-      unsigned char* error2D       = new unsigned char [cv->m_cv_widths[i] * cv->m_cv_heights[i] * cv->m_cv_depths[i]];
-      unsigned char* nnistats = new unsigned char [cv->m_cv_widths[i] * cv->m_cv_heights[i] * cv->m_cv_depths[i]];
+      std::uint8_t* error3D       = new std::uint8_t [cv->m_cv_widths[i] * cv->m_cv_heights[i] * cv->m_cv_depths[i]];
+      std::uint8_t* error2D       = new std::uint8_t [cv->m_cv_widths[i] * cv->m_cv_heights[i] * cv->m_cv_depths[i]];
+      std::uint8_t* nnistats = new std::uint8_t [cv->m_cv_widths[i] * cv->m_cv_heights[i] * cv->m_cv_depths[i]];
 
       FILE* error3D_f = fopen( error3D_filename.c_str(), "rb");
-      fread(error3D, sizeof(unsigned char), cv->m_cv_widths[i] * cv->m_cv_heights[i] * cv->m_cv_depths[i], error3D_f);
+      fread(error3D, sizeof(std::uint8_t), cv->m_cv_widths[i] * cv->m_cv_heights[i] * cv->m_cv_depths[i], error3D_f);
       fclose(error3D_f);
 
       FILE* error2D_f = fopen( error2D_filename.c_str(), "rb");
-      fread(error2D, sizeof(unsigned char), cv->m_cv_widths[i] * cv->m_cv_heights[i] * cv->m_cv_depths[i], error2D_f);
+      fread(error2D, sizeof(std::uint8_t), cv->m_cv_widths[i] * cv->m_cv_heights[i] * cv->m_cv_depths[i], error2D_f);
       fclose(error2D_f);
 
       FILE* nnistats_f = fopen( nnistats_filename.c_str(), "rb");
-      fread(nnistats, sizeof(unsigned char), cv->m_cv_widths[i] * cv->m_cv_heights[i] * cv->m_cv_depths[i], nnistats_f);
+      fread(nnistats, sizeof(std::uint8_t), cv->m_cv_widths[i] * cv->m_cv_heights[i] * cv->m_cv_depths[i], nnistats_f);
       fclose(nnistats_f);
 
       unsigned tex_id;

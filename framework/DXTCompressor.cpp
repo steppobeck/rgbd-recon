@@ -82,8 +82,8 @@ namespace mvt{
   }
 
 
-  unsigned char*
-  DXTCompressor::compress(unsigned char* buff, bool resetbg){
+  byte*
+  DXTCompressor::compress(byte* buff, bool resetbg){
 
 #if 0    
     _timer.start();
@@ -93,7 +93,7 @@ namespace mvt{
     boost::thread_group threadGroup;
     for (unsigned tid = 0; tid != DXTCOMPRESSOR_NUMTHREADS; ++tid){
 
-      unsigned char* buff_tmp = &buff[(tid * (_width*_height*3/DXTCOMPRESSOR_NUMTHREADS))];
+      byte* buff_tmp = &buff[(tid * (_width*_height*3/DXTCOMPRESSOR_NUMTHREADS))];
       threadGroup.create_thread(boost::bind(&DXTCompressor::docompress,this,tid, buff_tmp, resetbg));
     }
     threadGroup.join_all();
@@ -140,7 +140,7 @@ namespace mvt{
 
 
   void
-  DXTCompressor::docompress(unsigned tid, unsigned char* buff, bool resetbg){
+  DXTCompressor::docompress(unsigned tid, byte* buff, bool resetbg){
 
 #if 0
     if(resetbg){

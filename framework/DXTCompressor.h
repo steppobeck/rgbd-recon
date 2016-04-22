@@ -21,11 +21,11 @@ namespace mvt{
 
     unsigned init(unsigned width, unsigned height, unsigned type = FORMAT_DXT1);
     unsigned getStorageSize();
-    unsigned char* compress(unsigned char* buff, bool resetbg = false);
+    fastdxt::byte* compress(fastdxt::byte* buff, bool resetbg = false);
     unsigned getType();
   private:
 
-    void docompress(unsigned tid, unsigned char* buff, bool resetbg = false);
+    void docompress(unsigned tid, fastdxt::byte* buff, bool resetbg = false);
 
 
     unsigned _fc;

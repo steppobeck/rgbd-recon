@@ -423,7 +423,7 @@ KinectCalibrationFile::parse()
       
     }
     else {
-      throw std::invalid_argument{"token " + token + " not supported"};
+      // throw std::invalid_argument{"token " + token + " not supported"};
     }
 
   }

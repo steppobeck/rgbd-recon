@@ -36,7 +36,7 @@ namespace{
 
 
 
-  void convertTo8Bit(float* in, unsigned char** out, unsigned w, unsigned h){
+  void convertTo8Bit(float* in, std::uint8_t** out, unsigned w, unsigned h){
     
     float max_v = 0.0;
     for(unsigned idx = 0; idx != w*h; ++idx){
@@ -45,7 +45,7 @@ namespace{
     if(max_v != 0.0){
       for(unsigned idx = 0; idx != w*h; ++idx){
 	const float n = in[idx]/max_v;
-	unsigned char v = (unsigned char) (255.0 * n);
+	std::uint8_t v = (std::uint8_t) (255.0 * n);
 	(*out)[idx] = v;
       }
     }
@@ -57,7 +57,7 @@ namespace{
 
 
 
-  bool addCross(minixml::svgdocument& doc, float x, float y, float size, float strokeWidth, unsigned char r, unsigned char g, unsigned char b){
+  bool addCross(minixml::svgdocument& doc, float x, float y, float size, float strokeWidth, std::uint8_t r, std::uint8_t g, std::uint8_t b){
 
     // define the svg element style
     minixml::svgelementstyle lineStyle(r, g, b);
@@ -313,7 +313,7 @@ namespace kinect{
       glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP);
       glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP);
       glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP);
-      glTexImage3D(GL_TEXTURE_3D, 0, GL_RGB32F, cv_width, cv_height, cv_depth, 0, GL_RGB, GL_FLOAT, (unsigned char*) cv_xyz);
+      glTexImage3D(GL_TEXTURE_3D, 0, GL_RGB32F, cv_width, cv_height, cv_depth, 0, GL_RGB, GL_FLOAT, (byte*) cv_xyz);
 
 
       glGenTextures(1, &cv_uv_id);
@@ -323,7 +323,7 @@ namespace kinect{
       glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP);
       glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP);
       glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP);
-      glTexImage3D(GL_TEXTURE_3D, 0, GL_RG32F, cv_width, cv_height, cv_depth, 0, GL_RG, GL_FLOAT, (unsigned char*) cv_uv);
+      glTexImage3D(GL_TEXTURE_3D, 0, GL_RG32F, cv_width, cv_height, cv_depth, 0, GL_RG, GL_FLOAT, (byte*) cv_uv);
 
       std::cerr << "done generating textures" << std::endl;
 
@@ -835,10 +835,10 @@ namespace kinect{
 
 
       glBindTexture(GL_TEXTURE_3D, m_cv_xyz_ids[i]);
-      glTexImage3D(GL_TEXTURE_3D, 0, GL_RGB32F, cv_width, cv_height, cv_depth, 0, GL_RGB, GL_FLOAT, (unsigned char*) m_cv_xyzs[i]);
+      glTexImage3D(GL_TEXTURE_3D, 0, GL_RGB32F, cv_width, cv_height, cv_depth, 0, GL_RGB, GL_FLOAT, (byte*) m_cv_xyzs[i]);
       
       glBindTexture(GL_TEXTURE_3D, m_cv_uv_ids[i]);
-      glTexImage3D(GL_TEXTURE_3D, 0, GL_RG32F, cv_width, cv_height, cv_depth, 0, GL_RG, GL_FLOAT, (unsigned char*) m_cv_uvs[i]);
+      glTexImage3D(GL_TEXTURE_3D, 0, GL_RG32F, cv_width, cv_height, cv_depth, 0, GL_RG, GL_FLOAT, (byte*) m_cv_uvs[i]);
       
     }
 
