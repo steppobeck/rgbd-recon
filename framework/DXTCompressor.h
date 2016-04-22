@@ -11,7 +11,6 @@
 #define DXTCOMPRESSOR_NUMTHREADS 2
 #endif
 
-
 namespace mvt{
 
   class DXTCompressor{
@@ -37,10 +36,10 @@ namespace mvt{
     unsigned _type;
     unsigned _storage;
     unsigned _compressed_buff_sub_size;
-    byte* _rgba_buff;
-    byte* _rgba_buff_sub[DXTCOMPRESSOR_NUMTHREADS];
-    byte* _compressed_buff;
-    byte* _compressed_buff_sub[DXTCOMPRESSOR_NUMTHREADS];
+    fastdxt::byte* _rgba_buff;
+    fastdxt::byte* _rgba_buff_sub[DXTCOMPRESSOR_NUMTHREADS];
+    fastdxt::byte* _compressed_buff;
+    fastdxt::byte* _compressed_buff_sub[DXTCOMPRESSOR_NUMTHREADS];
 
 
   };

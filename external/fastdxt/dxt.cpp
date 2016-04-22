@@ -8,6 +8,7 @@
 
 #include <iostream>
 
+namespace fastdxt {
 //#define DXT_INTR 1
 
 void ExtractBlock( const byte *inPtr, int width, byte *colorBlock );
@@ -542,4 +543,5 @@ double ComputeError( const byte *original, const byte *dxt, int width, int heigh
   error = sqrt( error / (double)( width*height ) );
 
   return error;
+}
 }

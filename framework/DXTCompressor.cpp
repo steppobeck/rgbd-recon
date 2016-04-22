@@ -6,6 +6,8 @@
 
 #include <iostream>
 
+using fastdxt::byte;
+
 namespace mvt{
 
   DXTCompressor::DXTCompressor()
@@ -48,7 +50,7 @@ namespace mvt{
     const unsigned compressed_size = _width*_height*4/8;
     _rgba_buff =       (byte*) memalign(16, rgba_size);
     _compressed_buff = (byte*) memalign(16, compressed_size);
-    _storage = CompressDXT(_rgba_buff, _compressed_buff, _width, _height, _type, /*numthreads*/1);
+    _storage = fastdxt::CompressDXT(_rgba_buff, _compressed_buff, _width, _height, _type, /*numthreads*/1);
 
     std::cerr << "DXTCompressor::init _storage size: "  <<  _storage << std::endl;
 
@@ -63,7 +65,7 @@ namespace mvt{
 
       std::cerr << "DXTCompressor::init _rgba_buff_sub[tid]: " << _rgba_buff_sub[tid] << " : " << _width*_height_sub*4 << std::endl;
       std::cerr << "DXTCompressor::init _compressed_buff_sub[tid]: " << _compressed_buff_sub[tid] << " : " << 1.0 * _width*_height_sub*4/8 << std::endl;
-      std::cerr << "DXTCompressor::init testsize: " << CompressDXT(_rgba_buff_sub[tid], _compressed_buff_sub[tid], _width, _height_sub, _type, /*numthreads*/1) << std::endl;
+      std::cerr << "DXTCompressor::init testsize: " << fastdxt::CompressDXT(_rgba_buff_sub[tid], _compressed_buff_sub[tid], _width, _height_sub, _type, /*numthreads*/1) << std::endl;
 
 
     }
@@ -221,7 +223,7 @@ namespace mvt{
     }
 #endif
 
-    unsigned s = CompressDXT(_rgba_buff_sub[tid], _compressed_buff_sub[tid], _width, _height_sub, _type, /*numthreads*/1);
+    unsigned s = fastdxt::CompressDXT(_rgba_buff_sub[tid], _compressed_buff_sub[tid], _width, _height_sub, _type, /*numthreads*/1);
 
 
     memcpy( (_compressed_buff + (tid * _compressed_buff_sub_size)), _compressed_buff_sub[tid], s/*_compressed_buff_sub_size*/);

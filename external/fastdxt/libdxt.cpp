@@ -32,6 +32,8 @@
 
 #include <pthread.h>
 
+namespace fastdxt {
+
 typedef struct _work_t {
 	int width, height;
 	int nbb;
@@ -117,4 +119,5 @@ int CompressDXT(const byte *in, byte *out, int width, int height, int format, in
   delete pid;
 
   return nbbytes;
+}
 }
