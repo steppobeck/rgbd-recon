@@ -28,8 +28,14 @@ include(FindZMQ)
 include(FindOpenCV)
 # boost
 include(FindBoost)
-# boost
-include(FindCGAL)
+#CGAL
+set(DEP CGAL)
+set(CGAL_HEADER "CGAL/basic.h")
+set(CGAL_INCLUDE_SEARCH_DIR "/opt/cgal/include")
+set(CGAL_LIB "libCGAL")
+set(CGAL_LIBRARY_SEARCH_DIR "/opt/cgal/lib/")
+include(FindLibrary)
+include_directories(${CGAL_INCLUDE_DIRS})
 #gmp
 set(DEP GMP)
 set(GMP_HEADER "gmp.h")
@@ -59,8 +65,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external)
 add_definitions(-DGLEW_STATIC)
 
 set(GLFW_DIRECTORY glfw-3.0.3)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/${GLFW_DIRECTORY}/include)
-
 set(GLFW_INSTALL OFF CACHE STRING "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE STRING "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE STRING "" FORCE)
@@ -114,9 +118,6 @@ link_directories(${ZMQ_LIBRARY_DIRS})
 link_directories(${OPENCV_LIBRARY_DIRS})
 # boost
 link_directories(${BOOST_LIBRARY_DIRS})
-# cgal
-link_directories(${CGAL_LIBRARY_DIRS})
-
 ################################
 # Add output directory
 
