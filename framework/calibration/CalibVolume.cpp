@@ -1,7 +1,6 @@
 #include "CalibVolume.h"
 
 #include <KinectCalibrationFile.h>
-#include <OpenCVChessboardCornerDetector.h>
 
 #include <NaturalNeighbourInterpolator.h>
 
@@ -18,13 +17,6 @@
 #include <boost/thread/thread.hpp>
 #include <boost/bind.hpp>
 #include <boost/thread/mutex.hpp>
-
-// needed for talk
-#include <opencv2/core/core.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/calib3d/calib3d.hpp>
-#include <opencv2/highgui/highgui.hpp>
-#include <opencv2/imgproc/imgproc_c.h>
 
 #include <zmq.hpp>
 
@@ -138,7 +130,6 @@ namespace kinect{
     m_cv_uvs(),
     m_cv_valids(),
     m_poseoffset(),
-    m_sampleThread(0),
     m_cb_width(7),
     m_cb_height(5),
     m_cb_points_local(),
@@ -606,121 +597,6 @@ namespace kinect{
 
 
   }
-
-
-  void
-  CalibVolume::findSamples(){
-    m_sampleThread = new boost::thread(boost::bind(&CalibVolume::sampleLoop, this));
-  }
-
-
-  void
-  CalibVolume::sampleLoop(){
-
-    zmq::context_t ctx(1); // means single threaded
-    zmq::socket_t  socket(ctx, ZMQ_SUB); // means a subscriber
-
-    socket.setsockopt(ZMQ_SUBSCRIBE, "", 0);
-    uint64_t hwm = 1;
-    socket.setsockopt(ZMQ_HWM,&hwm, sizeof(hwm));
-
-    std::string endpoint(serverendpoint);
-
-    socket.connect(endpoint.c_str());
-
-    const unsigned pixelcountc = m_calibs[0]->getWidthC() * m_calibs[0]->getHeightC();
-    const unsigned pixelcount = m_calibs[0]->getWidth() * m_calibs[0]->getHeight();
-    const unsigned colorsize = pixelcountc * m_calibs[0]->num_channels_rgb * sizeof(unsigned char);
-    const unsigned irsize = pixelcount * sizeof(unsigned char);
-    const unsigned depthsize = pixelcount * sizeof(float);
-
-    std::vector<OpenCVChessboardCornerDetector*> cds_c;
-    std::vector<OpenCVChessboardCornerDetector*> cds_i;
-
-    unsigned char* color_buffer = new unsigned char [pixelcountc *  m_calibs[0]->num_channels_rgb];
-    float* depth_buffer = new float [pixelcount];
-    unsigned char* ir_buffer =    new unsigned char [pixelcount];
-
-    for(unsigned i = 0; i < m_calibs.size(); ++i){
-      cds_c.push_back(new OpenCVChessboardCornerDetector(m_calibs[i]->getWidthC(), m_calibs[i]->getHeightC(),8 /*bits per channel*/,  m_calibs[0]->num_channels_rgb, m_cb_width, m_cb_height));
-      cds_i.push_back(new OpenCVChessboardCornerDetector(m_calibs[i]->getWidth(), m_calibs[i]->getHeight(),8 /*bits per channel*/, 1, m_cb_width, m_cb_height));
-    }
-
-    // needed for talk
-    cvNamedWindow("depth_buffer", CV_WINDOW_AUTOSIZE);
-    // end needed for talk
-
-    while(m_running){
-      
-      
-      zmq::message_t zmqm((colorsize + depthsize + irsize) * m_calibs.size());
-      socket.recv(&zmqm); // blocking
-
-      unsigned offset = 0;
-      // receive data
-      for(unsigned i = 0; i < m_calibs.size(); ++i){
-	//memcpy(target_i , (unsigned char*) zmqm.data() + offset, colorsize);
-	memcpy( (unsigned char*) color_buffer, (unsigned char*) zmqm.data() + offset, colorsize);
-	bool found_color_corners = cds_c[i]->process((unsigned char*) zmqm.data() + offset, colorsize);
-	offset += colorsize;
-	
-	memcpy( (unsigned char*) depth_buffer, (unsigned char*) zmqm.data() + offset, depthsize);
-	offset += depthsize;
-	
-	// needed for talk
-	unsigned char* tmp_depth8 = new unsigned char [pixelcount];
-	convertTo8Bit(depth_buffer, &tmp_depth8,m_calibs[i]->getWidth(), m_calibs[i]->getHeight());
-	IplImage* tmp_image = cvCreateImage(cvSize(m_calibs[i]->getWidth(), m_calibs[i]->getHeight()), 8, 1);
-	memcpy(tmp_image->imageData, tmp_depth8, pixelcount);
-	cvShowImage( "depth_buffer", tmp_image);
-	cvReleaseImage(&tmp_image);
-	delete [] tmp_depth8;
-	// end needed for talk
-
-
-
-	memcpy( (unsigned char*)    ir_buffer, (unsigned char*) zmqm.data() + offset, irsize);
-	bool found_ir_corners = cds_i[i]->process((unsigned char*) zmqm.data() + offset, irsize);
-	offset += irsize;
-	
-	(*m_sps_back)[i].clear();
-	if(found_color_corners && found_ir_corners && (cds_i[i]->corners.size() == cds_c[i]->corners.size())){
-	  // print depth values at corners in depth buffer;
-	  const std::vector<uv>& corners_depth = cds_i[i]->corners;
-	  const std::vector<uv>& corners_color = cds_c[i]->corners;
-	  //std::cerr << "--------------------- FOUND corners -------------------: " << corners.size() << std::endl;
-	  
-	  for(unsigned idx = 0; idx < corners_depth.size(); ++idx){
-	    uv c_d(corners_depth[idx]);
-	    uv c_c(corners_color[idx]);
-	    //std::cerr << idx << " " << c_d.u << " " << c_d.v << " " << getBilinear(depth_buffer, m_calibs[i]->getWidth(), m_calibs[i]->getHeight(), c_d.u, c_d.v) << std::endl;
-	    samplePoint sp;
-	    
-	    sp.tex_color = c_c;
-	    sp.tex_depth = c_d;
-	    sp.depth = getBilinear(depth_buffer, m_calibs[i]->getWidth(), m_calibs[i]->getHeight(), c_d.u, c_d.v);
-	    (*m_sps_back)[i].push_back(sp);
-
-	    //std::cerr << sp << std::endl;
-
-	  }
-
-	}
-
-      }
-
-      {
-	boost::mutex::scoped_lock lock(*m_mutex);
-	do_swap = true;
-      }
-
-      while(do_swap){
-	sleep(sensor::timevalue::const_100_ms);
-      }
-
-    }
-  }
-
 
   float
   CalibVolume::getBilinear(float* data, unsigned width, unsigned height, float x, float y){

@@ -34,8 +34,6 @@ namespace kinect{
     void evaluate(const char* bfname);
 
 	  void calcStats();  
-	  
-    void findSamples();
 
     void prepareOffsets();
 
@@ -68,9 +66,6 @@ namespace kinect{
     std::vector<bool*> m_cv_valids;
     bool bucket;
     unsigned num_neighbours;
-  private:
-
-    void sampleLoop();
 
   public:
     float getBilinear(float* data, unsigned width, unsigned height, float x, float y);
@@ -81,7 +76,6 @@ namespace kinect{
     
     float gauss(float x, float sigma, float mean);
     gloost::Matrix m_poseoffset;
-    boost::thread* m_sampleThread;
     unsigned m_cb_width;
     unsigned m_cb_height;
     std::vector<gloost::Point3> m_cb_points_local;

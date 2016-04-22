@@ -33,7 +33,7 @@ set(ZMQ_LIBRARY_SEARCH_DIR "/opt/zmq/current/lib")
 find_dependency(ZMQ "zmq.h" "libzmq")
 include_directories(${ZMQ_INCLUDE_DIRS})
 # OpenCV
-include(FindOpenCV)
+# include(FindOpenCV)
 # boost
 include(FindBoost)
 #CGAL
@@ -78,7 +78,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/${GLM_DIRECTORY})
 include_directories(SYSTEM ${ZMQ_INCLUDE_DIRS})
 ################################
 # OpenCV
-include_directories(SYSTEM ${OPENCV_INCLUDE_DIRS})
+# include_directories(SYSTEM ${OPENCV_INCLUDE_DIRS})
 ################################
 # boost
 include_directories(SYSTEM ${BOOST_INCLUDE_DIRS})
@@ -107,7 +107,7 @@ include_directories(${SVG_INCLUDE_DIRS})
 
 ################################
 # zmq and other libraries
-set(LIBRARIES glfw GLU glut ${GLFW_LIBRARIES} ${ZMQ_LIBRARIES} ${OPENCV_LIBRARIES} ${CGAL_LIBRARIES} ${BOOST_LIBRARIES} ${SQUISH_LIBRARIES} ${FASTDXT_LIBRARIES} ${GLOOST_LIBRARIES} ${SVG_LIBRARIES} ${GMP_LIBRARIES} ${MPFR_LIBRARIES})
+set(LIBRARIES glfw GLU glut ${GLFW_LIBRARIES} ${ZMQ_LIBRARIES} ${CGAL_LIBRARIES} ${BOOST_LIBRARIES} ${SQUISH_LIBRARIES} ${FASTDXT_LIBRARIES} ${GLOOST_LIBRARIES} ${SVG_LIBRARIES} ${GMP_LIBRARIES} ${MPFR_LIBRARIES})
 set(CATCH_DIRECTORY catch-1.1)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/${CATCH_DIRECTORY})
 ################################
