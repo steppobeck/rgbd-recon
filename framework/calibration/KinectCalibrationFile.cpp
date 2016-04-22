@@ -7,9 +7,7 @@
 #include <fstream>
 #include <iomanip>
 #include <unistd.h>
-
-
-
+#include <stdexcept>
 
 namespace gloost{
 
@@ -391,7 +389,7 @@ KinectCalibrationFile::parse()
       std::cerr << std::endl << "compress_rgb:";
       advanceToNextToken("[", infile);
       _iscompressedrgb = (unsigned) getNextTokenAsFloat(infile);
-      float dummy  = getNextFloat(infile);
+      getNextFloat(infile);
 
       // maybe override value
       if(s_compress_rgb == 0 || s_compress_rgb == 1 || s_compress_rgb == 5){
@@ -403,39 +401,29 @@ KinectCalibrationFile::parse()
       std::cerr << std::endl << "use_bf:";
       advanceToNextToken("[", infile);
       use_bf = ((unsigned) getNextTokenAsFloat(infile) > 0.0 ? true : false);
-      float dummy  = getNextFloat(infile);
+      getNextFloat(infile);
     }
     else if(token == "min_length:"){
       std::cerr << std::endl << "min_length:";
       advanceToNextToken("[", infile);
       min_length = getNextTokenAsFloat(infile);
-      float dummy  = getNextFloat(infile);
+      getNextFloat(infile);
     }
     else if(token == "num_channels_rgb:"){
       std::cerr << std::endl << "num_channels_rgb:";
       advanceToNextToken("[", infile);
       num_channels_rgb = (unsigned) getNextTokenAsFloat(infile);
-      float dummy  = getNextFloat(infile);
+      getNextFloat(infile);
     }
     else if(token == "compress_depth:"){
       std::cerr << std::endl << "compress_depth:";
       advanceToNextToken("[", infile);
       _iscompresseddepth = (bool) ((unsigned) getNextTokenAsFloat(infile));
-      float dummy  = getNextFloat(infile);
+      getNextFloat(infile);
       
     }
-    else if(token == "dtrack_proxy:"){
-      std::cerr << std::endl << "dtrack_proxy:";
-      advanceToNextToken("[", infile);
-      unsigned dummyu = (int) getNextTokenAsFloat(infile);
-      //float dummy  = getNextFloat(infile);
-      std::string serverport;
-      infile >> serverport;
-      std::cerr << "using proxy on: "  << serverport << std::endl;
-      std::string endpoint("tcp://" + serverport);
-
-
-
+    else {
+      throw std::invalid_argument{"token " + token + " not supported"};
     }
 
   }
@@ -667,6 +655,7 @@ KinectCalibrationFile::parse()
   loadLocalTransform();
 
 
+  auto check_num = [](unsigned i){ if (i < 1) throw std::runtime_error{"file read failed"};};
   { // load cv_xyz
     if(cv_xyz){
       delete [] cv_xyz;
@@ -674,18 +663,23 @@ KinectCalibrationFile::parse()
     std::string fpath(_filePath.c_str());
     fpath.replace( fpath.end() - 3, fpath.end(), "cv_xyz");
     //std::cerr << "loading " << fpath << std::endl;
-
     
     if( access( fpath.c_str(), R_OK ) != -1 ) {
       FILE* f_xyz = fopen( fpath.c_str(), "rb");
       unsigned nbr = 0;
       nbr = fread(&cv_width, sizeof(unsigned), 1, f_xyz);
+      check_num(nbr);
       nbr = fread(&cv_height, sizeof(unsigned), 1, f_xyz);
+      check_num(nbr);
       nbr = fread(&cv_depth, sizeof(unsigned), 1, f_xyz);
+      check_num(nbr);
       nbr = fread(&cv_min_d, sizeof(float), 1, f_xyz);
+      check_num(nbr);
       nbr = fread(&cv_max_d, sizeof(float), 1, f_xyz);
+      check_num(nbr);
       cv_xyz = new xyz[cv_width * cv_height * cv_depth];
       nbr = fread(cv_xyz, sizeof(xyz), cv_width * cv_height * cv_depth, f_xyz);
+      check_num(nbr);
       fclose(f_xyz);
     }
   }
@@ -702,12 +696,18 @@ KinectCalibrationFile::parse()
       FILE* f_uv = fopen( fpath.c_str(), "rb");
       unsigned nbr = 0;
       nbr = fread(&cv_width, sizeof(unsigned), 1, f_uv);
+      check_num(nbr);
       nbr = fread(&cv_height, sizeof(unsigned), 1, f_uv);
+      check_num(nbr);
       nbr = fread(&cv_depth, sizeof(unsigned), 1, f_uv);
+      check_num(nbr);
       nbr = fread(&cv_min_d, sizeof(float), 1, f_uv);
+      check_num(nbr);
       nbr = fread(&cv_max_d, sizeof(float), 1, f_uv);
+      check_num(nbr);
       cv_uv = new uv[cv_width * cv_height * cv_depth];
       nbr = fread(cv_uv, sizeof(uv), cv_width * cv_height * cv_depth, f_uv);
+      check_num(nbr);
       fclose(f_uv);
     }
   }
