@@ -21,14 +21,12 @@ set(ZMQ_LIBRARY_SEARCH_DIR "/opt/zmq/current/lib")
 find_dependency(ZMQ "zmq.h" "libzmq")
 include_directories(SYSTEM ${ZMQ_INCLUDE_DIRS})
 ################################
-# OpenCV
-# include(FindOpenCV)
-# link_directories(${OPENCV_LIBRARY_DIRS})
-# list(APPEND INCLUDE_DIRS ${OPENCV_INCLUDE_DIRS})
-################################
 # boost
-include(FindBoost)
-link_directories(${BOOST_LIBRARY_DIRS})
+set(BOOST_INCLUDEDIR "/opt/boost/boost_1_55_0/include")
+set(BOOST_LIBRARYDIR "/opt/boost/boost_1_55_0/lib")
+find_package(Boost 1.54.0 REQUIRED COMPONENTS thread system)
+set(BOOST_INCLUDE_DIRS ${Boost_INCLUDE_DIRS} CACHE PATH "boost include dir")
+set(BOOST_LIBRARIES ${Boost_LIBRARIES} CACHE PATH "boost libraries")
 include_directories(SYSTEM ${BOOST_INCLUDE_DIRS})
 ################################
 #CGAL
