@@ -486,30 +486,6 @@ namespace kinect{
 
   /*virtual*/ void
   KinectSurfaceV3::init(const char* config){
-
-    //KinectCalibrationFile::s_compress   = true;
-
-    char hostname[1024];
-    gethostname(hostname, 1024);
-    m_hostname = hostname;
-
-    // parse the file .ks and find the shader entry to get the names.
-    std::vector<std::string> hostnames;
-    std::ifstream in(config);
-    std::string token;
-    while(in >> token){
-      if(token == "hostname"){
-	in >> token;
-	hostnames.push_back(token);
-      }
-    }
-    in.close();
-
-    if (std::find(hostnames.begin(), hostnames.end(), hostname) == hostnames.end())
-    {
-        return;
-    }
-
     
     m_nka = new NetKinectArray(config);
     m_proxyMesh = new mvt::ProxyMeshGridV2(m_nka->getWidth(),
