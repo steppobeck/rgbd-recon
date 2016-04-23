@@ -29,7 +29,7 @@ include_directories(SYSTEM ${ZMQ_INCLUDE_DIRS})
 # boost
 include(FindBoost)
 link_directories(${BOOST_LIBRARY_DIRS})
-list(APPEND INCLUDE_DIRS ${BOOST_INCLUDE_DIRS})
+include_directories(SYSTEM ${BOOST_INCLUDE_DIRS})
 ################################
 #CGAL
 set(CGAL_INCLUDE_SEARCH_DIR "/opt/cgal/include")
