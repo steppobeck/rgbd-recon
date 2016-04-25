@@ -48,9 +48,6 @@ namespace kinect{
       m_uniforms_pass_volviz(0),
       m_va_pass_volviz(0),
       m_vsr(0),
-      m_shader(0),
-      m_uniforms(0),
-      m_obj(0),
       m_cv(0),
       m_ev(0),
       m_mutex(new boost::mutex),
@@ -94,20 +91,8 @@ namespace kinect{
   void
   KinectSurfaceV3::draw(bool update, float scale){
 
-    if(m_nka->isPhoto()){
-      drawMesh(update,scale);
-      return;
-    }
-
-
-    if(0 == m_nka)
-	return;
-
     if(update)
       m_nka->update();
-
-
-
 
     // calculate img_to_eye for this view
     gloost::Matrix projection_matrix;
@@ -389,101 +374,6 @@ namespace kinect{
     // m_nka->drawGeometry();
   }
 
-  void
-  KinectSurfaceV3::drawMesh(bool update, float scale){
-
-    //std::cerr << this << " draw " << update << std::endl;
-
-
-    if(0 == m_shader){
-      // initialize the uniforms and the shader like in RgbDepthRemapping
-      m_uniforms = new gloost::UniformSet;
-      m_uniforms->set_int("kinect_colors",0);
-      m_uniforms->set_int("kinect_depths",1);
-
-      m_shader = new gloost::Shader("glsl/body_texture.vs",
-				    "glsl/body_texture.fs");
-      
-      
-      std::string obj_filename(m_config);
-      obj_filename.replace( obj_filename.end() - 3, obj_filename.end(), "obj");
-      obj_filename = std::string("recordings/") + obj_filename;
-      std::cerr << obj_filename << std::endl;
-      m_obj = new gloost::Obj(obj_filename.c_str());
-    }
-
-#if 0
-    if("kerberos" == m_hostname && std::string::npos != m_config.find("DLP") && scale > 0.99)
-       return;
-    if("pandora" == m_hostname  && std::string::npos != m_config.find("LCD") && scale > 0.99)
-       return;
-#endif
-
-#if 0
-    if(update)
-      m_nka->update();
-#endif
-
-    /*
-      uniform mat4 v_world_to_eye_d[MAX_VIEWS];
-      uniform mat4 v_eye_d_to_eye_rgb[MAX_VIEWS];
-      uniform mat4 v_eye_rgb_to_image_rgb[MAX_VIEWS];
-    */
-
-    std::vector<gloost::mat4> v_world_to_eye_d;
-    std::vector<gloost::mat4> v_eye_d_to_world;
-    std::vector<gloost::mat4> v_eye_d_to_eye_rgb;
-    std::vector<gloost::mat4> v_eye_rgb_to_image_rgb;
-    std::vector<kinect::KinectCalibrationFile*>& calibs = m_nka->getCalibs();
-
-
-    for(unsigned i = 0; i < calibs.size(); ++i){
-
-      kinect::KinectCalibrationFile* v = calibs[i];
-      v->updateMatrices();
-
-      gloost::Matrix world_to_eye_d(v->eye_d_to_world);
-      world_to_eye_d.invert();
-      v_world_to_eye_d.push_back(world_to_eye_d);
-      v_eye_d_to_world.push_back(v->eye_d_to_world);
-      v_eye_d_to_eye_rgb.push_back(v->eye_d_to_eye_rgb);
-      v_eye_rgb_to_image_rgb.push_back(v->eye_rgb_to_image_rgb);
-
-    }
-
-    m_uniforms->set_mat4v(     "v_world_to_eye_d", v_world_to_eye_d);
-    m_uniforms->set_mat4v(     "v_eye_d_to_world", v_eye_d_to_world);
-    m_uniforms->set_mat4v(     "v_eye_d_to_eye_rgb", v_eye_d_to_eye_rgb);
-    m_uniforms->set_mat4v(     "v_eye_rgb_to_image_rgb", v_eye_rgb_to_image_rgb);
-
-    m_uniforms->set_int("num_layers", (int) calibs.size());
-
-    float min_length = 0.04;
-    min_length = scale * min_length;
-    m_uniforms->set_float("min_length", min_length);
-
-
-
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
-    {
-      m_nka->bindToTextureUnits(GL_TEXTURE0);
-
-      m_shader->set();
-      m_uniforms->applyToShader(m_shader);
-
-      m_obj->drawFacesNormalsTexcoords();
-
-      m_shader->disable();      
-      
-      glActiveTexture(GL_TEXTURE0);
-    }
-    glPopAttrib();
-
-    // m_nka->drawGeometry();
-
-  }
-
-
   /*virtual*/ void
   KinectSurfaceV3::init(const char* config){
     
@@ -599,62 +489,6 @@ namespace kinect{
 
   }
 
-
-
-  void
-  KinectSurfaceV3::switchCalibVolume(){
-
-    static std::vector<std::string> cv_xyz_filenames_orig;
-    static std::vector<std::string> cv_uv_filenames_orig;
-    static bool firsttime = true;
-    if(firsttime){
-      firsttime = false;
-      cv_xyz_filenames_orig = m_cv->m_cv_xyz_filenames;
-      cv_uv_filenames_orig = m_cv->m_cv_uv_filenames;
-    }
-
-    m_cv->m_cv_xyz_filenames = cv_xyz_filenames_orig;
-    m_cv->m_cv_uv_filenames = cv_uv_filenames_orig;
-
-    static unsigned cv_type = 0;
-    ++cv_type;
-    if(cv_type > 2){
-      cv_type = 0;
-    }
-    switch (cv_type) {
-    case 0:
-      std::cout << "cv type == initial" << std::endl;
-      for(auto& n : m_cv->m_cv_xyz_filenames){
-	n = n + "_initial";
-      }
-      for(auto& n : m_cv->m_cv_uv_filenames){
-	n = n + "_initial";
-      }
-      break;
-    case 1:
-      std::cout << "cv type == static" << std::endl;
-      for(auto& n : m_cv->m_cv_xyz_filenames){
-	n = n + "_static";
-      }
-      for(auto& n : m_cv->m_cv_uv_filenames){
-	n = n + "_static";
-      }
-      break;
-    case 2:
-      std::cout << "cv type == sweep" << std::endl;
-      for(auto& n : m_cv->m_cv_xyz_filenames){
-	n = n + "_sweep";
-      }
-      for(auto& n : m_cv->m_cv_uv_filenames){
-	n = n + "_sweep";
-      }
-      break;
-    }
-    
-    m_cv->reload();
-  }
-
-
   NetKinectArray*
   KinectSurfaceV3::getNetKinectArray(){
     return m_nka;
@@ -667,12 +501,4 @@ namespace kinect{
     width  = vp_params[2];
     height = vp_params[3];
   }
-
-
-
-  bool
-  KinectSurfaceV3::isPhoto(){
-    return m_nka->isPhoto();
-  }
-
 }

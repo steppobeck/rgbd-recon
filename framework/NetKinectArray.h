@@ -91,9 +91,6 @@ namespace kinect{
     void writeCurrentTexture(std::string prefix);
     void writeBMP(std::string, std::vector<std::uint8_t> const&, unsigned int offset, unsigned int bytesPerPixel);
     
-    bool isRecording();
-    bool isPhoto();
-
     mvt::TextureArray* getDepthArrayBack();
     mvt::TextureArray* getDepthArray();
 
@@ -105,7 +102,6 @@ namespace kinect{
     unsigned m_widthc;
     unsigned m_height;
     unsigned m_heightc;
-
 
     unsigned m_numLayers;
     std::vector<KinectCalibrationFile*> m_kinectcs;
@@ -134,8 +130,6 @@ namespace kinect{
     bool m_isrecording;
 
     bool m_readfromfile;
-
-    bool m_isphoto;
 
     std::string m_config;
 

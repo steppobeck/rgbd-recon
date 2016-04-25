@@ -8,7 +8,6 @@
 namespace gloost{
   class Shader;
   class UniformSet;
-  class Obj;
 }
 namespace mvt
 {
@@ -39,14 +38,7 @@ namespace kinect{
 
     void reloadShader();
 
-    void switchCalibVolume();
-
     NetKinectArray* getNetKinectArray();
-
-
-    bool isPhoto();
-
-    void drawMesh(bool update, float scale);
 
   protected:
 
@@ -73,9 +65,6 @@ namespace kinect{
     mvt::ViewArray*     m_va_pass_volviz;
     VolumeSliceRenderer* m_vsr;
 
-    gloost::Shader* m_shader;
-    gloost::UniformSet* m_uniforms;
-    gloost::Obj* m_obj;
     CalibVolume* m_cv;
     EvaluationVolumes* m_ev;
 

@@ -65,7 +65,6 @@ namespace kinect{
       m_trigger(10), // means no update at the beginning
       m_isrecording(false),
       m_readfromfile(readfromfile),
-      m_isphoto(false),
       m_config(config),
       depth_compression_lex(false),
       depth_compression_ratio(100.0f)
@@ -144,7 +143,6 @@ namespace kinect{
       m_trigger(10), // means no update at the beginning
       m_isrecording(false),
       m_readfromfile(readfromfile),
-      m_isphoto(false),
       m_config(""),
       depth_compression_lex(false),
       depth_compression_ratio(100.0f)
@@ -599,8 +597,6 @@ namespace kinect{
 
     bool drop = false;
     sensor::timevalue ts(sensor::clock::time());
-    unsigned framenr = 0;
-    unsigned lastframenr = 99;
 
     while(m_running){
       zmq::message_t zmqm((colorsize + depthsize) * m_kinectcs.size());
@@ -633,27 +629,7 @@ namespace kinect{
       const unsigned framenr_address = ts_address + sizeof(sensor::timevalue);
       unsigned curr_framenr;
       memcpy(&curr_framenr, (byte*)zmqm.data() + framenr_address, sizeof(curr_framenr));
-      //std::cerr << "received frame " << curr_framenr << std::endl;
-      if((curr_framenr < framenr) || (lastframenr == framenr)){
-      	bool tmp_isphoto = (((framenr - curr_framenr) < 29) && m_isrecording) ? true : false;
-      	
-      	if((tmp_isphoto) || (lastframenr == framenr)){
-
-       	  // check if ".rec" file is avaible
-      	  size_t pos = m_config.rfind(".");
-      	  std::string photoname = m_config.substr(0,pos);
-      	  photoname = std::string("./recordings/") + photoname + ".photo";
-      	  struct stat attrib;
-      	  int ret = stat(photoname.c_str(), &attrib);
-      	  if(0 == ret){
-      	    m_isphoto = true; // maybe sync system?//true;
-      	  }
-      	}
-      }
-      lastframenr = framenr;
-      framenr = curr_framenr;
       
-      //std::cerr << "is photo " << (int) m_isphoto << std::endl;
       if(!drop){ // swap
       	boost::mutex::scoped_lock lock(*m_mutex);
       	m_colorsCPU3.needSwap = true;
@@ -912,18 +888,4 @@ namespace kinect{
     }
  
   }
-
-
-
-  bool
-  NetKinectArray::isRecording(){
-    return m_isrecording;
-  }
-
-  bool
-  NetKinectArray::isPhoto(){
-    return m_isphoto;
-  }
-
-
 }
