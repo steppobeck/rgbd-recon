@@ -25,8 +25,6 @@ namespace kinect{
 
   class NetKinectArray;
   class CalibVolume;
-  class EvaluationVolumes;
-  class VolumeSliceRenderer;
 
   class KinectSurfaceV3{
 
@@ -61,11 +59,8 @@ namespace kinect{
     gloost::Shader*     m_shader_pass_volviz;
     gloost::UniformSet* m_uniforms_pass_volviz;
     mvt::ViewArray*     m_va_pass_volviz;
-    VolumeSliceRenderer* m_vsr;
 
     CalibVolume* m_cv;
-    EvaluationVolumes* m_ev;
-
     boost::mutex* m_mutex;
     bool m_running;
 

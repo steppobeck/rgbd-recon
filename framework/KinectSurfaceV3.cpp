@@ -9,7 +9,6 @@
 #include <ProxyMeshGridV2.h>
 #include <KinectCalibrationFile.h>
 #include <CalibVolume.h>
-#include <VolumeSliceRenderer.h>
 #include <ViewArray.h>
 
 #include <FileValue.h>
@@ -53,9 +52,7 @@ namespace kinect{
       m_shader_pass_volviz(0),
       m_uniforms_pass_volviz(0),
       m_va_pass_volviz(0),
-      m_vsr(0),
       m_cv(0),
-      m_ev(0),
       m_mutex(new boost::mutex),
       m_running(true),
       lookup(true),
@@ -86,7 +83,6 @@ namespace kinect{
     delete m_va_pass_volviz;
     delete m_shader_pass_volviz;
     delete m_uniforms_pass_volviz;
-    delete m_vsr;
   }
 
   void
@@ -146,27 +142,6 @@ namespace kinect{
       glBindTexture(GL_TEXTURE_3D,m_cv->m_cv_xyz_ids[layer]);
       glActiveTexture(GL_TEXTURE0 + 3);
       glBindTexture(GL_TEXTURE_3D,m_cv->m_cv_uv_ids[layer]);
-
-
-#if 0
-      m_uniforms_pass_depth->set_int("cv_error3D",4);
-      glActiveTexture(GL_TEXTURE0 + 4);
-      glBindTexture(GL_TEXTURE_3D,m_ev->error3D_ids[layer]);
-      m_uniforms_pass_depth->set_int("cv_error2D",5);
-      glActiveTexture(GL_TEXTURE0 + 5);
-      glBindTexture(GL_TEXTURE_3D,m_ev->error2D_ids[layer]);
-      m_uniforms_pass_depth->set_int("cv_nnistats",6);
-      glActiveTexture(GL_TEXTURE0 + 6);
-      glBindTexture(GL_TEXTURE_3D,m_ev->nnistats_ids[layer]);
-#endif
-
-
-
-
-
-
-
-      //glPushAttrib(GL_ALL_ATTRIB_BITS);
       {
 	glDisable(GL_CULL_FACE);
 	glPushMatrix();
@@ -211,10 +186,9 @@ namespace kinect{
       KinectCalibrationFile* calib = m_nka->getCalibs()[layer];
       calib->updateMatrices();
 
-
       // now we do first: frustum culling
       if(calib->frustCull())
-	continue;
+      	continue;
 
       m_uniforms_pass_accum->set_int("layer",  layer);
       m_uniforms_pass_accum->set_vec2("tex_size_inv", gloost::vec2(1.0f/calib->getWidth(), 1.0f/calib->getHeight()));
@@ -227,45 +201,27 @@ namespace kinect{
       glBindTexture(GL_TEXTURE_3D,m_cv->m_cv_xyz_ids[layer]);
       glActiveTexture(GL_TEXTURE0 + 4);
       glBindTexture(GL_TEXTURE_3D,m_cv->m_cv_uv_ids[layer]);
-
-#if 0
-      m_uniforms_pass_accum->set_int("cv_error3D",5);
-      glActiveTexture(GL_TEXTURE0 + 5);
-      glBindTexture(GL_TEXTURE_3D,m_ev->error3D_ids[layer]);
-      m_uniforms_pass_accum->set_int("cv_error2D",6);
-      glActiveTexture(GL_TEXTURE0 + 6);
-      glBindTexture(GL_TEXTURE_3D,m_ev->error2D_ids[layer]);
-      m_uniforms_pass_accum->set_int("cv_nnistats",7);
-      glActiveTexture(GL_TEXTURE0 + 7);
-      glBindTexture(GL_TEXTURE_3D,m_ev->nnistats_ids[layer]);
-#endif
-
-      //glPushAttrib(GL_ALL_ATTRIB_BITS);
       {
-	glDisable(GL_CULL_FACE);
-	glPushMatrix();
-	{
-	  m_shader_pass_accum->set();
-	  m_uniforms_pass_accum->applyToShader(m_shader_pass_accum);
-	  
+      	glDisable(GL_CULL_FACE);
+      	glPushMatrix();
+      	{
+      	  m_shader_pass_accum->set();
+      	  m_uniforms_pass_accum->applyToShader(m_shader_pass_accum);
+      	  
 
-	  m_proxyMesh->draw(scale);
-	  m_shader_pass_accum->disable();
-	}
-	glPopMatrix();
-      }
-      
-      //glPopAttrib();
-      
+      	  m_proxyMesh->draw(scale);
+      	  m_shader_pass_accum->disable();
+      	}
+        glPopMatrix();
+      }      
     }
+
     m_va_pass_accum->disable(false);
     glActiveTexture(GL_TEXTURE0);
     glDisable(GL_BLEND);
     glPopAttrib();
     // end pass 2
 #endif
-
-
 
 #if 1
     if(viztype > 0){
@@ -287,28 +243,12 @@ namespace kinect{
       
       for(unsigned layer = viztype_num; layer < /*m_nka->getNumLayers()*/ viztype_num + 1; ++layer){
 	
- 
-	m_uniforms_pass_volviz->set_int("cv_xyz",1);
-	m_uniforms_pass_volviz->set_int("cv_uv",2);
-	glActiveTexture(GL_TEXTURE0 + 1);
-	glBindTexture(GL_TEXTURE_3D,m_cv->m_cv_xyz_ids[layer]);
-	glActiveTexture(GL_TEXTURE0 + 2);
-	glBindTexture(GL_TEXTURE_3D,m_cv->m_cv_uv_ids[layer]);
-	
-#if 0	
-	m_uniforms_pass_volviz->set_int("cv_error3D",3);
-	glActiveTexture(GL_TEXTURE0 + 3);
-	glBindTexture(GL_TEXTURE_3D,m_ev->error3D_ids[layer]);
-	m_uniforms_pass_volviz->set_int("cv_error2D",4);
-	glActiveTexture(GL_TEXTURE0 + 4);
-	glBindTexture(GL_TEXTURE_3D,m_ev->error2D_ids[layer]);
-	m_uniforms_pass_volviz->set_int("cv_nnistats",5);
-	glActiveTexture(GL_TEXTURE0 + 5);
-	glBindTexture(GL_TEXTURE_3D,m_ev->nnistats_ids[layer]);
-	m_vsr->draw(m_shader_pass_volviz, m_uniforms_pass_volviz);
-#endif
-
-	
+      	m_uniforms_pass_volviz->set_int("cv_xyz",1);
+      	m_uniforms_pass_volviz->set_int("cv_uv",2);
+      	glActiveTexture(GL_TEXTURE0 + 1);
+      	glBindTexture(GL_TEXTURE_3D,m_cv->m_cv_xyz_ids[layer]);
+      	glActiveTexture(GL_TEXTURE0 + 2);
+      	glBindTexture(GL_TEXTURE_3D,m_cv->m_cv_uv_ids[layer]);
       }
       
       m_shader_pass_volviz->disable();
