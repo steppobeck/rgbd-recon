@@ -12,10 +12,7 @@
 #include <Vector3.h>
 #include <Matrix.h>
 
-
 namespace pmd{
-
-
 
 class CameraNavigator{
 
@@ -47,9 +44,6 @@ protected:
   float m_zoom_reset;
 };
 
-
-
 }
-
 
 #endif // #ifndef  PMD_CAMERANAVIGATOR_H

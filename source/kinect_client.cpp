@@ -9,7 +9,6 @@
 #include <stdlib.h>
 #include <memory>
 
-
 #include <PerspectiveCamera.h>
 #include <CameraNavigator.h>
 #include <FourTiledWindow.h>
@@ -19,7 +18,6 @@
 #include <KinectCalibrationFile.h>
 #include <Statistics.h>
 #include <GlPrimitives.h>
-
 
 /// general setup
 unsigned int g_screenWidth  = 1280;
@@ -36,14 +34,15 @@ bool         g_animate      = false;
 bool         g_wire         = false;
 bool         g_bfilter      = true;
 
-std::unique_ptr<gloost::PerspectiveCamera>   g_camera{};
-std::unique_ptr<pmd::CameraNavigator> g_navi{};
-std::unique_ptr<mvt::FourTiledWindow> g_ftw{};
+gloost::PerspectiveCamera g_camera{50.0, g_aspect, 0.1, 200.0};
+mvt::FourTiledWindow g_ftw{g_screenWidth, g_screenHeight};
+pmd::CameraNavigator g_navi{0.1f};
 std::unique_ptr<mvt::Statistics> g_stats{};
-std::unique_ptr<ScreenSpaceMeasureTool> g_ssmt{};
+ScreenSpaceMeasureTool g_ssmt{&g_camera, g_screenWidth, g_screenHeight};
 
 void init(std::vector<std::string>& args);
-void draw3d(void);
+void update_view_matrix();
+void draw3d();
 void resize(int width, int height);
 void key(unsigned char key, int x, int y);
 void motionFunc(int mouse_h, int mouse_v);
@@ -55,19 +54,10 @@ unsigned g_ks_mode = 0;
 
 bool g_picking = false;
 
+//////////////////////////////////////////////////////////////////////////////////////////
 void init(std::vector<std::string> args){
-
-  g_camera = std::unique_ptr<gloost::PerspectiveCamera>{new gloost::PerspectiveCamera(50.0,
-					   g_aspect,
-                                           0.1,
-                                           200.0)};
-
-  g_navi = std::unique_ptr<pmd::CameraNavigator>{new pmd::CameraNavigator(0.1f)};
-
-  g_ftw = std::unique_ptr<mvt::FourTiledWindow>{new mvt::FourTiledWindow(g_screenWidth, g_screenHeight)};
-  g_stats = std::unique_ptr<mvt::Statistics>{new mvt::Statistics};
+  g_stats.reset(new mvt::Statistics{});
   g_stats->setInfoSlot("Volume Based Mapping", 0);
-  g_ssmt = std::unique_ptr<ScreenSpaceMeasureTool>{new ScreenSpaceMeasureTool(g_camera.get(), g_screenWidth, g_screenHeight)};
 
   for(unsigned i = 0; i < args.size(); ++i){
     const std::string ext(args[i].substr(args[i].find_last_of(".") + 1));
@@ -77,7 +67,6 @@ void init(std::vector<std::string> args){
       g_ks_mode = 4;
     }
   }
-
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -91,9 +80,10 @@ void frameStep (){
   glViewport(0,0,g_screenWidth, g_screenHeight);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+  update_view_matrix();
   draw3d();
   
-  g_ftw->endFrame();
+  g_ftw.endFrame();
 
   if(g_info)
     g_stats->draw(g_screenWidth, g_screenHeight);
@@ -103,34 +93,38 @@ void frameStep (){
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
-
-  /// main loop function, render with 3D setup
-
-void draw3d(void)
-{
-  g_camera->setAspect(g_aspect);
-  g_camera->set();
+void update_view_matrix() {
+  g_camera.set();
   
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
 
   gloost::Point3 speed(0.0,0.0,0.0);
 
-  gloost::vec2 speed_button1(g_ftw->getButtonSpeed(1));
-  gloost::vec2 speed_button2(g_ftw->getButtonSpeed(2));
+  gloost::vec2 speed_button1(g_ftw.getButtonSpeed(1));
+  gloost::vec2 speed_button2(g_ftw.getButtonSpeed(2));
   // std::cout << "speed1 " << speed_button1 << ", " << speed_button2 << std::endl;
   float fac = 0.005;
   speed[0] = speed_button1.u * fac;
   speed[1] = speed_button1.v * - 1.0 * fac;
   speed[2] = speed_button2.v * fac;
 
-  gloost::Matrix camview(g_navi->get(speed));
+  gloost::Matrix camview(g_navi.get(speed));
   camview.invert();
 
   gloostMultMatrix(camview.data());
 
   glScalef(g_scale, g_scale, g_scale);
 
+  gloost::Matrix modelview;
+  glGetFloatv(GL_MODELVIEW_MATRIX, modelview.data());
+  g_ssmt.setModelView(modelview);
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
+  /// main loop function, render with 3D setup
+void draw3d(void)
+{
   if(g_animate){
     static unsigned g_framecounta = 0;
     ++g_framecounta;
@@ -144,17 +138,10 @@ void draw3d(void)
     glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
   }
 
-  gloost::Matrix modelview;
-  glGetFloatv(GL_MODELVIEW_MATRIX, modelview.data());
-  g_ssmt->setModelView(modelview);
-  gloost::Vector3 test_vec(1.0,0.0,0.0);
-  test_vec = modelview * test_vec;
-  float scale = test_vec.length();
-
   g_stats->startGPU();
 
   if(g_ks_mode == 4){
-    g_ksV3->draw(g_play, scale);
+    g_ksV3->draw(g_play, g_scale);
   }
   else {
     throw std::runtime_error{"ks mode incorrect"};
@@ -164,13 +151,13 @@ void draw3d(void)
   //std::cerr << "after stopGPU" << std::endl; check_gl_errors("after stopGPU", false);
 
   if(g_picking){
-    float dist = g_ssmt->measure();
+    float dist = g_ssmt.measure();
     g_stats->setInfoSlot(("measuring: " + gloost::toString(dist)).c_str(), 1);
   }
   else{
     g_stats->setInfoSlot("navigation mode", 1);
   }
-  mvt::GlPrimitives::get()->drawLineSegments(g_ssmt->getMeasurePoints());
+  mvt::GlPrimitives::get()->drawLineSegments(g_ssmt.getMeasurePoints());
 
   if(g_draw_axes){
     glPushAttrib(GL_ALL_ATTRIB_BITS);
@@ -216,8 +203,6 @@ void draw3d(void)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-
-
   /// this function is triggered when the screen is resized
 
 void resize(int width, int height){
@@ -225,18 +210,16 @@ void resize(int width, int height){
   g_screenWidth = width;
   g_screenHeight = height;
   g_aspect       = g_screenWidth * 1.0/g_screenHeight;
-  g_camera->setAspect(g_aspect);
+  g_camera.setAspect(g_aspect);
 
-  g_navi->resize(width, height);
-  g_ftw->resize(width, height);
-  g_ssmt->resize(g_screenWidth, g_screenHeight);
+  g_navi.resize(width, height);
+  g_ftw.resize(width, height);
+  g_ssmt.resize(g_screenWidth, g_screenHeight);
   glutPostRedisplay();
 }
 
 
 //////////////////////////////////////////////////////////////////////////////////////////
-
-
   /// this function is called by glut when a key press occured
 
 void key(unsigned char key, int x, int y)
@@ -291,15 +274,13 @@ void key(unsigned char key, int x, int y)
 
 
 //////////////////////////////////////////////////////////////////////////////////////////
-
-
 void motionFunc(int mouse_h, int mouse_v){
   if(g_picking){
 
   }
   else{
-    g_navi->motion(mouse_h, mouse_v);
-    g_ftw->motion(mouse_h, mouse_v);
+    g_navi.motion(mouse_h, mouse_v);
+    g_ftw.motion(mouse_h, mouse_v);
   }
   glutPostRedisplay();
 }
@@ -311,38 +292,31 @@ void passiveFunc(int x, int y){
     
   }
   else{
-    g_ftw->passive(x,y);
+    g_ftw.passive(x,y);
   }
   glutPostRedisplay();
 }
 
 
 //////////////////////////////////////////////////////////////////////////////////////////
-
-
 void mouseFunc(int button, int state, int mouse_h, int mouse_v){
 
   if(g_picking){
-    g_ssmt->mouse(button, state, mouse_h, g_screenHeight - mouse_v);
+    g_ssmt.mouse(button, state, mouse_h, g_screenHeight - mouse_v);
   }
   else{
-    g_navi->mouse(button, state, mouse_h, mouse_v);
-    g_ftw->mouse(button, state, mouse_h, mouse_v);
+    g_navi.mouse(button, state, mouse_h, mouse_v);
+    g_ftw.mouse(button, state, mouse_h, mouse_v);
   }
   glutPostRedisplay();
 }
 
-
-
-
 void specialKey(int key, int x, int y){
-  g_ftw->specialKey(key, x, y);
+  g_ftw.specialKey(key, x, y);
   glutPostRedisplay();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
-
-
   /// this function is triggered by glut,
   /// when nothing is left to do for this frame
 
@@ -352,8 +326,6 @@ void idle(void){
 
 
 ////////////////////////////////////////////////////////////////////////////////
-
-
 int main(int argc, char *argv[])
 {
 

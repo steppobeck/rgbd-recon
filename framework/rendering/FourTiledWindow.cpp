@@ -17,14 +17,8 @@ namespace mvt{
       m_buttonSpeeds()
   {
     endFrame();
-
   }
 
-
-  FourTiledWindow::~FourTiledWindow()
-  {}
-
-    
   void
   FourTiledWindow::resize(unsigned width, unsigned height){
     m_width = width;
