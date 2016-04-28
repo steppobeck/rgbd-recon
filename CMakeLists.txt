@@ -14,6 +14,7 @@ endif(UNIX)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
 
 include(FindDependency)
+include(AddSubLibrary)
 ################################
 # zmq
 set(ZMQ_INCLUDE_SEARCH_DIR "/opt/zmq/current/include")
@@ -64,18 +65,13 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/squish)
 include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/external)
 ################################
 # FastDXT
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/fastdxt)
-# suppress warnings
-target_compile_options(libfastdxt PRIVATE -w)
-include_directories(SYSTEM ${FASTDXT_INCLUDE_DIRS})
+add_sublibrary(fastdxt ${CMAKE_CURRENT_SOURCE_DIR}/external/fastdxt "-O3 -funroll-loops -fomit-frame-pointer -fPIC -msse2 -DDXT_INTR -w")
 ################################
 # gloost
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/gloost)
-include_directories(SYSTEM ${GLOOST_INCLUDE_DIRS})
+add_sublibrary(gloost ${CMAKE_CURRENT_SOURCE_DIR}/external/gloost "-w")
 ################################
 # svg
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/svg)
-include_directories(SYSTEM ${SVG_INCLUDE_DIRS})
+add_sublibrary(svg ${CMAKE_CURRENT_SOURCE_DIR}/external/svg "")
 ################################
 # catch
 set(CATCH_DIRECTORY catch-1.1)
@@ -83,7 +79,7 @@ list(APPEND INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/external/${CATCH_DIRECTORY}
 
 ################################
 # set link libraries
-set(LIBRARIES glfw GLU glut ${GLFW_LIBRARIES} ${ZMQ_LIBRARIES} ${CGAL_LIBRARIES} ${BOOST_LIBRARIES} ${SQUISH_LIBRARIES} ${FASTDXT_LIBRARIES} ${GLOOST_LIBRARIES} ${SVG_LIBRARIES} ${GMP_LIBRARIES} ${MPFR_LIBRARIES})
+set(LIBRARIES glfw GLU glut ${GLFW_LIBRARIES} ${ZMQ_LIBRARIES} ${CGAL_LIBRARIES} ${BOOST_LIBRARIES} ${SQUISH_LIBRARIES} ${GMP_LIBRARIES} ${MPFR_LIBRARIES})
 
 add_definitions(-DGLEW_STATIC)
 # to prevent CGAL assertion fail 
@@ -132,3 +128,10 @@ mark_as_advanced(GLFW_BUILD_DOCS GLFW_BUILD_TESTS GLFW_INSTALL GLFW_BUILD_EXAMPL
 #squish
 mark_as_advanced(BUILD_SQUISH_WITH_SSE2 BUILD_SQUISH_WITH_ALTIVEC
  BUILD_SHARED_LIBS BUILD_SQUISH_EXTRA)
+
+################################
+#if user didnt set install dir, override it and write it to the cache -> Type and description necessary,
+#overwrite variable, not just write it to cache
+if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    set(CMAKE_INSTALL_PREFIX "${PROJECT_SOURCE_DIR}/install" CACHE STRING "Install path prefix, prepended onto install directories." FORCE)
+endif(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
