@@ -324,13 +324,29 @@ GlPrimitives::init()
 
 }
 
+void GlPrimitives::drawLineSegments(std::vector<gloost::Point3> p){
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+  glDisable(GL_DEPTH_TEST);
+  glDisable(GL_LIGHTING);
+  glColor3f(0.0,1.0,0.0);
+  glPointSize(3.0);
+
+  glBegin(GL_POINTS);
+  for(unsigned i = 0; i < p.size(); ++i){
+    glVertex3fv(p[i].data());
+  }
+  glEnd();
+  glLineWidth(2.0);
+  glBegin(GL_LINE_STRIP);
+  for(unsigned i = 0; i < p.size(); ++i){
+    glVertex3fv(p[i].data());
+  }
+  glEnd();
+
+
+  glPopAttrib();
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 
-
-
-
-
 } // namespace mvt
-
-

@@ -1,26 +1,17 @@
-
-
-
-
 #ifndef H_MVT_PRIMITIVES
 #define H_MVT_PRIMITIVES
-
-
 
 /// gloost system includes
 #include <gloostConfig.h>
 #include <gloostMath.h>
 
-
 /// cpp includes
 #include <string>
+#include <vector>
 #include <GL/glew.h>
-
-
 
 namespace mvt
 {
-
 
   //  singleton, draws primitives like Quad and QuadCenter
 
@@ -46,6 +37,8 @@ class GlPrimitives
 
     void drawCoords();
     void drawCoords2();
+
+    void drawLineSegments(std::vector<gloost::Point3> p);
 
 	protected:
 
