@@ -4,12 +4,10 @@
 
 uniform sampler2DArray color_map;
 uniform sampler2DArray depth_map;
-uniform sampler2DArray color_map_volviz;
 
 uniform vec2 texSizeInv;
 uniform vec2 offset;
 
-uniform int viztype;
 uniform int black;
 
 
@@ -25,25 +23,9 @@ void main(){
     final_col = col/col.a;
     bg = true;
   }
-  else if(viztype == 0){
+  else {
     discard;
   }
-
-
-  if(viztype > 0){
-    vec4 col_volviz  = vec4(texture2DArray(color_map_volviz, coords));
-    if(bg){
-      final_col.rgb = col_volviz.rgb +  (1.0 - col_volviz.a) * final_col.rgb;
-    }
-    else{
-      if(black == 0)
-	final_col.rgb = col_volviz.rgb +  (1.0 - col_volviz.a) * vec3(1.0);
-      else
-	final_col.rgb = col_volviz.rgb;// +  (1.0 - col_volviz.a) * vec3(1.0);
-      depth = 0.5;
-    }
-  }
-
 
   gl_FragColor = final_col;
   gl_FragDepth = depth;

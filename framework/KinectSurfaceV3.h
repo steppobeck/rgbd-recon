@@ -55,10 +55,6 @@ namespace kinect{
     mvt::ProxyMeshGridV2* m_proxyMesh;
     mvt::ViewArray*     m_va_pass_depth;
     mvt::ViewArray*     m_va_pass_accum;
-    
-    gloost::Shader*     m_shader_pass_volviz;
-    gloost::UniformSet* m_uniforms_pass_volviz;
-    mvt::ViewArray*     m_va_pass_volviz;
 
     CalibVolume* m_cv;
     boost::mutex* m_mutex;
@@ -66,8 +62,6 @@ namespace kinect{
 
   public:
     int lookup;
-    unsigned viztype;
-    unsigned viztype_num;
     bool black;
   };
 

@@ -11,7 +11,6 @@ varying in vec3 to_geom_pos_es[];
 varying in vec3 to_geom_pos_cs[];
 varying in float to_geom_depth[];
 varying in float to_geom_lateral_quality[];
-varying in float to_geom_vizvalue[];
 
 uniform float min_length;// = 0.0125;
 
@@ -26,7 +25,6 @@ varying out float sq_area_cs;
 
 varying out float depth;
 varying out float lateral_quality;
-varying out float vizvalue;
 varying out vec3  normal_es;
 
 
@@ -106,7 +104,6 @@ void main()
       pos_cs        = to_geom_pos_cs[i];
       sq_area_cs    = sq_area_in_cs;
       lateral_quality = to_geom_lateral_quality[i];
-      vizvalue      = to_geom_vizvalue[i];
       depth         = to_geom_depth[i];
       normal_es     = tri_normal;
       

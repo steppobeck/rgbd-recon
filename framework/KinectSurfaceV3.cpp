@@ -48,16 +48,10 @@ namespace kinect{
       m_proxyMesh(0),
       m_va_pass_depth(0),
       m_va_pass_accum(0),
-
-      m_shader_pass_volviz(0),
-      m_uniforms_pass_volviz(0),
-      m_va_pass_volviz(0),
       m_cv(0),
       m_mutex(new boost::mutex),
       m_running(true),
       lookup(true),
-      viztype(0),
-      viztype_num(0),
       black(false)
       
   {
@@ -73,16 +67,9 @@ namespace kinect{
     delete m_uniforms_pass_depth;
     delete m_uniforms_pass_accum;
     delete m_uniforms_pass_normalize;
-
-
-
     delete m_proxyMesh;
     delete m_va_pass_depth;
     delete m_va_pass_accum;
-
-    delete m_va_pass_volviz;
-    delete m_shader_pass_volviz;
-    delete m_uniforms_pass_volviz;
   }
 
   void
@@ -120,7 +107,6 @@ namespace kinect{
     m_va_pass_depth->enable(0, false, &ox, &oy, false);
     m_uniforms_pass_depth->set_float("min_length", min_length);
     m_uniforms_pass_depth->set_int("stage", 0);
-    m_uniforms_pass_depth->set_int("viztype", viztype);
     m_nka->bindToTextureUnits(GL_TEXTURE0);
     for(unsigned layer = 0; layer < m_nka->getNumLayers(); ++layer){
 
@@ -172,7 +158,6 @@ namespace kinect{
     glBlendEquationSeparateEXT(GL_FUNC_ADD, GL_FUNC_ADD);
     m_va_pass_accum->enable(0, false, &ox, &oy);
     m_uniforms_pass_accum->set_int("stage", 1);
-    m_uniforms_pass_accum->set_int("viztype", viztype);
     m_uniforms_pass_accum->set_float("min_length", min_length);
     m_uniforms_pass_accum->set_vec2("viewportSizeInv", gloost::vec2(1.0f/m_va_pass_depth->getWidth(), 1.0f/m_va_pass_depth->getHeight()));
     m_uniforms_pass_accum->set_vec2("offset"         , gloost::vec2(1.0f*ox,                          1.0f*oy));
@@ -224,44 +209,6 @@ namespace kinect{
 #endif
 
 #if 1
-    if(viztype > 0){
-      // pass 3 for volviz
-      glPushAttrib(GL_ALL_ATTRIB_BITS);
-      glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-      glDisable(GL_DEPTH_TEST);
-      glEnable(GL_BLEND); // glEnablei(GL_BLEND, GL_COLOR_ATTACHMENT0_EXT);
-      glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-      m_va_pass_volviz->enable(0, false, &ox, &oy);
-      m_uniforms_pass_volviz->set_int("viztype", viztype);
-      m_uniforms_pass_volviz->set_vec2("viewportSizeInv", gloost::vec2(1.0f/m_va_pass_depth->getWidth(), 1.0f/m_va_pass_depth->getHeight()));
-      m_uniforms_pass_volviz->set_vec2("offset"         , gloost::vec2(1.0f*ox,                          1.0f*oy));
-      m_uniforms_pass_volviz->set_mat4("img_to_eye_curr", image_to_eye);
-      
-      m_va_pass_depth->bindToTextureUnitsDepth(GL_TEXTURE0 + 0);
-
-      m_shader_pass_volviz->set();
-      
-      for(unsigned layer = viztype_num; layer < /*m_nka->getNumLayers()*/ viztype_num + 1; ++layer){
-	
-      	m_uniforms_pass_volviz->set_int("cv_xyz",1);
-      	m_uniforms_pass_volviz->set_int("cv_uv",2);
-      	glActiveTexture(GL_TEXTURE0 + 1);
-      	glBindTexture(GL_TEXTURE_3D,m_cv->m_cv_xyz_ids[layer]);
-      	glActiveTexture(GL_TEXTURE0 + 2);
-      	glBindTexture(GL_TEXTURE_3D,m_cv->m_cv_uv_ids[layer]);
-      }
-      
-      m_shader_pass_volviz->disable();
-      
-      m_va_pass_volviz->disable(false);
-      glActiveTexture(GL_TEXTURE0);
-      glDisable(GL_BLEND);
-      glPopAttrib();
-    }
-#endif
-
-
-#if 1
     // normalize pass outputs best quality color and depth to framebuffer of parent renderstage
     glPushAttrib(GL_ALL_ATTRIB_BITS);
     
@@ -272,11 +219,8 @@ namespace kinect{
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
     glLoadIdentity();
-    
-
 
     m_shader_pass_normalize->set();
-    m_uniforms_pass_normalize->set_int("viztype", viztype);
     m_uniforms_pass_normalize->set_int("black", int(black));
     
     m_uniforms_pass_normalize->set_vec2("texSizeInv", gloost::vec2(1.0f/m_va_pass_depth->getWidth(), 1.0f/m_va_pass_depth->getHeight()));
@@ -286,8 +230,6 @@ namespace kinect{
 
     m_va_pass_accum->bindToTextureUnitsRGBA(GL_TEXTURE0);
     m_va_pass_depth->bindToTextureUnitsDepth(GL_TEXTURE0 + 1);
-
-    m_va_pass_volviz->bindToTextureUnitsRGBA(GL_TEXTURE0 + 2);
 
     glBegin(GL_QUADS);
     {
@@ -335,7 +277,6 @@ namespace kinect{
     m_uniforms_pass_normalize = new gloost::UniformSet;
     m_uniforms_pass_normalize->set_int("color_map",0);
     m_uniforms_pass_normalize->set_int("depth_map",1);
-    m_uniforms_pass_normalize->set_int("color_map_volviz",2);
 
     m_cv = new CalibVolume(m_nka->getCalibs());
     m_cv->reload();
@@ -347,13 +288,6 @@ namespace kinect{
 
     m_va_pass_accum = new mvt::ViewArray(1920,1200, 1);
     m_va_pass_accum->init();
-
-    m_va_pass_volviz = new mvt::ViewArray(1920,1200, 1);
-    m_va_pass_volviz->init();
-
-    m_uniforms_pass_volviz = new gloost::UniformSet;
-    m_uniforms_pass_volviz->set_int("depth_map_curr",0);
-
   }
 
   void
@@ -384,34 +318,7 @@ namespace kinect{
     m_shader_pass_normalize = new gloost::Shader("glsl/pass_normalize.vs",
 						 "glsl/pass_normalize.fs");
 
-
-    if(m_shader_pass_volviz)
-      delete m_shader_pass_volviz;
-    m_shader_pass_volviz = new gloost::Shader("glsl/ksv3_volviz.vs",
-					      "glsl/ksv3_volviz.fs");
-
-
-
-
-#if 0
-    {
-      byte pbuffer[200000];
-      GLsizei bufsize = 200000;
-      GLsizei length;
-      GLenum binaryFormat;
-    
-      glGetProgramBinary(m_shader_pass_accum->getShaderHandle(),  bufsize,  &length,  &binaryFormat,  &pbuffer);
-      std::cout << "used: " << length << " of " << bufsize << std::endl;
-      FILE* shaderfile = fopen("shaderfile.bin", "wb");
-      fwrite(&pbuffer, length, sizeof(byte),  shaderfile);
-      fclose(shaderfile);
-      //exit(0);
-    }
-#endif
-
-
     m_nka->reloadShader();
-
 
     std::vector<kinect::KinectCalibrationFile*>& calibs = m_nka->getCalibs();
     for(unsigned i = 0; i < calibs.size(); ++i){
@@ -420,7 +327,6 @@ namespace kinect{
     }
 
     m_cv->reload();
-
   }
 
   NetKinectArray*

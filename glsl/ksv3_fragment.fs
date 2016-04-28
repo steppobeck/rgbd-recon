@@ -1,10 +1,7 @@
-
 #extension GL_EXT_gpu_shader4 : enable
 #extension GL_EXT_texture_array : enable
 
-
 uniform int stage;
-uniform int viztype;
 
 // used by accumulation pass
 uniform sampler2DArray kinect_colors;
@@ -15,9 +12,6 @@ uniform mat4 img_to_eye_curr;
 uniform vec2 viewportSizeInv;
 uniform vec2 offset;
 uniform float epsilon;
-
-
-
 
 /*uniform*/ int bbxclip = 1;
 //uniform vec3 bbx_min;
@@ -35,9 +29,7 @@ varying float sq_area_cs;
 
 varying float depth;
 varying float lateral_quality;
-varying float vizvalue;
 varying vec3  normal_es;
-
 
 // methods 
 
@@ -99,21 +91,5 @@ void main() {
      vec4 color = texture2DArray(kinect_colors, vec3(texture_coord, float(layer)));
      gl_FragColor = vec4(color.rgb * quality, quality);
      //gl_FragColor = vec4(1.5*normal.bgr * quality, quality);
-
-
-#if 0
-     if(viztype > 0){
-
-       if(viztype == 1 || viztype == 2){
-	 gl_FragColor = vec4(vec3(vizvalue, 0.0,0.0), 1.0);
-       }
-       if(viztype == 3){
-	 gl_FragColor = vec4(vec3(0.0, vizvalue > 0.5 ? 1.0 : 0.0, vizvalue > 0.5 ? 0.0 : 1.0), 1.0);
-       }
-     }
-#endif
-
    }
-
-
 }

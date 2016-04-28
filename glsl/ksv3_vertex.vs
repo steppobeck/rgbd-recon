@@ -122,24 +122,4 @@ void main() {
 
   gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * vec4(to_geom_pos_cs, 1.0);
 
-
-  to_geom_vizvalue = 0.0;
-  switch(viztype){
-
-  case 1: // error3D
-    to_geom_vizvalue = texture3D(cv_error3D,  vec3(gl_Vertex.xy, d_idx)).r;
-    break;
-
-  case 2: // error2D
-    to_geom_vizvalue = texture3D(cv_error2D,  vec3(gl_Vertex.xy, d_idx)).r;
-    break;
-
-  case 3: // nnistats
-    to_geom_vizvalue = texture3D(cv_nnistats,  vec3(gl_Vertex.xy, d_idx)).r;
-    break;
-
-  default:
-    break;
-  }
-
 }

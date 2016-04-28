@@ -30,7 +30,6 @@ float        g_scale        = 1.0f;
 bool         g_info         = false;
 bool         g_play         = true;
 bool         g_reference    = false;
-bool         g_warpviz      = false;
 bool         g_animate      = false;
 bool         g_wire         = false;
 bool         g_bfilter      = true;
@@ -128,6 +127,7 @@ void draw3d(void)
 
   gloost::vec2 speed_button1(g_ftw->getButtonSpeed(1));
   gloost::vec2 speed_button2(g_ftw->getButtonSpeed(2));
+  // std::cout << "speed1 " << speed_button1 << ", " << speed_button2 << std::endl;
   float fac = 0.005;
   speed[0] = speed_button1.u * fac;
   speed[1] = speed_button1.v * - 1.0 * fac;
@@ -189,43 +189,7 @@ void draw3d(void)
 
 #endif
 
-#if 1
-  if(g_ks_mode == 1){
-    gloost::Matrix t;
-    t.setIdentity();
-    g_stats->setInfoSlot("quality-based fusion", 0);
-    for(unsigned i = 0; i < g_ksV3.size(); ++i){
-      if(g_play)
-        g_ksV3[i]->getNetKinectArray()->update();
-    }
-  }
-  else if(g_ks_mode == 0){
-    gloost::Matrix t;
-    t.setIdentity();
-    g_stats->setInfoSlot("z-buffer-based fusion", 0);
-    for(unsigned i = 0; i < g_ksV3.size(); ++i){
-      if(g_play)
-        g_ksV3[i]->getNetKinectArray()->update();
-    }
-  }
-  else if(g_ks_mode == 2){
-    gloost::Matrix t;
-    t.setIdentity();
-    g_stats->setInfoSlot("quality-based accumulation", 0);
-    for(unsigned i = 0; i < g_ksV3.size(); ++i){
-      if(g_play)
-        g_ksV3[i]->getNetKinectArray()->update();
-    }
-  }
-  else if(g_ks_mode == 3){
-    gloost::Matrix t;
-    t.setIdentity();
-    for(unsigned i = 0; i < g_ksV3.size(); ++i){
-      if(g_play)
-        g_ksV3[i]->getNetKinectArray()->update();
-    }
-  }
-  else if(g_ks_mode == 4){
+  if(g_ks_mode == 4){
     gloost::Matrix t;
     t.setIdentity();
     g_ksV3[0]->lookup ? g_stats->setInfoSlot("Volume Based Mapping", 0) : g_stats->setInfoSlot("Explicit Mapping", 0);
@@ -242,8 +206,10 @@ void draw3d(void)
       glPopMatrix();
     }
   }
+  else {
+    throw std::runtime_error{"ks mode incorrect"};
+  }
 
-#endif
 
   g_stats->stopGPU();
   //std::cerr << "after stopGPU" << std::endl; check_gl_errors("after stopGPU", false);
@@ -355,27 +321,6 @@ void key(unsigned char key, int x, int y)
       g_ksV3[i]->black = g_black;
     }
     break;
-  case '0':
-    for(unsigned i = 0; i < g_ksV3.size(); ++i){
-      g_ksV3[i]->viztype = 0;
-    }
-    break;
-  case '1':
-    for(unsigned i = 0; i < g_ksV3.size(); ++i){
-      g_ksV3[i]->viztype = 1;
-    }
-    break;
-  case '2':
-    for(unsigned i = 0; i < g_ksV3.size(); ++i){
-      g_ksV3[i]->viztype = 2;
-    }
-    break;
-  case '3':
-    for(unsigned i = 0; i < g_ksV3.size(); ++i){
-      g_ksV3[i]->viztype = 3;
-    }
-    break;
-
     /// press ESC or q to quit
   case 27 :
   case 'q':
@@ -388,39 +333,9 @@ void key(unsigned char key, int x, int y)
   case 'a':
     g_animate = !g_animate;
     break;
-#if 0
-  case 'w':
-    g_warpviz = !g_warpviz;
-    break;
-  case 'w':
-    for(unsigned i = 0; i < g_ksV2.size(); ++i){
-      g_ksV2[i]->saveCalibVolumes();
-      g_ksV2[i]->saveSamplePoints("samplePoints", 35 /* 7 * 5 */);
-    }
-    break;
-#endif
   case 'w':
     g_wire = !g_wire;
     break;
-  case '+':
-    
-    if(g_ksV3[0]->viztype_num < (g_ksV3[0]->getNetKinectArray()->getCalibs().size() - 1))
-      g_ksV3[0]->viztype_num += 1;
-    std::cout << "viztype_num: "  << g_ksV3[0]->viztype_num << std::endl;
-
-    break;
-  case '-':
-    if(g_ksV3[0]->viztype_num > 0)
-      g_ksV3[0]->viztype_num -= 1;
-    std::cout << "viztype_num: "  << g_ksV3[0]->viztype_num << std::endl;
-
-    break;
-#if 0
-  case ' ':
-    g_ks_mode = (g_ks_mode + 1) % 3;
-    std::cerr << "g_ks_mode: " << g_ks_mode << std::endl;
-    break;
-#endif
   case 's':
     for(unsigned i = 0; i < g_ksV3.size(); ++i){
       g_ksV3[i]->reloadShader();
