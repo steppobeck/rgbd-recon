@@ -14,3 +14,4 @@ target_include_directories(framework PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/calibrat
 target_include_directories(framework PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/navigation)
 target_include_directories(framework PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/measurement)
 target_include_directories(framework PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/rendering)
+target_include_directories(framework PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/io)
