@@ -44,8 +44,6 @@ namespace kinect{
 
     virtual void init(const char* config);
 
-    void getWidthHeight(unsigned& width, unsigned& height);
-
     std::string m_config;
     std::string m_hostname;
     NetKinectArray* m_nka;

@@ -87,7 +87,6 @@ namespace kinect{
 
     void reloadShader();
 
-    void drawGeometry();
     void writeCurrentTexture(std::string prefix);
     void writeBMP(std::string, std::vector<std::uint8_t> const&, unsigned int offset, unsigned int bytesPerPixel);
     

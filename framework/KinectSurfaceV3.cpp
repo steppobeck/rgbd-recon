@@ -9,7 +9,6 @@
 #include <ProxyMeshGridV2.h>
 #include <KinectCalibrationFile.h>
 #include <CalibVolume.h>
-#include <EvaluationVolumes.h>
 #include <VolumeSliceRenderer.h>
 #include <ViewArray.h>
 
@@ -29,6 +28,13 @@
 
 namespace kinect{
 
+  void
+  static getWidthHeight(unsigned& width, unsigned& height){
+    GLsizei vp_params[4];
+    glGetIntegerv(GL_VIEWPORT,vp_params);
+    width  = vp_params[2];
+    height = vp_params[3];
+  }
 
   KinectSurfaceV3::KinectSurfaceV3(const char* config)
     : m_config(config),
@@ -82,11 +88,6 @@ namespace kinect{
     delete m_uniforms_pass_volviz;
     delete m_vsr;
   }
-
-// on achill   "tcp://141.54.147.22:7001"
-// on orpheus  "tcp://141.54.147.58:7001"
-// on boreas   "tcp://141.54.147.32:7001"
-#define SERVERENDPOINT "tcp://141.54.147.33:7010"
 
   void
   KinectSurfaceV3::draw(bool update, float scale){
@@ -396,15 +397,8 @@ namespace kinect{
     m_uniforms_pass_normalize->set_int("depth_map",1);
     m_uniforms_pass_normalize->set_int("color_map_volviz",2);
 
-
-
-
     m_cv = new CalibVolume(m_nka->getCalibs());
     m_cv->reload();
-#if 0
-    m_ev = new EvaluationVolumes(m_nka->getCalibs(), m_cv);
-    m_vsr = new VolumeSliceRenderer(m_cv->m_cv_widths[0], m_cv->m_cv_heights[0], m_cv->m_cv_depths[0]);
-#endif
 
     reloadShader();
     
@@ -492,13 +486,5 @@ namespace kinect{
   NetKinectArray*
   KinectSurfaceV3::getNetKinectArray(){
     return m_nka;
-  }
-  void
-
-  KinectSurfaceV3::getWidthHeight(unsigned& width, unsigned& height){
-    GLsizei vp_params[4];
-    glGetIntegerv(GL_VIEWPORT,vp_params);
-    width  = vp_params[2];
-    height = vp_params[3];
   }
 }
