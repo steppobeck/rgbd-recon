@@ -59,15 +59,7 @@ namespace kinect{
     CalibVolume* m_cv;
     boost::mutex* m_mutex;
     bool m_running;
-
-  public:
-    int lookup;
-    bool black;
   };
-
-
 }
 
-
 #endif // #ifndef KINECT_KINECTSURFACE3_H
-

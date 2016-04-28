@@ -8,9 +8,6 @@ uniform sampler2DArray depth_map;
 uniform vec2 texSizeInv;
 uniform vec2 offset;
 
-uniform int black;
-
-
 void main(){
 
   vec3 coords = vec3((gl_FragCoord.xy - offset) * texSizeInv, 0.0 /*here layer is always 0*/);

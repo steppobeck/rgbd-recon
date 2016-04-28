@@ -50,10 +50,7 @@ namespace kinect{
       m_va_pass_accum(0),
       m_cv(0),
       m_mutex(new boost::mutex),
-      m_running(true),
-      lookup(true),
-      black(false)
-      
+      m_running(true)
   {
     init(config);
   }
@@ -221,8 +218,6 @@ namespace kinect{
     glLoadIdentity();
 
     m_shader_pass_normalize->set();
-    m_uniforms_pass_normalize->set_int("black", int(black));
-    
     m_uniforms_pass_normalize->set_vec2("texSizeInv", gloost::vec2(1.0f/m_va_pass_depth->getWidth(), 1.0f/m_va_pass_depth->getHeight()));
     m_uniforms_pass_normalize->set_vec2("offset"    , gloost::vec2(1.0f*ox,                          1.0f*oy));
     

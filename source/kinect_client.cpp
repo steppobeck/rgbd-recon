@@ -33,7 +33,6 @@ bool         g_reference    = false;
 bool         g_animate      = false;
 bool         g_wire         = false;
 bool         g_bfilter      = true;
-bool         g_black        = false;
 
 std::unique_ptr<gloost::PerspectiveCamera>   g_camera{};
 std::unique_ptr<pmd::CameraNavigator> g_navi{};
@@ -65,6 +64,7 @@ void init(std::vector<std::string> args){
 
   g_ftw = std::unique_ptr<mvt::FourTiledWindow>{new mvt::FourTiledWindow(g_screenWidth, g_screenHeight)};
   g_stats = std::unique_ptr<mvt::Statistics>{new mvt::Statistics};
+  g_stats->setInfoSlot("Volume Based Mapping", 0);
   g_ssmt = std::unique_ptr<ScreenSpaceMeasureTool>{new ScreenSpaceMeasureTool(g_camera.get(), g_screenWidth, g_screenHeight)};
 
   for(unsigned i = 0; i < args.size(); ++i){
@@ -89,7 +89,7 @@ void frameStep (){
   ++g_frameCounter;
 
   
-  glClearColor(g_black ? 0 : 1, g_black ? 0 : 1, g_black ? 0 : 1, 0);
+  glClearColor(0, 0, 0, 0);
   glViewport(0,0,g_screenWidth, g_screenHeight);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -162,38 +162,9 @@ void draw3d(void)
 
   g_stats->startGPU();
 
-#if 0
-  g_stats->setInfoSlot("comparison: [with calibration (above red x-axis)] vs. [without calibration]", 0);
-
-  gloost::Matrix t;
-  t.setIdentity();
-
-  glPushMatrix();
-  t.setTranslate(-0.5, 0.0,0.0);
-  glMultMatrixf(t.data());
-  g_ksV3[0]->lookup = 0;
-  g_ksV3[0]->draw(g_play, scale);
-  glPopMatrix();
-
-  glPushMatrix();
-  t.setTranslate(0.5, 0.0,0.0);
-  glMultMatrixf(t.data());
-  g_ksV3[0]->lookup = true;
-  g_ksV3[0]->draw(false, scale);
-  glPopMatrix();
-
-
-  glPushAttrib(GL_ALL_ATTRIB_BITS);
-  mvt::GlPrimitives::get()->drawCoords();
-  glPopAttrib();
-
-#endif
-
   if(g_ks_mode == 4){
     gloost::Matrix t;
     t.setIdentity();
-    g_ksV3[0]->lookup ? g_stats->setInfoSlot("Volume Based Mapping", 0) : g_stats->setInfoSlot("Explicit Mapping", 0);
-    //g_stats->setInfoSlot(("compression ratio " + gloost::toString(g_ksV3[0]->getNetKinectArray()->depth_compression_ratio)).c_str(), 1);
     for(unsigned i = 0; i < g_ksV3.size(); ++i){
 
       glPushMatrix();
@@ -314,13 +285,6 @@ void key(unsigned char key, int x, int y)
 {
 
   switch (key){
-
-  case 'b':
-    g_black = !g_black;
-    for(unsigned i = 0; i < g_ksV3.size(); ++i){
-      g_ksV3[i]->black = g_black;
-    }
-    break;
     /// press ESC or q to quit
   case 27 :
   case 'q':
@@ -346,12 +310,6 @@ void key(unsigned char key, int x, int y)
     break;
   case 'p':
     g_play = !g_play;
-    break;
-
-  case 't':
-    for(unsigned i = 0; i < g_ksV3.size(); ++i){
-      g_ksV3[i]->lookup = (int) !g_ksV3[i]->lookup;
-    }
     break;
   case'f':
     g_bfilter = !g_bfilter;
