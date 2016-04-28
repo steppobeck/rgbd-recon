@@ -145,7 +145,8 @@ void draw3d(void)
   if (g_play) {
     g_nka->update();
   }
-
+  // binds to unit 0 and 1
+  g_nka->bindToTextureUnits(GL_TEXTURE0);
   if(g_ks_mode == 4){
     g_ksV3->draw(g_scale);
   }
@@ -253,6 +254,9 @@ void key(unsigned char key, int x, int y)
     break;
   case 's':
       g_nka->reloadShader();
+      for (auto& calib : g_nka->getCalibs()) {
+        calib->parse();
+      }
       g_ksV3->reloadShader();
     break;
   case 'm':

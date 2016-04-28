@@ -42,8 +42,8 @@ namespace kinect{
     m_uniforms_pass_accum->set_int("depth_map_curr",2);
 
     m_uniforms_pass_normalize = std::unique_ptr<gloost::UniformSet>{new gloost::UniformSet};
-    m_uniforms_pass_normalize->set_int("color_map",0);
-    m_uniforms_pass_normalize->set_int("depth_map",1);
+    m_uniforms_pass_normalize->set_int("color_map",2);
+    m_uniforms_pass_normalize->set_int("depth_map",3);
 
     m_cv = std::unique_ptr<CalibVolume>{new CalibVolume(m_nka->getCalibs())};
     m_cv->reload();
@@ -86,7 +86,6 @@ namespace kinect{
     m_va_pass_depth->enable(0, false, &ox, &oy, false);
     m_uniforms_pass_depth->set_float("min_length", min_length);
     m_uniforms_pass_depth->set_int("stage", 0);
-    m_nka->bindToTextureUnits(GL_TEXTURE0);
     for(unsigned layer = 0; layer < m_nka->getNumLayers(); ++layer){
 
       KinectCalibrationFile* calib = m_nka->getCalibs()[layer];
@@ -141,7 +140,6 @@ namespace kinect{
     m_uniforms_pass_accum->set_vec2("offset"         , gloost::vec2(1.0f*ox,                          1.0f*oy));
     m_uniforms_pass_accum->set_mat4("img_to_eye_curr", image_to_eye);
     m_uniforms_pass_accum->set_float("epsilon"    , scale * 0.075);
-    m_nka->bindToTextureUnits(GL_TEXTURE0);
     m_va_pass_depth->bindToTextureUnitsDepth(GL_TEXTURE0 + 2);
 
     for(unsigned layer = 0; layer < m_nka->getNumLayers(); ++layer){
@@ -204,8 +202,8 @@ namespace kinect{
     
     m_uniforms_pass_normalize->applyToShader(m_shader_pass_normalize.get());
 
-    m_va_pass_accum->bindToTextureUnitsRGBA(GL_TEXTURE0);
-    m_va_pass_depth->bindToTextureUnitsDepth(GL_TEXTURE0 + 1);
+    m_va_pass_accum->bindToTextureUnitsRGBA(GL_TEXTURE0 + 2);
+    m_va_pass_depth->bindToTextureUnitsDepth(GL_TEXTURE0 + 3);
 
     glBegin(GL_QUADS);
     {
@@ -249,12 +247,6 @@ namespace kinect{
 
     m_shader_pass_normalize.reset(new gloost::Shader("glsl/pass_normalize.vs",
 						 "glsl/pass_normalize.fs"));
-
-    std::vector<kinect::KinectCalibrationFile*> const& calibs = m_nka->getCalibs();
-    for(unsigned i = 0; i < calibs.size(); ++i){
-      kinect::KinectCalibrationFile* v = calibs[i];
-      v->parse();
-    }
 
     m_cv->reload();
   }

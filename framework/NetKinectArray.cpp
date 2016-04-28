@@ -528,7 +528,7 @@ namespace kinect{
 
 
   void
-  NetKinectArray::bindToTextureUnits(GLenum start_texture_unit) const {
+  NetKinectArray::bindToTextureUnits(GLenum start_texture_unit) {
     
     glActiveTexture(start_texture_unit/*GL_TEXTURE0*/);
     m_colorArray->bind();

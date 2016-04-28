@@ -71,7 +71,7 @@ namespace kinect{
 
     void bilateralFilter();
 
-    void bindToTextureUnits(GLenum start_texture_unit = GL_TEXTURE0) const;
+    void bindToTextureUnits(GLenum start_texture_unit = GL_TEXTURE0);
 
     unsigned getWidth() const;
     unsigned getWidthC() const;
