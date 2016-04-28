@@ -7,6 +7,7 @@
 #include <iostream>
 #include <cmath>
 #include <stdlib.h>
+#include <memory>
 
 
 #include <PerspectiveCamera.h>
@@ -34,14 +35,15 @@ bool         g_animate      = false;
 bool         g_wire         = false;
 bool         g_bfilter      = true;
 bool         g_black        = false;
-gloost::PerspectiveCamera*   g_camera = 0;
-pmd::CameraNavigator* g_navi = 0;
-mvt::FourTiledWindow* g_ftw = 0;
-mvt::Statistics* g_stats = 0;
+
+std::unique_ptr<gloost::PerspectiveCamera>   g_camera{};
+std::unique_ptr<pmd::CameraNavigator> g_navi{};
+std::unique_ptr<mvt::FourTiledWindow> g_ftw{};
+std::unique_ptr<mvt::Statistics> g_stats{};
+std::unique_ptr<ScreenSpaceMeasureTool> g_ssmt{};
 
 void init(std::vector<std::string>& args);
 void draw3d(void);
-void cleanup();
 void resize(int width, int height);
 void key(unsigned char key, int x, int y);
 void motionFunc(int mouse_h, int mouse_v);
@@ -52,20 +54,19 @@ std::vector<kinect::KinectSurfaceV3* > g_ksV3;// 4
 unsigned g_ks_mode = 0;
 
 bool g_picking = false;
-ScreenSpaceMeasureTool* g_ssmt = 0;
 
 void init(std::vector<std::string> args){
 
-  g_camera = new gloost::PerspectiveCamera(50.0,
+  g_camera = std::unique_ptr<gloost::PerspectiveCamera>{new gloost::PerspectiveCamera(50.0,
 					   g_aspect,
                                            0.1,
-                                           200.0);
+                                           200.0)};
 
-  g_navi = new pmd::CameraNavigator(0.1f);
+  g_navi = std::unique_ptr<pmd::CameraNavigator>{new pmd::CameraNavigator(0.1f)};
 
-  g_ftw = new mvt::FourTiledWindow(g_screenWidth, g_screenHeight);
-  g_stats = new mvt::Statistics;
-  g_ssmt = new ScreenSpaceMeasureTool(g_camera, g_screenWidth, g_screenHeight);
+  g_ftw = std::unique_ptr<mvt::FourTiledWindow>{new mvt::FourTiledWindow(g_screenWidth, g_screenHeight)};
+  g_stats = std::unique_ptr<mvt::Statistics>{new mvt::Statistics};
+  g_ssmt = std::unique_ptr<ScreenSpaceMeasureTool>{new ScreenSpaceMeasureTool(g_camera.get(), g_screenWidth, g_screenHeight)};
 
   for(unsigned i = 0; i < args.size(); ++i){
     const std::string ext(args[i].substr(args[i].find_last_of(".") + 1));
@@ -318,21 +319,6 @@ void draw3d(void)
 
 }
 
-
-////////////////////////////////////////////////////////////////////////////////
-
-
-  /// free all resources we created
-
-void cleanup(){
-
-  delete g_camera;
-  delete g_navi;
-  delete g_ftw;
-  delete g_ssmt;
-}
-
-
 ////////////////////////////////////////////////////////////////////////////////
 
 
@@ -393,7 +379,6 @@ void key(unsigned char key, int x, int y)
     /// press ESC or q to quit
   case 27 :
   case 'q':
-    cleanup();
     exit(0);
     break;
   case 'r':
@@ -603,10 +588,6 @@ int main(int argc, char *argv[])
   
   /// start the loop (this will call display() every frame)
   glutMainLoop();
-
-
-  /// cleanup all resources we created for the demo
-  cleanup();
 
   return EXIT_SUCCESS;
 }
