@@ -39,6 +39,8 @@ mvt::FourTiledWindow g_ftw{g_screenWidth, g_screenHeight};
 pmd::CameraNavigator g_navi{0.1f};
 std::unique_ptr<mvt::Statistics> g_stats{};
 ScreenSpaceMeasureTool g_ssmt{&g_camera, g_screenWidth, g_screenHeight};
+std::unique_ptr<kinect::NetKinectArray> g_nka;
+
 
 void init(std::vector<std::string>& args);
 void update_view_matrix();
@@ -63,7 +65,8 @@ void init(std::vector<std::string> args){
     const std::string ext(args[i].substr(args[i].find_last_of(".") + 1));
     std::cerr << ext << std::endl;
    if("ksV3" == ext){
-      g_ksV3 = std::unique_ptr<kinect::KinectSurfaceV3>(new kinect::KinectSurfaceV3(args[i].c_str()));
+      g_nka = std::unique_ptr<kinect::NetKinectArray>{new kinect::NetKinectArray(args[i].c_str())};
+      g_ksV3 = std::unique_ptr<kinect::KinectSurfaceV3>(new kinect::KinectSurfaceV3(g_nka.get()));
       g_ks_mode = 4;
     }
   }
@@ -139,9 +142,12 @@ void draw3d(void)
   }
 
   g_stats->startGPU();
+  if (g_play) {
+    g_nka->update();
+  }
 
   if(g_ks_mode == 4){
-    g_ksV3->draw(g_play, g_scale);
+    g_ksV3->draw(g_scale);
   }
   else {
     throw std::runtime_error{"ks mode incorrect"};
@@ -167,11 +173,11 @@ void draw3d(void)
   }   
 
   if(g_draw_frustums) {
-    for(unsigned idx = 0; idx  < g_ksV3->getNetKinectArray()->getCalibs().size(); ++idx){
+    for(unsigned idx = 0; idx  < g_nka->getCalibs().size(); ++idx){
       glPushAttrib(GL_ALL_ATTRIB_BITS);
       glPolygonMode( GL_FRONT_AND_BACK, GL_LINE);
       
-      mvt::CameraView* v = (mvt::CameraView*) g_ksV3->getNetKinectArray()->getCalibs()[idx];
+      mvt::CameraView* v = (mvt::CameraView*) g_nka->getCalibs()[idx];
       v->updateMatrices();
       
       glPushMatrix();
@@ -246,6 +252,7 @@ void key(unsigned char key, int x, int y)
     g_wire = !g_wire;
     break;
   case 's':
+      g_nka->reloadShader();
       g_ksV3->reloadShader();
     break;
   case 'm':
@@ -256,13 +263,13 @@ void key(unsigned char key, int x, int y)
     break;
   case'f':
     g_bfilter = !g_bfilter;
-    for(unsigned i = 0; i < g_ksV3->getNetKinectArray()->getCalibs().size(); ++i){
-      g_ksV3->getNetKinectArray()->getCalibs()[i]->use_bf = g_bfilter;
+    for(unsigned i = 0; i < g_nka->getCalibs().size(); ++i){
+      g_nka->getCalibs()[i]->use_bf = g_bfilter;
     }
     break;
   case '#':
-    for(unsigned i = 0; i < g_ksV3->getNetKinectArray()->getCalibs().size(); ++i){
-      g_ksV3->getNetKinectArray()->depth_compression_lex = !g_ksV3->getNetKinectArray()->depth_compression_lex;
+    for(unsigned i = 0; i < g_nka->getCalibs().size(); ++i){
+      g_nka->depth_compression_lex = !g_nka->depth_compression_lex;
     }
     break;
   default:

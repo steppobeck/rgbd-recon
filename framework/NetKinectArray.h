@@ -71,17 +71,17 @@ namespace kinect{
 
     void bilateralFilter();
 
-    void bindToTextureUnits(GLenum start_texture_unit = GL_TEXTURE0);
+    void bindToTextureUnits(GLenum start_texture_unit = GL_TEXTURE0) const;
 
-    unsigned getWidth();
-    unsigned getWidthC();
+    unsigned getWidth() const;
+    unsigned getWidthC() const;
 
-    unsigned getHeight();
-    unsigned getHeightC();
+    unsigned getHeight() const;
+    unsigned getHeightC() const;
 
-    unsigned getNumLayers();
+    unsigned getNumLayers() const;
 
-    std::vector<KinectCalibrationFile*>& getCalibs();
+    std::vector<KinectCalibrationFile*> const& getCalibs() const;
 
     std::vector<gloost::Matrix> current_poses;
 

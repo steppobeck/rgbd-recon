@@ -528,7 +528,7 @@ namespace kinect{
 
 
   void
-  NetKinectArray::bindToTextureUnits(GLenum start_texture_unit){
+  NetKinectArray::bindToTextureUnits(GLenum start_texture_unit) const {
     
     glActiveTexture(start_texture_unit/*GL_TEXTURE0*/);
     m_colorArray->bind();
@@ -538,30 +538,30 @@ namespace kinect{
   }
 
   unsigned
-  NetKinectArray::getWidth(){
+  NetKinectArray::getWidth() const {
     return m_width;
   }
   unsigned
-  NetKinectArray::getWidthC(){
+  NetKinectArray::getWidthC() const {
     return m_widthc;
   }
   unsigned
-  NetKinectArray::getHeight(){
+  NetKinectArray::getHeight() const {
     return m_height;
   }
   unsigned
-  NetKinectArray::getHeightC(){
+  NetKinectArray::getHeightC() const {
     return m_heightc;
   }
 
   unsigned
-  NetKinectArray::getNumLayers(){
+  NetKinectArray::getNumLayers() const {
     return m_numLayers;
   }
 
 
-  std::vector<KinectCalibrationFile*>&
-  NetKinectArray::getCalibs(){
+  std::vector<KinectCalibrationFile*> const&
+  NetKinectArray::getCalibs() const {
     return m_kinectcs;
   }
 

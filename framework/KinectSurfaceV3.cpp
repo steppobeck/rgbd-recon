@@ -14,8 +14,8 @@ namespace kinect{
     height = vp_params[3];
   }
 
-  KinectSurfaceV3::KinectSurfaceV3(const char* config)
-    : m_nka(),
+  KinectSurfaceV3::KinectSurfaceV3(NetKinectArray const* nka)
+    : m_nka(nka),
       m_shader_pass_depth(),
       m_shader_pass_accum(),
       m_shader_pass_normalize(),
@@ -27,7 +27,7 @@ namespace kinect{
       m_va_pass_accum(),
       m_cv()
   {
-    m_nka = std::unique_ptr<NetKinectArray>{new NetKinectArray(config)};
+    // m_nka = std::unique_ptr<NetKinectArray>{new NetKinectArray(config)};
     m_proxyMesh = std::unique_ptr<mvt::ProxyMeshGridV2>{new mvt::ProxyMeshGridV2(m_nka->getWidth(),
              m_nka->getHeight())};
 
@@ -58,11 +58,7 @@ namespace kinect{
   }
 
   void
-  KinectSurfaceV3::draw(bool update, float scale){
-
-    if(update)
-      m_nka->update();
-
+  KinectSurfaceV3::draw(float scale){
     // calculate img_to_eye for this view
     gloost::Matrix projection_matrix;
     glGetFloatv(GL_PROJECTION_MATRIX, projection_matrix.data());
@@ -251,23 +247,15 @@ namespace kinect{
     m_shader_pass_accum->setProgramParameter(GL_GEOMETRY_OUTPUT_TYPE_EXT ,GL_TRIANGLE_STRIP);
     m_shader_pass_accum->setProgramParameter(GL_GEOMETRY_VERTICES_OUT_EXT ,3);
 
-
     m_shader_pass_normalize.reset(new gloost::Shader("glsl/pass_normalize.vs",
 						 "glsl/pass_normalize.fs"));
 
-    m_nka->reloadShader();
-
-    std::vector<kinect::KinectCalibrationFile*>& calibs = m_nka->getCalibs();
+    std::vector<kinect::KinectCalibrationFile*> const& calibs = m_nka->getCalibs();
     for(unsigned i = 0; i < calibs.size(); ++i){
       kinect::KinectCalibrationFile* v = calibs[i];
       v->parse();
     }
 
     m_cv->reload();
-  }
-
-  NetKinectArray*
-  KinectSurfaceV3::getNetKinectArray(){
-    return m_nka.get();
   }
 }

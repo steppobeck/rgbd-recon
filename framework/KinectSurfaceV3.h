@@ -18,17 +18,15 @@ namespace kinect{
   class KinectSurfaceV3{
 
   public:
-    KinectSurfaceV3(const char* config);
+    KinectSurfaceV3(NetKinectArray const* nka);
 
-    void draw(bool update, float scale);
+    void draw(float scale);
 
     void reloadShader();
 
-    NetKinectArray* getNetKinectArray();
-
   protected:
 
-    std::unique_ptr<NetKinectArray>m_nka;
+    NetKinectArray const* m_nka;
     std::unique_ptr<gloost::Shader> m_shader_pass_depth;
     std::unique_ptr<gloost::Shader> m_shader_pass_accum;
     std::unique_ptr<gloost::Shader> m_shader_pass_normalize;
