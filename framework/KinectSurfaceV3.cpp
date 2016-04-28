@@ -1,26 +1,8 @@
 #include "KinectSurfaceV3.h"
 
-
-
-#include <Obj.h>
-#include <GlPrimitives.h>
 #include <NetKinectArray.h>
 #include <KinectCalibrationFile.h>
 #include <CalibVolume.h>
-
-#include <FileValue.h>
-
-#include <gl_util.h>
-
-#include <boost/thread/thread.hpp>
-#include <boost/bind.hpp>
-#include <boost/thread/mutex.hpp>
-
-#include <zmq.hpp>
-#include <algorithm>
-#include <unistd.h>
-#include <fstream>
-
 
 namespace kinect{
 
@@ -33,9 +15,7 @@ namespace kinect{
   }
 
   KinectSurfaceV3::KinectSurfaceV3(const char* config)
-    : m_config(config),
-      m_hostname(),
-      m_nka(),
+    : m_nka(),
       m_shader_pass_depth(),
       m_shader_pass_accum(),
       m_shader_pass_normalize(),
@@ -45,10 +25,36 @@ namespace kinect{
       m_proxyMesh(),
       m_va_pass_depth(),
       m_va_pass_accum(),
-      m_cv(),
-      m_mutex(new boost::mutex)
+      m_cv()
   {
-    init(config);
+    m_nka = std::unique_ptr<NetKinectArray>{new NetKinectArray(config)};
+    m_proxyMesh = std::unique_ptr<mvt::ProxyMeshGridV2>{new mvt::ProxyMeshGridV2(m_nka->getWidth(),
+             m_nka->getHeight())};
+
+    m_uniforms_pass_depth = std::unique_ptr<gloost::UniformSet>{new gloost::UniformSet};
+    m_uniforms_pass_depth->set_int("kinect_colors",0);
+    m_uniforms_pass_depth->set_int("kinect_depths",1);
+
+
+    m_uniforms_pass_accum = std::unique_ptr<gloost::UniformSet>{new gloost::UniformSet};
+    m_uniforms_pass_accum->set_int("kinect_colors",0);
+    m_uniforms_pass_accum->set_int("kinect_depths",1);
+    m_uniforms_pass_accum->set_int("depth_map_curr",2);
+
+    m_uniforms_pass_normalize = std::unique_ptr<gloost::UniformSet>{new gloost::UniformSet};
+    m_uniforms_pass_normalize->set_int("color_map",0);
+    m_uniforms_pass_normalize->set_int("depth_map",1);
+
+    m_cv = std::unique_ptr<CalibVolume>{new CalibVolume(m_nka->getCalibs())};
+    m_cv->reload();
+
+    reloadShader();
+    
+    m_va_pass_depth = std::unique_ptr<mvt::ViewArray>{new mvt::ViewArray(1920,1200, 1)};
+    m_va_pass_depth->init();
+
+    m_va_pass_accum = std::unique_ptr<mvt::ViewArray>{new mvt::ViewArray(1920,1200, 1)};
+    m_va_pass_accum->init();
   }
 
   void
@@ -72,13 +78,11 @@ namespace kinect{
     gloost::Matrix image_to_eye =  viewport_scale * viewport_translate * projection_matrix;
     image_to_eye.invert();
 
-
     const float min_length = m_nka->getCalibs()[0]->min_length/*0.0125*/ * scale;
     //std::cerr << "min_length: " << min_length << std::endl;
 
     unsigned ox;
     unsigned oy;
-
 
     // pass 1 goes to depth buffer only
     glPushAttrib(GL_ALL_ATTRIB_BITS);
@@ -92,10 +96,9 @@ namespace kinect{
       KinectCalibrationFile* calib = m_nka->getCalibs()[layer];
       calib->updateMatrices();
 
-
       // now we do first: frustum culling
       if(calib->frustCull())
-	continue;
+	     continue;
 
       m_uniforms_pass_depth->set_int("layer",  layer);
       m_uniforms_pass_depth->set_vec2("tex_size_inv", gloost::vec2(1.0f/calib->getWidth(), 1.0f/calib->getHeight()));
@@ -108,17 +111,17 @@ namespace kinect{
       glActiveTexture(GL_TEXTURE0 + 3);
       glBindTexture(GL_TEXTURE_3D,m_cv->m_cv_uv_ids[layer]);
       {
-	glDisable(GL_CULL_FACE);
-	glPushMatrix();
-	{
-	  m_shader_pass_depth->set();
-	  m_uniforms_pass_depth->applyToShader(m_shader_pass_depth.get());
-	  
-	  
-	  m_proxyMesh->draw(scale);
-	  m_shader_pass_depth->disable();
-	}
-	glPopMatrix();
+      	glDisable(GL_CULL_FACE);
+      	glPushMatrix();
+      	{
+      	  m_shader_pass_depth->set();
+      	  m_uniforms_pass_depth->applyToShader(m_shader_pass_depth.get());
+      	  
+      	  
+      	  m_proxyMesh->draw(scale);
+      	  m_shader_pass_depth->disable();
+      	}
+      	glPopMatrix();
       }
       glActiveTexture(GL_TEXTURE0);
       //glPopAttrib();
@@ -229,42 +232,6 @@ namespace kinect{
     glPopAttrib();
     // end pass normalize
 #endif
-
-
-    // m_nka->drawGeometry();
-  }
-
-  /*virtual*/ void
-  KinectSurfaceV3::init(const char* config){
-    
-    m_nka = std::unique_ptr<NetKinectArray>{new NetKinectArray(config)};
-    m_proxyMesh = std::unique_ptr<mvt::ProxyMeshGridV2>{new mvt::ProxyMeshGridV2(m_nka->getWidth(),
-					   m_nka->getHeight())};
-
-    m_uniforms_pass_depth = std::unique_ptr<gloost::UniformSet>{new gloost::UniformSet};
-    m_uniforms_pass_depth->set_int("kinect_colors",0);
-    m_uniforms_pass_depth->set_int("kinect_depths",1);
-
-
-    m_uniforms_pass_accum = std::unique_ptr<gloost::UniformSet>{new gloost::UniformSet};
-    m_uniforms_pass_accum->set_int("kinect_colors",0);
-    m_uniforms_pass_accum->set_int("kinect_depths",1);
-    m_uniforms_pass_accum->set_int("depth_map_curr",2);
-
-    m_uniforms_pass_normalize = std::unique_ptr<gloost::UniformSet>{new gloost::UniformSet};
-    m_uniforms_pass_normalize->set_int("color_map",0);
-    m_uniforms_pass_normalize->set_int("depth_map",1);
-
-    m_cv = std::unique_ptr<CalibVolume>{new CalibVolume(m_nka->getCalibs())};
-    m_cv->reload();
-
-    reloadShader();
-    
-    m_va_pass_depth = std::unique_ptr<mvt::ViewArray>{new mvt::ViewArray(1920,1200, 1)};
-    m_va_pass_depth->init();
-
-    m_va_pass_accum = std::unique_ptr<mvt::ViewArray>{new mvt::ViewArray(1920,1200, 1)};
-    m_va_pass_accum->init();
   }
 
   void

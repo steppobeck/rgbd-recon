@@ -1,20 +1,14 @@
 #ifndef KINECT_KINECTSURFACEV3_H
 #define KINECT_KINECTSURFACEV3_H
 
-#include <Matrix.h>
-#include <Shader.h>
-#include <UniformSet.h>
 #include <ProxyMeshGridV2.h>
 #include <ViewArray.h>
 
-#include <string>
+#include <Matrix.h>
+#include <Shader.h>
+#include <UniformSet.h>
+
 #include <memory>
-
-namespace boost{
-  class thread;
-  class mutex;
-}
-
 
 namespace kinect{
 
@@ -34,10 +28,6 @@ namespace kinect{
 
   protected:
 
-    virtual void init(const char* config);
-
-    std::string m_config;
-    std::string m_hostname;
     std::unique_ptr<NetKinectArray>m_nka;
     std::unique_ptr<gloost::Shader> m_shader_pass_depth;
     std::unique_ptr<gloost::Shader> m_shader_pass_accum;
@@ -51,7 +41,6 @@ namespace kinect{
     std::unique_ptr<mvt::ViewArray>     m_va_pass_accum;
 
     std::unique_ptr<CalibVolume> m_cv;
-    boost::mutex* m_mutex;
   };
 }
 
