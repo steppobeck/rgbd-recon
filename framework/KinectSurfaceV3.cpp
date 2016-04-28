@@ -1,15 +1,12 @@
 #include "KinectSurfaceV3.h"
 
 
-#include <Shader.h>
-#include <UniformSet.h>
+
 #include <Obj.h>
 #include <GlPrimitives.h>
 #include <NetKinectArray.h>
-#include <ProxyMeshGridV2.h>
 #include <KinectCalibrationFile.h>
 #include <CalibVolume.h>
-#include <ViewArray.h>
 
 #include <FileValue.h>
 
@@ -38,35 +35,20 @@ namespace kinect{
   KinectSurfaceV3::KinectSurfaceV3(const char* config)
     : m_config(config),
       m_hostname(),
-      m_nka(0),
-      m_shader_pass_depth(0),
-      m_shader_pass_accum(0),
-      m_shader_pass_normalize(0),
-      m_uniforms_pass_depth(0),
-      m_uniforms_pass_accum(0),
-      m_uniforms_pass_normalize(0),
-      m_proxyMesh(0),
-      m_va_pass_depth(0),
-      m_va_pass_accum(0),
-      m_cv(0),
-      m_mutex(new boost::mutex),
-      m_running(true)
+      m_nka(),
+      m_shader_pass_depth(),
+      m_shader_pass_accum(),
+      m_shader_pass_normalize(),
+      m_uniforms_pass_depth(),
+      m_uniforms_pass_accum(),
+      m_uniforms_pass_normalize(),
+      m_proxyMesh(),
+      m_va_pass_depth(),
+      m_va_pass_accum(),
+      m_cv(),
+      m_mutex(new boost::mutex)
   {
     init(config);
-  }
-
-
-  KinectSurfaceV3::~KinectSurfaceV3(){
-    delete m_nka;
-    delete m_shader_pass_depth;
-    delete m_shader_pass_accum;
-    delete m_shader_pass_normalize;
-    delete m_uniforms_pass_depth;
-    delete m_uniforms_pass_accum;
-    delete m_uniforms_pass_normalize;
-    delete m_proxyMesh;
-    delete m_va_pass_depth;
-    delete m_va_pass_accum;
   }
 
   void
@@ -130,7 +112,7 @@ namespace kinect{
 	glPushMatrix();
 	{
 	  m_shader_pass_depth->set();
-	  m_uniforms_pass_depth->applyToShader(m_shader_pass_depth);
+	  m_uniforms_pass_depth->applyToShader(m_shader_pass_depth.get());
 	  
 	  
 	  m_proxyMesh->draw(scale);
@@ -188,7 +170,7 @@ namespace kinect{
       	glPushMatrix();
       	{
       	  m_shader_pass_accum->set();
-      	  m_uniforms_pass_accum->applyToShader(m_shader_pass_accum);
+      	  m_uniforms_pass_accum->applyToShader(m_shader_pass_accum.get());
       	  
 
       	  m_proxyMesh->draw(scale);
@@ -221,7 +203,7 @@ namespace kinect{
     m_uniforms_pass_normalize->set_vec2("texSizeInv", gloost::vec2(1.0f/m_va_pass_depth->getWidth(), 1.0f/m_va_pass_depth->getHeight()));
     m_uniforms_pass_normalize->set_vec2("offset"    , gloost::vec2(1.0f*ox,                          1.0f*oy));
     
-    m_uniforms_pass_normalize->applyToShader(m_shader_pass_normalize);
+    m_uniforms_pass_normalize->applyToShader(m_shader_pass_normalize.get());
 
     m_va_pass_accum->bindToTextureUnitsRGBA(GL_TEXTURE0);
     m_va_pass_depth->bindToTextureUnitsDepth(GL_TEXTURE0 + 1);
@@ -255,63 +237,56 @@ namespace kinect{
   /*virtual*/ void
   KinectSurfaceV3::init(const char* config){
     
-    m_nka = new NetKinectArray(config);
-    m_proxyMesh = new mvt::ProxyMeshGridV2(m_nka->getWidth(),
-					   m_nka->getHeight());
+    m_nka = std::unique_ptr<NetKinectArray>{new NetKinectArray(config)};
+    m_proxyMesh = std::unique_ptr<mvt::ProxyMeshGridV2>{new mvt::ProxyMeshGridV2(m_nka->getWidth(),
+					   m_nka->getHeight())};
 
-    m_uniforms_pass_depth = new gloost::UniformSet;
+    m_uniforms_pass_depth = std::unique_ptr<gloost::UniformSet>{new gloost::UniformSet};
     m_uniforms_pass_depth->set_int("kinect_colors",0);
     m_uniforms_pass_depth->set_int("kinect_depths",1);
 
 
-    m_uniforms_pass_accum = new gloost::UniformSet;
+    m_uniforms_pass_accum = std::unique_ptr<gloost::UniformSet>{new gloost::UniformSet};
     m_uniforms_pass_accum->set_int("kinect_colors",0);
     m_uniforms_pass_accum->set_int("kinect_depths",1);
     m_uniforms_pass_accum->set_int("depth_map_curr",2);
 
-    m_uniforms_pass_normalize = new gloost::UniformSet;
+    m_uniforms_pass_normalize = std::unique_ptr<gloost::UniformSet>{new gloost::UniformSet};
     m_uniforms_pass_normalize->set_int("color_map",0);
     m_uniforms_pass_normalize->set_int("depth_map",1);
 
-    m_cv = new CalibVolume(m_nka->getCalibs());
+    m_cv = std::unique_ptr<CalibVolume>{new CalibVolume(m_nka->getCalibs())};
     m_cv->reload();
 
     reloadShader();
     
-    m_va_pass_depth = new mvt::ViewArray(1920,1200, 1);
+    m_va_pass_depth = std::unique_ptr<mvt::ViewArray>{new mvt::ViewArray(1920,1200, 1)};
     m_va_pass_depth->init();
 
-    m_va_pass_accum = new mvt::ViewArray(1920,1200, 1);
+    m_va_pass_accum = std::unique_ptr<mvt::ViewArray>{new mvt::ViewArray(1920,1200, 1)};
     m_va_pass_accum->init();
   }
 
   void
   KinectSurfaceV3::reloadShader(){
-    if(m_shader_pass_depth)
-      delete m_shader_pass_depth;
-
-    m_shader_pass_depth = new gloost::Shader("glsl/ksv3_vertex.vs",
+    m_shader_pass_depth.reset(new gloost::Shader("glsl/ksv3_vertex.vs",
 					     "glsl/ksv3_fragment.fs",
-					     "glsl/ksv3_geometry.gs");
+					     "glsl/ksv3_geometry.gs"));
     m_shader_pass_depth->setProgramParameter(GL_GEOMETRY_INPUT_TYPE_EXT ,GL_TRIANGLES);
     m_shader_pass_depth->setProgramParameter(GL_GEOMETRY_OUTPUT_TYPE_EXT ,GL_TRIANGLE_STRIP);
     m_shader_pass_depth->setProgramParameter(GL_GEOMETRY_VERTICES_OUT_EXT ,3);
 
-    if(m_shader_pass_accum)
-      delete m_shader_pass_accum;
 
-    m_shader_pass_accum = new gloost::Shader("glsl/ksv3_vertex.vs",
+    m_shader_pass_accum.reset(new gloost::Shader("glsl/ksv3_vertex.vs",
 					     "glsl/ksv3_fragment.fs",
-					     "glsl/ksv3_geometry.gs");
+					     "glsl/ksv3_geometry.gs"));
     m_shader_pass_accum->setProgramParameter(GL_GEOMETRY_INPUT_TYPE_EXT ,GL_TRIANGLES);
     m_shader_pass_accum->setProgramParameter(GL_GEOMETRY_OUTPUT_TYPE_EXT ,GL_TRIANGLE_STRIP);
     m_shader_pass_accum->setProgramParameter(GL_GEOMETRY_VERTICES_OUT_EXT ,3);
 
 
-    if(m_shader_pass_normalize)
-      delete m_shader_pass_normalize;
-    m_shader_pass_normalize = new gloost::Shader("glsl/pass_normalize.vs",
-						 "glsl/pass_normalize.fs");
+    m_shader_pass_normalize.reset(new gloost::Shader("glsl/pass_normalize.vs",
+						 "glsl/pass_normalize.fs"));
 
     m_nka->reloadShader();
 
@@ -326,6 +301,6 @@ namespace kinect{
 
   NetKinectArray*
   KinectSurfaceV3::getNetKinectArray(){
-    return m_nka;
+    return m_nka.get();
   }
 }

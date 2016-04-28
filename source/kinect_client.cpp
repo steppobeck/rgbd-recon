@@ -48,7 +48,7 @@ void motionFunc(int mouse_h, int mouse_v);
 void mouseFunc(int button, int state, int mouse_h, int mouse_v);
 void idle(void);
 
-std::vector<kinect::KinectSurfaceV3* > g_ksV3;// 4
+std::unique_ptr<kinect::KinectSurfaceV3> g_ksV3;// 4
 unsigned g_ks_mode = 0;
 
 bool g_picking = false;
@@ -71,7 +71,7 @@ void init(std::vector<std::string> args){
     const std::string ext(args[i].substr(args[i].find_last_of(".") + 1));
     std::cerr << ext << std::endl;
    if("ksV3" == ext){
-      g_ksV3.push_back(new kinect::KinectSurfaceV3(args[i].c_str()));
+      g_ksV3 = std::unique_ptr<kinect::KinectSurfaceV3>(new kinect::KinectSurfaceV3(args[i].c_str()));
       g_ks_mode = 4;
     }
   }
@@ -163,19 +163,7 @@ void draw3d(void)
   g_stats->startGPU();
 
   if(g_ks_mode == 4){
-    gloost::Matrix t;
-    t.setIdentity();
-    for(unsigned i = 0; i < g_ksV3.size(); ++i){
-
-      glPushMatrix();
-      t.setTranslate(i, 0.0,0.0);
-      glMultMatrixf(t.data());
-      
-      g_ksV3[i]->draw(g_play, scale);
-
-
-      glPopMatrix();
-    }
+    g_ksV3->draw(g_play, scale);
   }
   else {
     throw std::runtime_error{"ks mode incorrect"};
@@ -195,7 +183,7 @@ void draw3d(void)
   }
   mvt::GlPrimitives::get()->drawLineSegments(g_ssmt->getMeasurePoints());
 
-  if(g_reference && g_ksV3.size()){
+  if(g_reference){
     glPushAttrib(GL_ALL_ATTRIB_BITS);
     
 
@@ -204,13 +192,13 @@ void draw3d(void)
     
 
 #if 0
-    for(unsigned idx = 0; idx  < g_ksV3[0]->getNetKinectArray()->getCalibs().size(); ++idx){
+    for(unsigned idx = 0; idx  < g_ksV3->getNetKinectArray()->getCalibs().size(); ++idx){
       
     
       glPushAttrib(GL_ALL_ATTRIB_BITS);
       glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
       
-      mvt::CameraView* v = (mvt::CameraView*) g_ksV3[0]->getNetKinectArray()->getCalibs()[idx];
+      mvt::CameraView* v = (mvt::CameraView*) g_ksV3->getNetKinectArray()->getCalibs()[idx];
       v->updateMatrices();
       
       glPushMatrix();
@@ -229,10 +217,6 @@ void draw3d(void)
     }
 #endif
     glPopAttrib();
-
-
-
-
   }
 
   { // draw black grid on floor for fancy look
@@ -252,8 +236,6 @@ void draw3d(void)
     glEnd();
     glPopAttrib();
   }
-
-
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -272,7 +254,6 @@ void resize(int width, int height){
   g_ftw->resize(width, height);
   g_ssmt->resize(g_screenWidth, g_screenHeight);
   glutPostRedisplay();
-
 }
 
 
@@ -283,7 +264,6 @@ void resize(int width, int height){
 
 void key(unsigned char key, int x, int y)
 {
-
   switch (key){
     /// press ESC or q to quit
   case 27 :
@@ -293,7 +273,6 @@ void key(unsigned char key, int x, int y)
   case 'r':
     g_reference = !g_reference;
     break;
-
   case 'a':
     g_animate = !g_animate;
     break;
@@ -301,9 +280,7 @@ void key(unsigned char key, int x, int y)
     g_wire = !g_wire;
     break;
   case 's':
-    for(unsigned i = 0; i < g_ksV3.size(); ++i){
-      g_ksV3[i]->reloadShader();
-    }
+      g_ksV3->reloadShader();
     break;
   case 'm':
     g_picking = !g_picking;
@@ -313,14 +290,14 @@ void key(unsigned char key, int x, int y)
     break;
   case'f':
     g_bfilter = !g_bfilter;
-    for(unsigned i = 0; i < g_ksV3[0]->getNetKinectArray()->getCalibs().size(); ++i){
-      g_ksV3[0]->getNetKinectArray()->getCalibs()[i]->use_bf = g_bfilter;
+    for(unsigned i = 0; i < g_ksV3->getNetKinectArray()->getCalibs().size(); ++i){
+      g_ksV3->getNetKinectArray()->getCalibs()[i]->use_bf = g_bfilter;
     }
     break;
 
   case '#':
-    for(unsigned i = 0; i < g_ksV3[0]->getNetKinectArray()->getCalibs().size(); ++i){
-      g_ksV3[0]->getNetKinectArray()->depth_compression_lex = !g_ksV3[0]->getNetKinectArray()->depth_compression_lex;
+    for(unsigned i = 0; i < g_ksV3->getNetKinectArray()->getCalibs().size(); ++i){
+      g_ksV3->getNetKinectArray()->depth_compression_lex = !g_ksV3->getNetKinectArray()->depth_compression_lex;
     }
     break;
 
@@ -464,5 +441,3 @@ int main(int argc, char *argv[])
 
   return EXIT_SUCCESS;
 }
-
-

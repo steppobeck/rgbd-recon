@@ -2,18 +2,13 @@
 #define KINECT_KINECTSURFACEV3_H
 
 #include <Matrix.h>
+#include <Shader.h>
+#include <UniformSet.h>
+#include <ProxyMeshGridV2.h>
+#include <ViewArray.h>
 
 #include <string>
-
-namespace gloost{
-  class Shader;
-  class UniformSet;
-}
-namespace mvt
-{
-  class ProxyMeshGridV2;
-  class ViewArray;
-}
+#include <memory>
 
 namespace boost{
   class thread;
@@ -30,7 +25,6 @@ namespace kinect{
 
   public:
     KinectSurfaceV3(const char* config);
-    ~KinectSurfaceV3();
 
     void draw(bool update, float scale);
 
@@ -44,21 +38,20 @@ namespace kinect{
 
     std::string m_config;
     std::string m_hostname;
-    NetKinectArray* m_nka;
-    gloost::Shader* m_shader_pass_depth;
-    gloost::Shader* m_shader_pass_accum;
-    gloost::Shader* m_shader_pass_normalize;
-    gloost::UniformSet* m_uniforms_pass_depth;
-    gloost::UniformSet* m_uniforms_pass_accum;
-    gloost::UniformSet* m_uniforms_pass_normalize;
+    std::unique_ptr<NetKinectArray>m_nka;
+    std::unique_ptr<gloost::Shader> m_shader_pass_depth;
+    std::unique_ptr<gloost::Shader> m_shader_pass_accum;
+    std::unique_ptr<gloost::Shader> m_shader_pass_normalize;
+    std::unique_ptr<gloost::UniformSet> m_uniforms_pass_depth;
+    std::unique_ptr<gloost::UniformSet> m_uniforms_pass_accum;
+    std::unique_ptr<gloost::UniformSet> m_uniforms_pass_normalize;
 
-    mvt::ProxyMeshGridV2* m_proxyMesh;
-    mvt::ViewArray*     m_va_pass_depth;
-    mvt::ViewArray*     m_va_pass_accum;
+    std::unique_ptr<mvt::ProxyMeshGridV2> m_proxyMesh;
+    std::unique_ptr<mvt::ViewArray>     m_va_pass_depth;
+    std::unique_ptr<mvt::ViewArray>     m_va_pass_accum;
 
-    CalibVolume* m_cv;
+    std::unique_ptr<CalibVolume> m_cv;
     boost::mutex* m_mutex;
-    bool m_running;
   };
 }
 
