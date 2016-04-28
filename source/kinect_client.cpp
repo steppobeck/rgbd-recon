@@ -29,7 +29,9 @@ unsigned int g_frameCounter = 0;
 float        g_scale        = 1.0f;
 bool         g_info         = false;
 bool         g_play         = true;
-bool         g_reference    = false;
+bool         g_draw_axes    = false;
+bool         g_draw_frustums= false;
+bool         g_draw_grid    = true;
 bool         g_animate      = false;
 bool         g_wire         = false;
 bool         g_bfilter      = true;
@@ -79,47 +81,36 @@ void init(std::vector<std::string> args){
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
-
-
   /// logic
 
 void frameStep (){
-
   /// increment the frame counter
   ++g_frameCounter;
 
-  
   glClearColor(0, 0, 0, 0);
   glViewport(0,0,g_screenWidth, g_screenHeight);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  
   draw3d();
   
-
   g_ftw->endFrame();
 
   if(g_info)
     g_stats->draw(g_screenWidth, g_screenHeight);
 
-
   //std::cerr << g_frameCounter << std::endl;
   glutSwapBuffers();
 }
 
-
 //////////////////////////////////////////////////////////////////////////////////////////
-
 
   /// main loop function, render with 3D setup
 
 void draw3d(void)
 {
-
   g_camera->setAspect(g_aspect);
   g_camera->set();
   
-
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
 
@@ -169,10 +160,8 @@ void draw3d(void)
     throw std::runtime_error{"ks mode incorrect"};
   }
 
-
   g_stats->stopGPU();
   //std::cerr << "after stopGPU" << std::endl; check_gl_errors("after stopGPU", false);
-
 
   if(g_picking){
     float dist = g_ssmt->measure();
@@ -183,43 +172,31 @@ void draw3d(void)
   }
   mvt::GlPrimitives::get()->drawLineSegments(g_ssmt->getMeasurePoints());
 
-  if(g_reference){
+  if(g_draw_axes){
     glPushAttrib(GL_ALL_ATTRIB_BITS);
-    
-
     //glDisable(GL_DEPTH_TEST);
     mvt::GlPrimitives::get()->drawCoords();
-    
+    glPopAttrib();
+  }   
 
-#if 0
+  if(g_draw_frustums) {
     for(unsigned idx = 0; idx  < g_ksV3->getNetKinectArray()->getCalibs().size(); ++idx){
-      
-    
       glPushAttrib(GL_ALL_ATTRIB_BITS);
-      glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+      glPolygonMode( GL_FRONT_AND_BACK, GL_LINE);
       
       mvt::CameraView* v = (mvt::CameraView*) g_ksV3->getNetKinectArray()->getCalibs()[idx];
       v->updateMatrices();
       
       glPushMatrix();
       gloostMultMatrix(v->eye_d_to_world.data());
-      glColor4f(0.0,0.0,0.0,1.0);
+      glColor4f(0.0,0.0,1.0,1.0);
       v->drawFrustum();
       glPopMatrix();
-      /*  
-	  glPushMatrix();
-	  gloostMultMatrix(v->eye_rgb_to_world.data());
-	  glColor4f(0.0,1.0,0.0,0.0);
-	  v->drawFrustumColor();
-	  glPopMatrix();
-      */
       glPopAttrib();
     }
-#endif
-    glPopAttrib();
   }
-
-  { // draw black grid on floor for fancy look
+  // draw black grid on floor for fancy look
+  if(g_draw_grid) {
     glPushAttrib(GL_ALL_ATTRIB_BITS);
     glColor3f(1.0,1.0,1.0);
     glBegin(GL_LINES);
@@ -271,7 +248,13 @@ void key(unsigned char key, int x, int y)
     exit(0);
     break;
   case 'r':
-    g_reference = !g_reference;
+    g_draw_axes = !g_draw_axes;
+    break;
+  case 'c':
+    g_draw_frustums = !g_draw_frustums;
+    break;
+  case 'g':
+    g_draw_grid = !g_draw_grid;
     break;
   case 'a':
     g_animate = !g_animate;
@@ -294,13 +277,11 @@ void key(unsigned char key, int x, int y)
       g_ksV3->getNetKinectArray()->getCalibs()[i]->use_bf = g_bfilter;
     }
     break;
-
   case '#':
     for(unsigned i = 0; i < g_ksV3->getNetKinectArray()->getCalibs().size(); ++i){
       g_ksV3->getNetKinectArray()->depth_compression_lex = !g_ksV3->getNetKinectArray()->depth_compression_lex;
     }
     break;
-
   default:
     break;
   }
