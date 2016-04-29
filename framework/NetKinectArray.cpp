@@ -141,24 +141,20 @@ namespace kinect{
       depth_compression_lex(false),
       depth_compression_ratio(100.0f)
   {
-
     if(!s_glewInit){
       // initialize GLEW
       if (GLEW_OK != glewInit()){
-	/// ... or die trying
-	std::cout << "'glewInit()' failed." << std::endl;
-	exit(0);
+      	/// ... or die trying
+      	std::cout << "'glewInit()' failed." << std::endl;
+      	exit(0);
       }
       else{
-	s_glewInit = true;
+      	s_glewInit = true;
       }
     }
     
     init();
-
   }
-#define ARTLISTENERNUMSENSORS 50
-
 
   bool
   NetKinectArray::init(){
@@ -168,7 +164,6 @@ namespace kinect{
     m_height  = m_kinectcs[0]->getHeight();
     m_heightc = m_kinectcs[0]->getHeightC();
 
-    
     if(m_kinectcs[0]->isCompressedRGB() == 1){
       mvt::DXTCompressor dxt;
       dxt.init(m_kinectcs[0]->getWidthC(), m_kinectcs[0]->getHeightC(), FORMAT_DXT1);
@@ -181,9 +176,6 @@ namespace kinect{
     else{
       m_colorsize = m_widthc * m_heightc * 3 * sizeof(byte);
     }
-
-    m_colorsCPU3.matrixdata_back = new float [ARTLISTENERNUMSENSORS * sizeof(gloost::Matrix)];
-    m_colorsCPU3.matrixdata_front = new float [ARTLISTENERNUMSENSORS * sizeof(gloost::Matrix)];
 
     m_colorsCPU3.size = m_colorsize * m_numLayers;
     m_colorsCPU3.needSwap = false;
@@ -225,13 +217,6 @@ namespace kinect{
     glBufferData(GL_PIXEL_PACK_BUFFER, m_depthsCPU3.size, 0, GL_DYNAMIC_DRAW);
     m_depthsCPU3.back = (byte*) glMapBufferRange(GL_PIXEL_PACK_BUFFER,0 /*offset*/, m_depthsCPU3.size /*length*/, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
     glBindBuffer(GL_PIXEL_PACK_BUFFER,0);
-
-
-
-
-
-
-
 
     /* kinect color: GL_RGB32F, GL_RGB, GL_FLOAT*/
     /* kinect depth: GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT*/
@@ -292,11 +277,7 @@ namespace kinect{
 
     m_uniforms_bf->set_sampler2D("gauss",m_gaussID);
 
-
-
-
     std::cerr << "NetKinectArray::NetKinectArray: " << this << std::endl;
-
 
     return true;
   }
@@ -321,10 +302,7 @@ namespace kinect{
     m_readThread->join();
     delete m_readThread;
     delete m_mutex;
-
-
   }
-
 
   void
   NetKinectArray::update() {
@@ -574,16 +552,7 @@ namespace kinect{
       	  offset += depthsize;
       	}
       }
-      
-      const unsigned ts_address = ARTLISTENERNUMSENSORS * sizeof(gloost::Matrix);
-      if(!drop){
-	       memcpy((void *) m_colorsCPU3.matrixdata_back, zmqm.data(), ts_address /*ARTLISTENERNUMSENSORS * sizeof(gloost::Matrix)*/);
-      }
-      memcpy(&ts, (byte*)zmqm.data() + ts_address, sizeof(sensor::timevalue));
-      const unsigned framenr_address = ts_address + sizeof(sensor::timevalue);
-      unsigned curr_framenr;
-      memcpy(&curr_framenr, (byte*)zmqm.data() + framenr_address, sizeof(curr_framenr));
-      
+
       if(!drop){ // swap
       	boost::mutex::scoped_lock lock(*m_mutex);
       	m_colorsCPU3.needSwap = true;
@@ -828,12 +797,6 @@ namespace kinect{
       
       offset += depthsize;
     }
-      
-    const unsigned ts_address = ARTLISTENERNUMSENSORS * sizeof(gloost::Matrix);
-    
-    memcpy((void *) m_colorsCPU3.matrixdata_back, m_colorsCPU3.back, ts_address /*ARTLISTENERNUMSENSORS * sizeof(gloost::Matrix)*/);
-    
-      
 
     { // swap
       boost::mutex::scoped_lock lock(*m_mutex);

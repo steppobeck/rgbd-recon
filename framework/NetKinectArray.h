@@ -40,16 +40,11 @@ namespace kinect{
     unsigned frontID;
     unsigned backID;
     std::vector<gloost::Matrix> current_poses;
-    float* matrixdata_back;
-    float* matrixdata_front;
+
     void swap(){
       unsigned tmp = frontID;
       frontID = backID;
       backID = tmp;
-
-      float* tmpf = matrixdata_front;
-      matrixdata_front = matrixdata_back;
-      matrixdata_back = tmpf;
     }
 
   };
