@@ -18,7 +18,7 @@ namespace kinect{
   class KinectSurfaceV3{
 
   public:
-    KinectSurfaceV3(NetKinectArray const* nka);
+    KinectSurfaceV3(NetKinectArray const* nka, CalibVolume const* cv);
 
     void draw(float scale);
 
@@ -27,6 +27,7 @@ namespace kinect{
   protected:
 
     NetKinectArray const* m_nka;
+    CalibVolume const* m_cv;
     std::unique_ptr<gloost::Shader> m_shader_pass_depth;
     std::unique_ptr<gloost::Shader> m_shader_pass_accum;
     std::unique_ptr<gloost::Shader> m_shader_pass_normalize;
@@ -38,7 +39,6 @@ namespace kinect{
     std::unique_ptr<mvt::ViewArray>     m_va_pass_depth;
     std::unique_ptr<mvt::ViewArray>     m_va_pass_accum;
 
-    std::unique_ptr<CalibVolume> m_cv;
   };
 }
 

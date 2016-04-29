@@ -37,6 +37,9 @@ namespace kinect{
 
     void prepareOffsets();
 
+    void bindToTextureUnits(unsigned start_texture_unit);
+    unsigned getStartTextureUnit() const;
+
     void dumpSamplePoints();
     void clearSamples();
     void applySamples();
@@ -84,7 +87,7 @@ namespace kinect{
     std::vector<std::vector<samplePoint> >* m_sps_back;
     std::vector<std::vector<samplePoint> >* m_sps;
     std::vector<std::vector<uv> >* m_errors;
-    
+    unsigned m_start_texture_unit;
     boost::mutex* m_mutex;
     unsigned m_frame_count;
     bool do_swap;

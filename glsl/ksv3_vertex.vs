@@ -5,18 +5,10 @@ uniform sampler2DArray kinect_depths;
 uniform sampler3D cv_xyz;
 uniform sampler3D cv_uv;
 
-
-uniform sampler3D cv_error3D;
-uniform sampler3D cv_error2D;
-uniform sampler3D cv_nnistats;
-
-
 uniform float cv_min_d;
 uniform float cv_max_d;
 uniform vec2 tex_size_inv;
 uniform int layer;
-uniform int viztype;
-
 
 varying vec2 to_geom_texture_coord;
 varying vec3 to_geom_pos_es;

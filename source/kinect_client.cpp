@@ -20,19 +20,20 @@
 #include <GlPrimitives.h>
 
 /// general setup
-unsigned int g_screenWidth  = 1280;
-unsigned int g_screenHeight = 720;
-float        g_aspect       = g_screenWidth * 1.0/g_screenHeight;
-unsigned int g_frameCounter = 0;
-float        g_scale        = 1.0f;
-bool         g_info         = false;
-bool         g_play         = true;
-bool         g_draw_axes    = false;
-bool         g_draw_frustums= false;
-bool         g_draw_grid    = true;
-bool         g_animate      = false;
-bool         g_wire         = false;
-bool         g_bfilter      = true;
+unsigned g_screenWidth  = 1280;
+unsigned g_screenHeight = 720;
+float    g_aspect       = g_screenWidth * 1.0/g_screenHeight;
+unsigned g_frameCounter = 0;
+float    g_scale        = 1.0f;
+bool     g_info         = false;
+bool     g_play         = true;
+bool     g_draw_axes    = false;
+bool     g_draw_frustums= false;
+bool     g_draw_grid    = true;
+bool     g_animate      = false;
+bool     g_wire         = false;
+bool     g_bfilter      = true;
+unsigned g_ks_mode      = 4;
 
 gloost::PerspectiveCamera g_camera{50.0, g_aspect, 0.1, 200.0};
 mvt::FourTiledWindow g_ftw{g_screenWidth, g_screenHeight};
@@ -40,7 +41,7 @@ pmd::CameraNavigator g_navi{0.1f};
 std::unique_ptr<mvt::Statistics> g_stats{};
 ScreenSpaceMeasureTool g_ssmt{&g_camera, g_screenWidth, g_screenHeight};
 std::unique_ptr<kinect::NetKinectArray> g_nka;
-
+std::unique_ptr<kinect::CalibVolume> g_cv;
 
 void init(std::vector<std::string>& args);
 void update_view_matrix();
@@ -52,7 +53,6 @@ void mouseFunc(int button, int state, int mouse_h, int mouse_v);
 void idle(void);
 
 std::unique_ptr<kinect::KinectSurfaceV3> g_ksV3;// 4
-unsigned g_ks_mode = 0;
 
 bool g_picking = false;
 
@@ -61,14 +61,22 @@ void init(std::vector<std::string> args){
   g_stats.reset(new mvt::Statistics{});
   g_stats->setInfoSlot("Volume Based Mapping", 0);
 
+  bool found_file = false;
   for(unsigned i = 0; i < args.size(); ++i){
     const std::string ext(args[i].substr(args[i].find_last_of(".") + 1));
     std::cerr << ext << std::endl;
-   if("ksV3" == ext){
+   if("ks" == ext){
       g_nka = std::unique_ptr<kinect::NetKinectArray>{new kinect::NetKinectArray(args[i].c_str())};
-      g_ksV3 = std::unique_ptr<kinect::KinectSurfaceV3>(new kinect::KinectSurfaceV3(g_nka.get()));
-      g_ks_mode = 4;
+      g_cv = std::unique_ptr<kinect::CalibVolume>{new kinect::CalibVolume(g_nka->getCalibs())};
+      g_cv->reload();
+      g_ksV3 = std::unique_ptr<kinect::KinectSurfaceV3>(new kinect::KinectSurfaceV3(g_nka.get(), g_cv.get()));
+      found_file = true;
+      break;
     }
+  }
+
+  if (!found_file) {
+    throw std::invalid_argument{"No .ks file specified"};
   }
 }
 
@@ -147,6 +155,9 @@ void draw3d(void)
   }
   // binds to unit 0 and 1
   g_nka->bindToTextureUnits(GL_TEXTURE0);
+  // bind from 2 - 11
+  g_cv->bindToTextureUnits(2);
+
   if(g_ks_mode == 4){
     g_ksV3->draw(g_scale);
   }
@@ -257,6 +268,8 @@ void key(unsigned char key, int x, int y)
       for (auto& calib : g_nka->getCalibs()) {
         calib->parse();
       }
+      g_cv->reload();
+
       g_ksV3->reloadShader();
     break;
   case 'm':

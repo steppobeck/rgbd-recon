@@ -52,11 +52,6 @@ namespace{
 
   }
 
-
-
-
-
-
   bool addCross(minixml::svgdocument& doc, float x, float y, float size, float strokeWidth, std::uint8_t r, std::uint8_t g, std::uint8_t b){
 
     // define the svg element style
@@ -140,44 +135,42 @@ namespace kinect{
     m_sps_back(0),
     m_sps(0),
     m_errors(0),
+    m_start_texture_unit(0),
     m_mutex(new boost::mutex),
     m_frame_count(0),
     do_swap(false),
     calib_mode(false)
-    {
-
-      
-      std::ifstream iff("poseoffset", std::ifstream::binary);
-      iff.read((char*) m_poseoffset.data(), sizeof(gloost::Matrix));
-      iff.close();
-      std::cerr << "loaded pose offset " << m_poseoffset << std::endl;
+  {
+    std::ifstream iff("poseoffset", std::ifstream::binary);
+    iff.read((char*) m_poseoffset.data(), sizeof(gloost::Matrix));
+    iff.close();
+    std::cerr << "loaded pose offset " << m_poseoffset << std::endl;
 
 
-      m_sps_front = new std::vector<std::vector<struct samplePoint> >;
-      m_sps_back = new std::vector<std::vector<struct samplePoint> >;
-      m_sps = new std::vector<std::vector<struct samplePoint> >;
-      m_errors = new std::vector<std::vector<struct uv> >;
-      
+    m_sps_front = new std::vector<std::vector<struct samplePoint> >;
+    m_sps_back = new std::vector<std::vector<struct samplePoint> >;
+    m_sps = new std::vector<std::vector<struct samplePoint> >;
+    m_errors = new std::vector<std::vector<struct uv> >;
+    
 
-      for(unsigned i = 0; i < calibs.size(); ++i){
-	std::string basefile = calibs[i]->_filePath;
-	basefile.replace( basefile.end() - 3, basefile.end(), "");
-	m_cv_xyz_filenames.push_back(basefile + "cv_xyz");
-	m_cv_uv_filenames.push_back(basefile + "cv_uv");
-	m_sps_front->push_back(std::vector<struct samplePoint>() );
-	m_sps_back->push_back(std::vector<struct samplePoint>() );
-	m_sps->push_back(std::vector<struct samplePoint>() );
-	m_errors->push_back(std::vector<struct uv>() );
-      }
-
-      // configure local 3D Points on chessboard here:
-      for(unsigned y = 0; y < m_cb_height; ++y){
-	for(unsigned x = 0; x < m_cb_width; ++x){
-	  m_cb_points_local.push_back(gloost::Point3(y * 0.075, x * 0.075,0.0));
-	}
-      }
-
+    for(unsigned i = 0; i < calibs.size(); ++i){
+    	std::string basefile = calibs[i]->_filePath;
+    	basefile.replace( basefile.end() - 3, basefile.end(), "");
+    	m_cv_xyz_filenames.push_back(basefile + "cv_xyz");
+    	m_cv_uv_filenames.push_back(basefile + "cv_uv");
+    	m_sps_front->push_back(std::vector<struct samplePoint>() );
+    	m_sps_back->push_back(std::vector<struct samplePoint>() );
+    	m_sps->push_back(std::vector<struct samplePoint>() );
+    	m_errors->push_back(std::vector<struct uv>() );
     }
+
+    // configure local 3D Points on chessboard here:
+    for(unsigned y = 0; y < m_cb_height; ++y){
+    	for(unsigned x = 0; x < m_cb_width; ++x){
+    	  m_cb_points_local.push_back(gloost::Point3(y * 0.075, x * 0.075,0.0));
+    	}
+    }
+  }
 
   /*virtual*/
   CalibVolume::~CalibVolume(){
@@ -189,7 +182,6 @@ namespace kinect{
       glDeleteTextures(1, &(m_cv_uv_ids[i]));
     }
   }
-
 
   void
   CalibVolume::prepareOffsets(){
@@ -215,13 +207,8 @@ namespace kinect{
 
       (*m_errors)[0][i].u = gloost::Vector3((*m_sps)[0][i].pos_offset.x,(*m_sps)[0][i].pos_offset.y,(*m_sps)[0][i].pos_offset.z).length();
       (*m_errors)[0][i].v = gloost::Vector3((*m_sps)[0][i].tex_offset.u * m_calibs[0]->getWidthC(),(*m_sps)[0][i].tex_offset.v * m_calibs[0]->getHeightC(),0.0).length();
-
     }
-
-
   }
-
-
 
   void
   CalibVolume::drawSamplePoints(){
@@ -243,9 +230,7 @@ namespace kinect{
 
       glPopAttrib();
     }
-
   }
-
 
   bool
   CalibVolume::reload(){
@@ -347,6 +332,22 @@ namespace kinect{
   }
 
   void
+  CalibVolume::bindToTextureUnits(unsigned start_texture_unit) {
+    for(unsigned layer = 0; layer < m_calibs.size(); ++layer){
+      glActiveTexture(GL_TEXTURE0 + start_texture_unit + layer * 2);
+      glBindTexture(GL_TEXTURE_3D, m_cv_xyz_ids[layer]);
+      glActiveTexture(GL_TEXTURE0 + start_texture_unit + layer * 2 + 1);
+      glBindTexture(GL_TEXTURE_3D, m_cv_uv_ids[layer]);
+    }
+    glActiveTexture(GL_TEXTURE0);
+    m_start_texture_unit = start_texture_unit;    
+  }
+
+  unsigned CalibVolume::getStartTextureUnit() const {
+    return m_start_texture_unit;
+  }
+
+  void
   CalibVolume::save(){
 
     for(unsigned i = 0; i < m_cv_xyz_filenames.size(); ++i){
@@ -375,9 +376,6 @@ namespace kinect{
 
   void
   CalibVolume::saveSamplePoints(const char* bfname, unsigned stride){
-
-
-
 
     std::vector<samplePoint> samples_c;
     std::vector<samplePoint> samples_r;
@@ -447,9 +445,7 @@ namespace kinect{
     fwrite(max_bbx.data(), sizeof(gloost::Point3), 1, s_bbx);
     fclose(s_bbx);
 
-
   }
-
 
   void
   CalibVolume::loadSamplePoints(const char* bfname){
@@ -467,8 +463,6 @@ namespace kinect{
 
     fread(&((*m_sps)[0].front()), sizeof(samplePoint), num_c, s_c);
     fclose(s_c);
-
-
   }
 
   void
@@ -500,7 +494,6 @@ namespace kinect{
       
       std::cout << "mean2D: " << mean << " stdev: " << stdev  << std::endl;
     }	
-    
   }
 
   void

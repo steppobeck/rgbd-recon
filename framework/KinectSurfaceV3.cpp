@@ -14,8 +14,9 @@ namespace kinect{
     height = vp_params[3];
   }
 
-  KinectSurfaceV3::KinectSurfaceV3(NetKinectArray const* nka)
+  KinectSurfaceV3::KinectSurfaceV3(NetKinectArray const* nka, CalibVolume const* cv)
     : m_nka(nka),
+      m_cv(cv),
       m_shader_pass_depth(),
       m_shader_pass_accum(),
       m_shader_pass_normalize(),
@@ -24,8 +25,7 @@ namespace kinect{
       m_uniforms_pass_normalize(),
       m_proxyMesh(),
       m_va_pass_depth(),
-      m_va_pass_accum(),
-      m_cv()
+      m_va_pass_accum()
   {
     // m_nka = std::unique_ptr<NetKinectArray>{new NetKinectArray(config)};
     m_proxyMesh = std::unique_ptr<mvt::ProxyMeshGridV2>{new mvt::ProxyMeshGridV2(m_nka->getWidth(),
@@ -39,14 +39,14 @@ namespace kinect{
     m_uniforms_pass_accum = std::unique_ptr<gloost::UniformSet>{new gloost::UniformSet};
     m_uniforms_pass_accum->set_int("kinect_colors",0);
     m_uniforms_pass_accum->set_int("kinect_depths",1);
-    m_uniforms_pass_accum->set_int("depth_map_curr",2);
+    m_uniforms_pass_accum->set_int("depth_map_curr",12);
 
     m_uniforms_pass_normalize = std::unique_ptr<gloost::UniformSet>{new gloost::UniformSet};
-    m_uniforms_pass_normalize->set_int("color_map",2);
-    m_uniforms_pass_normalize->set_int("depth_map",3);
+    m_uniforms_pass_normalize->set_int("color_map",13);
+    m_uniforms_pass_normalize->set_int("depth_map",14);
 
-    m_cv = std::unique_ptr<CalibVolume>{new CalibVolume(m_nka->getCalibs())};
-    m_cv->reload();
+    // m_cv = std::unique_ptr<CalibVolume>{new CalibVolume(m_nka->getCalibs())};
+    // m_cv->reload();
 
     reloadShader();
     
@@ -97,14 +97,10 @@ namespace kinect{
 
       m_uniforms_pass_depth->set_int("layer",  layer);
       m_uniforms_pass_depth->set_vec2("tex_size_inv", gloost::vec2(1.0f/calib->getWidth(), 1.0f/calib->getHeight()));
-      m_uniforms_pass_depth->set_int("cv_xyz",2);
-      m_uniforms_pass_depth->set_int("cv_uv",3);
+      m_uniforms_pass_depth->set_int("cv_xyz",m_cv->getStartTextureUnit() + layer * 2);
+      m_uniforms_pass_depth->set_int("cv_uv",m_cv->getStartTextureUnit() + layer * 2 + 1);
       m_uniforms_pass_depth->set_float("cv_min_d",m_cv->m_cv_min_ds[layer]);
       m_uniforms_pass_depth->set_float("cv_max_d",m_cv->m_cv_max_ds[layer]);
-      glActiveTexture(GL_TEXTURE0 + 2);
-      glBindTexture(GL_TEXTURE_3D,m_cv->m_cv_xyz_ids[layer]);
-      glActiveTexture(GL_TEXTURE0 + 3);
-      glBindTexture(GL_TEXTURE_3D,m_cv->m_cv_uv_ids[layer]);
       {
       	glDisable(GL_CULL_FACE);
       	glPushMatrix();
@@ -118,7 +114,6 @@ namespace kinect{
       	}
       	glPopMatrix();
       }
-      glActiveTexture(GL_TEXTURE0);
       //glPopAttrib();
       
     }
@@ -140,7 +135,7 @@ namespace kinect{
     m_uniforms_pass_accum->set_vec2("offset"         , gloost::vec2(1.0f*ox,                          1.0f*oy));
     m_uniforms_pass_accum->set_mat4("img_to_eye_curr", image_to_eye);
     m_uniforms_pass_accum->set_float("epsilon"    , scale * 0.075);
-    m_va_pass_depth->bindToTextureUnitsDepth(GL_TEXTURE0 + 2);
+    m_va_pass_depth->bindToTextureUnitsDepth(GL_TEXTURE0 + 12);
 
     for(unsigned layer = 0; layer < m_nka->getNumLayers(); ++layer){
 
@@ -154,14 +149,10 @@ namespace kinect{
       m_uniforms_pass_accum->set_int("layer",  layer);
       m_uniforms_pass_accum->set_vec2("tex_size_inv", gloost::vec2(1.0f/calib->getWidth(), 1.0f/calib->getHeight()));
  
-      m_uniforms_pass_accum->set_int("cv_xyz",3);
-      m_uniforms_pass_accum->set_int("cv_uv",4);
+      m_uniforms_pass_accum->set_int("cv_xyz",m_cv->getStartTextureUnit() + layer * 2);
+      m_uniforms_pass_accum->set_int("cv_uv",m_cv->getStartTextureUnit() + layer * 2 + 1);
       m_uniforms_pass_accum->set_float("cv_min_d",m_cv->m_cv_min_ds[layer]);
       m_uniforms_pass_accum->set_float("cv_max_d",m_cv->m_cv_max_ds[layer]);
-      glActiveTexture(GL_TEXTURE0 + 3);
-      glBindTexture(GL_TEXTURE_3D,m_cv->m_cv_xyz_ids[layer]);
-      glActiveTexture(GL_TEXTURE0 + 4);
-      glBindTexture(GL_TEXTURE_3D,m_cv->m_cv_uv_ids[layer]);
       {
       	glDisable(GL_CULL_FACE);
       	glPushMatrix();
@@ -178,7 +169,6 @@ namespace kinect{
     }
 
     m_va_pass_accum->disable(false);
-    glActiveTexture(GL_TEXTURE0);
     glDisable(GL_BLEND);
     glPopAttrib();
     // end pass 2
@@ -202,8 +192,8 @@ namespace kinect{
     
     m_uniforms_pass_normalize->applyToShader(m_shader_pass_normalize.get());
 
-    m_va_pass_accum->bindToTextureUnitsRGBA(GL_TEXTURE0 + 2);
-    m_va_pass_depth->bindToTextureUnitsDepth(GL_TEXTURE0 + 3);
+    m_va_pass_accum->bindToTextureUnitsRGBA(GL_TEXTURE0 + 13);
+    m_va_pass_depth->bindToTextureUnitsDepth(GL_TEXTURE0 + 14);
 
     glBegin(GL_QUADS);
     {
@@ -216,8 +206,6 @@ namespace kinect{
 
     m_shader_pass_normalize->disable();
     
-    glActiveTexture(GL_TEXTURE0);
-
     glMatrixMode(GL_PROJECTION);
     glPopMatrix();
     glMatrixMode(GL_MODELVIEW);
@@ -247,7 +235,5 @@ namespace kinect{
 
     m_shader_pass_normalize.reset(new gloost::Shader("glsl/pass_normalize.vs",
 						 "glsl/pass_normalize.fs"));
-
-    m_cv->reload();
   }
 }
