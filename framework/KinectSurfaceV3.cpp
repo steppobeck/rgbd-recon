@@ -27,7 +27,6 @@ namespace kinect{
       m_va_pass_depth(),
       m_va_pass_accum()
   {
-    // m_nka = std::unique_ptr<NetKinectArray>{new NetKinectArray(config)};
     m_proxyMesh = std::unique_ptr<mvt::ProxyMeshGridV2>{new mvt::ProxyMeshGridV2(m_nka->getWidth(),
              m_nka->getHeight())};
 
@@ -44,9 +43,6 @@ namespace kinect{
     m_uniforms_pass_normalize = std::unique_ptr<gloost::UniformSet>{new gloost::UniformSet};
     m_uniforms_pass_normalize->set_int("color_map",13);
     m_uniforms_pass_normalize->set_int("depth_map",14);
-
-    // m_cv = std::unique_ptr<CalibVolume>{new CalibVolume(m_nka->getCalibs())};
-    // m_cv->reload();
 
     reloadShader();
     

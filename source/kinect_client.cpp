@@ -77,7 +77,6 @@ void init(std::vector<std::string> args){
   }
 
   g_cv = std::unique_ptr<kinect::CalibVolume>{new kinect::CalibVolume(g_nka->getCalibs())};
-  g_cv->reload();
   g_ksV3 = std::unique_ptr<kinect::KinectSurfaceV3>(new kinect::KinectSurfaceV3(g_nka.get(), g_cv.get()));
   
   // binds to unit 0 and 1

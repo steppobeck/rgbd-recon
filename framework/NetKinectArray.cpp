@@ -757,7 +757,6 @@ namespace kinect{
   NetKinectArray::readFromFiles(){
     std::vector<sys::FileBuffer*> fbs;
 
-
     for(unsigned i = 0 ; i < m_kinectcs.size(); ++i){
       std::string yml(m_kinectcs[i]->_filePath);
       std::string base((const char*) basename((char *) yml.c_str()));
@@ -766,20 +765,14 @@ namespace kinect{
 
       fbs.push_back(new sys::FileBuffer(filename.c_str()));
       if(!fbs.back()->open("r")){
-	std::cerr << "error opening " << filename << " exiting..." << std::endl;
-	exit(1);
+      	std::cerr << "error opening " << filename << " exiting..." << std::endl;
+      	exit(1);
       }
       fbs.back()->setLooping(/*true*/false);
     }
 
-    
     const unsigned colorsize = m_colorsize;
     const unsigned depthsize = m_depthsize;
-
-
-
-
-
 
     while(m_colorsCPU3.needSwap && m_depthsCPU3.needSwap){
       ;
