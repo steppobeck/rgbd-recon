@@ -67,9 +67,6 @@ void init(std::vector<std::string> args){
     std::cerr << ext << std::endl;
    if("ks" == ext){
       g_nka = std::unique_ptr<kinect::NetKinectArray>{new kinect::NetKinectArray(args[i].c_str())};
-      g_cv = std::unique_ptr<kinect::CalibVolume>{new kinect::CalibVolume(g_nka->getCalibs())};
-      g_cv->reload();
-      g_ksV3 = std::unique_ptr<kinect::KinectSurfaceV3>(new kinect::KinectSurfaceV3(g_nka.get(), g_cv.get()));
       found_file = true;
       break;
     }
@@ -78,6 +75,16 @@ void init(std::vector<std::string> args){
   if (!found_file) {
     throw std::invalid_argument{"No .ks file specified"};
   }
+
+  g_cv = std::unique_ptr<kinect::CalibVolume>{new kinect::CalibVolume(g_nka->getCalibs())};
+  g_cv->reload();
+  g_ksV3 = std::unique_ptr<kinect::KinectSurfaceV3>(new kinect::KinectSurfaceV3(g_nka.get(), g_cv.get()));
+  
+  // binds to unit 0 and 1
+  g_nka->bindToTextureUnits(0);
+
+  // bind calubration volumes from 2 - 11
+  g_cv->bindToTextureUnits(2);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -153,10 +160,6 @@ void draw3d(void)
   if (g_play) {
     g_nka->update();
   }
-  // binds to unit 0 and 1
-  g_nka->bindToTextureUnits(GL_TEXTURE0);
-  // bind from 2 - 11
-  g_cv->bindToTextureUnits(2);
 
   if(g_ks_mode == 4){
     g_ksV3->draw(g_scale);

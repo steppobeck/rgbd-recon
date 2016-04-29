@@ -67,11 +67,12 @@ namespace kinect{
     virtual ~NetKinectArray();
 
 
-    virtual void update(bool filter = true);
+    virtual void update();
 
     void bilateralFilter();
 
-    void bindToTextureUnits(GLenum start_texture_unit = GL_TEXTURE0);
+    void bindToTextureUnits(unsigned start_texture_unit);
+    unsigned getStartTextureUnit() const;
 
     unsigned getWidth() const;
     unsigned getWidthC() const;
@@ -123,7 +124,6 @@ namespace kinect{
     boost::thread* m_readThread;
     bool m_running;
     std::string m_serverport;
-    unsigned m_trigger;
     static bool s_glewInit;
 
     bool m_isrecording;
@@ -131,6 +131,7 @@ namespace kinect{
     bool m_readfromfile;
 
     std::string m_config;
+    unsigned m_start_texture_unit;
 
   public:
     bool depth_compression_lex;
