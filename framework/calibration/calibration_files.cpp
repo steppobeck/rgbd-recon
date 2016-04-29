@@ -10,6 +10,9 @@ namespace kinect{
       m_height(0),
       m_heightc(0),
       m_numLayers(0),
+      m_min_length(0),
+      m_compressed_rgb{false},
+      m_compressed_d{false},
       m_calibs(),
       m_filenames{}
   {
@@ -20,16 +23,27 @@ namespace kinect{
         in >> token;
         m_filenames.push_back(token);
         m_calibs.push_back(KinectCalibrationFile{token});
-        m_calibs.back().parse();
       }
     }
     in.close();
+
+    reload();
 
     m_numLayers = m_calibs.size();
     m_width   = m_calibs[0].getWidth();
     m_widthc  = m_calibs[0].getWidthC();
     m_height  = m_calibs[0].getHeight();
     m_heightc = m_calibs[0].getHeightC();
+    m_min_length = m_calibs[0].min_length;
+
+    m_compressed_rgb = m_calibs[0].isCompressedRGB();
+    m_compressed_d = m_calibs[0].isCompressedDepth();
+  }
+
+  void CalibrationFiles::reload() {
+    for (auto& calib : m_calibs) {
+      calib.parse();
+    }
   }
 
   unsigned
@@ -50,14 +64,27 @@ namespace kinect{
   }
 
   unsigned
-  CalibrationFiles::getNumLayers() const {
+  CalibrationFiles::num() const {
     return m_numLayers;
+  }
+
+  float
+  CalibrationFiles::minLength() const {
+    return m_min_length;
+  }
+
+  bool CalibrationFiles::isCompressedRGB() const {
+    return m_compressed_rgb;
+  }
+  bool CalibrationFiles::isCompressedDepth() const {
+    return m_compressed_d;
   }
 
   std::vector<KinectCalibrationFile> const&
   CalibrationFiles::getCalibs() const {
     return m_calibs;
   }
+
   std::vector<std::string> const&
   CalibrationFiles::getFileNames() const {
     return m_filenames;

@@ -1,4 +1,5 @@
 #include "NetKinectArray.h"
+#include "calibration_files.hpp"
 #include "squish/squish.h"
 
 #include <FileBuffer.h>
@@ -32,20 +33,16 @@
 #include <fstream>
 #include <sstream>
 
-
-
-
 namespace kinect{
 
   /*static*/ bool NetKinectArray::s_glewInit = false;
 
-  NetKinectArray::NetKinectArray(const char* config, bool readfromfile)
+  NetKinectArray::NetKinectArray(const char* config, CalibrationFiles const* calibs, bool readfromfile)
     : m_width(0),
       m_widthc(0),
       m_height(0),
       m_heightc(0),
       m_numLayers(0),
-      m_kinectcs(),
       m_colorArray(0),
       m_depthArray(0),
       m_colorArray_back(0),
@@ -64,6 +61,7 @@ namespace kinect{
       m_serverport(""),
       m_config(config),
       m_start_texture_unit(0),
+      m_calib_files{calibs},
       depth_compression_lex(false),
       depth_compression_ratio(100.0f)
   {
@@ -86,12 +84,6 @@ namespace kinect{
       if(token == "serverport"){
         in >> m_serverport;
       }
-      if(token == "kinect"){
-        in >> token;
-        KinectCalibrationFile* calib = new KinectCalibrationFile(token);
-        calib->parse();
-        m_kinectcs.push_back(calib);
-      }
     }
     in.close();
 
@@ -105,62 +97,20 @@ namespace kinect{
     }
   }
 
-  NetKinectArray::NetKinectArray(std::vector<KinectCalibrationFile*>& calibs)
-    : m_width(0),
-      m_widthc(0),
-      m_height(0),
-      m_heightc(0),
-      m_numLayers(0),
-      m_kinectcs(calibs),
-      m_colorArray(0),
-      m_depthArray(0),
-      m_colorArray_back(0),
-      m_depthArray_back(0),
-      m_shader_bf(0),
-      m_uniforms_bf(0),
-      m_fboID(0),
-      m_gaussID(0),
-      m_colorsize(0),
-      m_depthsize(0),
-      m_colorsCPU3(),
-      m_depthsCPU3(),
-      m_mutex(new boost::mutex),
-      m_readThread(0),
-      m_running(true),
-      m_serverport(""),
-      m_config(""),
-      depth_compression_lex(false),
-      depth_compression_ratio(100.0f)
-  {
-    if(!s_glewInit){
-      // initialize GLEW
-      if (GLEW_OK != glewInit()){
-      	/// ... or die trying
-      	std::cout << "'glewInit()' failed." << std::endl;
-      	exit(0);
-      }
-      else{
-      	s_glewInit = true;
-      }
-    }
-    
-    init();
-  }
-
   bool
   NetKinectArray::init(){
-    m_numLayers = m_kinectcs.size();
-    m_width   = m_kinectcs[0]->getWidth();
-    m_widthc  = m_kinectcs[0]->getWidthC();
-    m_height  = m_kinectcs[0]->getHeight();
-    m_heightc = m_kinectcs[0]->getHeightC();
+    m_numLayers = m_calib_files->num();
+    m_width   = m_calib_files->getWidth();
+    m_widthc  = m_calib_files->getWidthC();
+    m_height  = m_calib_files->getHeight();
+    m_heightc = m_calib_files->getHeightC();
 
-    if(m_kinectcs[0]->isCompressedRGB() == 1){
+    if(m_calib_files->isCompressedRGB() == 1){
       mvt::DXTCompressor dxt;
-      dxt.init(m_kinectcs[0]->getWidthC(), m_kinectcs[0]->getHeightC(), FORMAT_DXT1);
+      dxt.init(m_calib_files->getWidthC(), m_calib_files->getHeightC(), FORMAT_DXT1);
       m_colorsize = dxt.getStorageSize();
     }
-    else if(m_kinectcs[0]->isCompressedRGB() == 5){
+    else if(m_calib_files->isCompressedRGB() == 5){
       std::cerr << "NetKinectArray: using DXT5" << std::endl;
       m_colorsize = 307200;
     }
@@ -182,7 +132,7 @@ namespace kinect{
     m_colorsCPU3.back = (byte*) glMapBufferRange(GL_PIXEL_PACK_BUFFER,0 /*offset*/, m_colorsCPU3.size /*length*/, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
     glBindBuffer(GL_PIXEL_PACK_BUFFER,0);
 
-    if(m_kinectcs[0]->isCompressedDepth()){
+    if(m_calib_files->isCompressedDepth()){
       m_depthsCPU3.size = m_width * m_height * m_numLayers * sizeof(byte);
       m_depthsize =  m_width * m_height * sizeof(byte);
     }
@@ -212,10 +162,10 @@ namespace kinect{
     /* kinect color: GL_RGB32F, GL_RGB, GL_FLOAT*/
     /* kinect depth: GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT*/
     //m_colorArray = new mvt::TextureArray(m_width, m_height, m_numLayers, GL_RGB32F, GL_RGB, GL_FLOAT);
-    if(m_kinectcs[0]->isCompressedRGB() == 1){
+    if(m_calib_files->isCompressedRGB() == 1){
       m_colorArray = new mvt::TextureArray(m_widthc, m_heightc, m_numLayers, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, GL_UNSIGNED_BYTE, m_colorsize);
     }
-    else if(m_kinectcs[0]->isCompressedRGB() == 5){
+    else if(m_calib_files->isCompressedRGB() == 5){
       m_colorArray = new mvt::TextureArray(m_widthc, m_heightc, m_numLayers, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, GL_UNSIGNED_BYTE, m_colorsize);
     }
     else{
@@ -232,7 +182,7 @@ namespace kinect{
 
     m_colorArray_back = new mvt::TextureArray(m_widthc, m_heightc, m_numLayers, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE);
 
-    if(m_kinectcs[0]->isCompressedDepth()){
+    if(m_calib_files->isCompressedDepth()){
       m_depthArray_back = new mvt::TextureArray(m_width, m_height, m_numLayers, GL_LUMINANCE, GL_RED, GL_UNSIGNED_BYTE);
     }
     else{
@@ -281,11 +231,6 @@ namespace kinect{
     delete m_shader_bf;
     delete m_uniforms_bf;
     glDeleteFramebuffersEXT(1, &m_fboID);
-
-
-    for(unsigned i = 0; i < m_kinectcs.size(); ++i){
-      delete m_kinectcs[i];
-    }
 
     m_colorsCPU3.needSwap = false;
     m_depthsCPU3.needSwap = false;
@@ -338,7 +283,7 @@ namespace kinect{
     gloost::Viewport vp(0,0,m_width,m_height);
     vp.enter();
 
-    for(unsigned i = 0; i < m_kinectcs.size(); ++i){
+    for(unsigned i = 0; i < m_calib_files->num(); ++i){
     	//
     	GLint current_fbo;
     	glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &current_fbo);
@@ -399,9 +344,9 @@ namespace kinect{
     	glLoadIdentity();
 
     	m_uniforms_bf->set_int("layer",i);
-    	m_uniforms_bf->set_bool("compress",m_kinectcs[i]->isCompressedDepth());
-    	const float near = m_kinectcs[i]->getNear();
-    	const float far  = m_kinectcs[i]->getFar();
+    	m_uniforms_bf->set_bool("compress",m_calib_files->getCalibs()[i].isCompressedDepth());
+    	const float near = m_calib_files->getCalibs()[i].getNear();
+    	const float far  = m_calib_files->getCalibs()[i].getFar();
     	const float scale = (far - near);
     	
     	// float d = d_c * scale + near;
@@ -460,35 +405,6 @@ namespace kinect{
     return m_start_texture_unit;
   }
 
-  unsigned
-  NetKinectArray::getWidth() const {
-    return m_width;
-  }
-  unsigned
-  NetKinectArray::getWidthC() const {
-    return m_widthc;
-  }
-  unsigned
-  NetKinectArray::getHeight() const {
-    return m_height;
-  }
-  unsigned
-  NetKinectArray::getHeightC() const {
-    return m_heightc;
-  }
-
-  unsigned
-  NetKinectArray::getNumLayers() const {
-    return m_numLayers;
-  }
-
-
-  std::vector<KinectCalibrationFile*> const&
-  NetKinectArray::getCalibs() const {
-    return m_kinectcs;
-  }
-
-
   mvt::TextureArray*
   NetKinectArray::getDepthArrayBack(){
     return m_depthArray_back;
@@ -514,7 +430,7 @@ namespace kinect{
     std::string endpoint("tcp://" + m_serverport);
     socket.connect(endpoint.c_str());
 
-    //const unsigned pixelcountc = m_kinectcs[0]->getWidthC() * m_kinectcs[0]->getHeightC();    
+    //const unsigned pixelcountc = m_calib_files->getWidthC() * m_calib_files->getHeightC();    
     const unsigned colorsize = m_colorsize;
     const unsigned depthsize = m_depthsize;//pixelcount * sizeof(float);
 
@@ -522,7 +438,7 @@ namespace kinect{
     sensor::timevalue ts(sensor::clock::time());
 
     while(m_running){
-      zmq::message_t zmqm((colorsize + depthsize) * m_kinectcs.size());
+      zmq::message_t zmqm((colorsize + depthsize) * m_calib_files->num());
       
       socket.recv(&zmqm); // blocking
       
@@ -533,7 +449,7 @@ namespace kinect{
 
       	unsigned offset = 0;
       	// receive data
-        const unsigned number_of_kinects = m_kinectcs.size(); // is 5 in the current example
+        const unsigned number_of_kinects = m_calib_files->num(); // is 5 in the current example
         // this loop goes over each kinect like K1_frame_1 K2_frame_1 K3_frame_1 
       	for(unsigned i = 0; i < number_of_kinects; ++i){
       	  memcpy((byte*) m_colorsCPU3.back + i*colorsize , (byte*) zmqm.data() + offset, colorsize);
@@ -559,17 +475,12 @@ namespace kinect{
       delete m_shader_bf;
     }
     m_shader_bf = new gloost::Shader("glsl/bf.vs","glsl/bf.fs");
-
-    for(unsigned i = 0; i < m_kinectcs.size(); ++i){
-      m_kinectcs[i]->parse();
-    }
-
   }
 
   void
   NetKinectArray::writeCurrentTexture(std::string prefix){
     //depths
-    if (m_kinectcs[0]->isCompressedDepth())
+    if (m_calib_files->isCompressedDepth())
     {
       glPixelStorei(GL_PACK_ALIGNMENT, 1);
       
@@ -637,7 +548,7 @@ namespace kinect{
     }
     
     //color
-    if (m_kinectcs[0]->isCompressedRGB() == 1)
+    if (m_calib_files->isCompressedRGB() == 1)
     {
       glPixelStorei(GL_PACK_ALIGNMENT, 1);
       
@@ -653,7 +564,7 @@ namespace kinect{
       std::vector<std::uint8_t> colors;
       colors.resize(4*m_widthc*m_heightc);
     
-      for (unsigned k = 0; k < getNumLayers(); ++k)
+      for (unsigned k = 0; k < m_numLayers; ++k)
       {
         squish::DecompressImage (&colors[0], m_widthc, m_heightc, &data[k*m_colorsize], squish::kDxt1);
         
@@ -748,8 +659,8 @@ namespace kinect{
   NetKinectArray::readFromFiles(){
     std::vector<sys::FileBuffer*> fbs;
 
-    for(unsigned i = 0 ; i < m_kinectcs.size(); ++i){
-      std::string yml(m_kinectcs[i]->_filePath);
+    for(unsigned i = 0 ; i < m_calib_files->num(); ++i){
+      std::string yml(m_calib_files->getCalibs()[i]._filePath);
       std::string base((const char*) basename((char *) yml.c_str()));
       base.replace( base.end() - 4, base.end(), "");
       std::string filename = std::string("recordings/" + base + ".stream");
@@ -771,7 +682,7 @@ namespace kinect{
 
     unsigned offset = 0;
     // receive data
-    for(unsigned i = 0; i < m_kinectcs.size(); ++i){
+    for(unsigned i = 0; i < m_calib_files->num(); ++i){
       //memcpy((byte*) m_colorsCPU3.back + i*colorsize , (byte*) zmqm.data() + offset, colorsize);
       fbs[i]->read((byte*) m_colorsCPU3.back + i*colorsize, colorsize);
       offset += colorsize;

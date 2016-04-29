@@ -13,13 +13,18 @@ namespace kinect{
   public:
     CalibrationFiles(const char* config);
 
+    void reload();
+
     unsigned getWidth() const;
     unsigned getWidthC() const;
 
     unsigned getHeight() const;
     unsigned getHeightC() const;
+    unsigned num() const;
+    float minLength() const;
 
-    unsigned getNumLayers() const;
+    bool isCompressedRGB() const;
+    bool isCompressedDepth() const;
 
     std::vector<KinectCalibrationFile> const& getCalibs() const;
     std::vector<std::string> const& getFileNames() const;
@@ -29,6 +34,10 @@ namespace kinect{
     unsigned m_height;
     unsigned m_heightc;
     unsigned m_numLayers;
+    float m_min_length;
+
+    bool m_compressed_rgb;
+    bool m_compressed_d;
 
     std::vector<KinectCalibrationFile> m_calibs;
     std::vector<std::string> m_filenames;

@@ -1,6 +1,7 @@
 #include "KinectSurfaceV3.h"
 
 #include <NetKinectArray.h>
+#include "calibration_files.hpp"
 #include <KinectCalibrationFile.h>
 #include <CalibVolume.h>
 
@@ -14,9 +15,8 @@ namespace kinect{
     height = vp_params[3];
   }
 
-  KinectSurfaceV3::KinectSurfaceV3(NetKinectArray const* nka, CalibVolume const* cv)
-    : m_nka(nka),
-      m_cv(cv),
+  KinectSurfaceV3::KinectSurfaceV3(CalibrationFiles const& cfs, CalibVolume const* cv)
+    : m_cv(cv),
       m_shader_pass_depth(),
       m_shader_pass_accum(),
       m_shader_pass_normalize(),
@@ -25,10 +25,14 @@ namespace kinect{
       m_uniforms_pass_normalize(),
       m_proxyMesh(),
       m_va_pass_depth(),
-      m_va_pass_accum()
+      m_va_pass_accum(),
+      m_tex_width{cfs.getWidth()},
+      m_tex_height{cfs.getHeight()},
+      m_num_kinects{cfs.num()},
+      m_min_length{cfs.minLength()}
   {
-    m_proxyMesh = std::unique_ptr<mvt::ProxyMeshGridV2>{new mvt::ProxyMeshGridV2(m_nka->getWidth(),
-             m_nka->getHeight())};
+    m_proxyMesh = std::unique_ptr<mvt::ProxyMeshGridV2>{new mvt::ProxyMeshGridV2(m_tex_width,
+             m_tex_height)};
 
     m_uniforms_pass_depth = std::unique_ptr<gloost::UniformSet>{new gloost::UniformSet};
     m_uniforms_pass_depth->set_int("kinect_colors",0);
@@ -70,7 +74,7 @@ namespace kinect{
     gloost::Matrix image_to_eye =  viewport_scale * viewport_translate * projection_matrix;
     image_to_eye.invert();
 
-    const float min_length = m_nka->getCalibs()[0]->min_length/*0.0125*/ * scale;
+    const float min_length = m_min_length/*0.0125*/ * scale;
     //std::cerr << "min_length: " << min_length << std::endl;
 
     unsigned ox;
@@ -82,17 +86,9 @@ namespace kinect{
     m_va_pass_depth->enable(0, false, &ox, &oy, false);
     m_uniforms_pass_depth->set_float("min_length", min_length);
     m_uniforms_pass_depth->set_int("stage", 0);
-    for(unsigned layer = 0; layer < m_nka->getNumLayers(); ++layer){
-
-      KinectCalibrationFile* calib = m_nka->getCalibs()[layer];
-      calib->updateMatrices();
-
-      // now we do first: frustum culling
-      if(calib->frustCull())
-	     continue;
-
+    for(unsigned layer = 0; layer < m_num_kinects; ++layer){
       m_uniforms_pass_depth->set_int("layer",  layer);
-      m_uniforms_pass_depth->set_vec2("tex_size_inv", gloost::vec2(1.0f/calib->getWidth(), 1.0f/calib->getHeight()));
+      m_uniforms_pass_depth->set_vec2("tex_size_inv", gloost::vec2(1.0f/m_tex_width, 1.0f/m_tex_height));
       m_uniforms_pass_depth->set_int("cv_xyz",m_cv->getStartTextureUnit() + layer * 2);
       m_uniforms_pass_depth->set_int("cv_uv",m_cv->getStartTextureUnit() + layer * 2 + 1);
       m_uniforms_pass_depth->set_float("cv_min_d",m_cv->m_cv_min_ds[layer]);
@@ -133,17 +129,9 @@ namespace kinect{
     m_uniforms_pass_accum->set_float("epsilon"    , scale * 0.075);
     m_va_pass_depth->bindToTextureUnitsDepth(GL_TEXTURE0 + 12);
 
-    for(unsigned layer = 0; layer < m_nka->getNumLayers(); ++layer){
-
-      KinectCalibrationFile* calib = m_nka->getCalibs()[layer];
-      calib->updateMatrices();
-
-      // now we do first: frustum culling
-      if(calib->frustCull())
-      	continue;
-
+    for(unsigned layer = 0; layer < m_num_kinects; ++layer){
       m_uniforms_pass_accum->set_int("layer",  layer);
-      m_uniforms_pass_accum->set_vec2("tex_size_inv", gloost::vec2(1.0f/calib->getWidth(), 1.0f/calib->getHeight()));
+      m_uniforms_pass_accum->set_vec2("tex_size_inv", gloost::vec2(1.0f/m_tex_width, 1.0f/m_tex_height));
  
       m_uniforms_pass_accum->set_int("cv_xyz",m_cv->getStartTextureUnit() + layer * 2);
       m_uniforms_pass_accum->set_int("cv_uv",m_cv->getStartTextureUnit() + layer * 2 + 1);

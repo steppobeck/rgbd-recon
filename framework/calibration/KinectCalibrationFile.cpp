@@ -993,42 +993,42 @@ KinectCalibrationFile::updateMatrices(){
 
 
 float
-KinectCalibrationFile::getNear(){
+KinectCalibrationFile::getNear() const {
   return _near;
 }
 
 float
-KinectCalibrationFile::getFar(){
+KinectCalibrationFile::getFar() const {
   return _far;
 }
 
 unsigned
-KinectCalibrationFile::getWidth(){
+KinectCalibrationFile::getWidth() const {
   return _width;
 }
 
 unsigned
-KinectCalibrationFile::getHeight(){
+KinectCalibrationFile::getHeight() const {
   return _height;
 }
 
 unsigned
-  KinectCalibrationFile::getWidthC(){
+  KinectCalibrationFile::getWidthC() const {
   return _widthc;
 }
 
 unsigned
-  KinectCalibrationFile::getHeightC(){
+  KinectCalibrationFile::getHeightC() const {
   return _heightc;
 }
 
-  unsigned
-  KinectCalibrationFile::isCompressedRGB(){
+  bool
+  KinectCalibrationFile::isCompressedRGB() const {
     return _iscompressedrgb;
   }
 
   bool
-  KinectCalibrationFile::isCompressedDepth(){
+  KinectCalibrationFile::isCompressedDepth() const {
     return _iscompresseddepth;
   }
 } // namespace kinect

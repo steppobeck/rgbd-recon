@@ -1,9 +1,6 @@
 #ifndef KINECT_NETKINECTARRAY_H
 #define KINECT_NETKINECTARRAY_H
 
-
-
-
 #include <GL/glew.h>
 #include <GL/gl.h>
 
@@ -47,17 +44,16 @@ namespace kinect{
   };
 
   class KinectCalibrationFile;
+  class CalibrationFiles;
 
   class NetKinectArray{
 
-
   public:
-    NetKinectArray(const char* config, bool readfromfile = false);
+    NetKinectArray(const char* config, CalibrationFiles const* calibs, bool readfromfile = false);
 
     NetKinectArray(std::vector<KinectCalibrationFile*>& calibs);
 
     virtual ~NetKinectArray();
-
 
     virtual void update();
 
@@ -65,14 +61,6 @@ namespace kinect{
 
     void bindToTextureUnits(unsigned start_texture_unit);
     unsigned getStartTextureUnit() const;
-
-    unsigned getWidth() const;
-    unsigned getWidthC() const;
-
-    unsigned getHeight() const;
-    unsigned getHeightC() const;
-
-    unsigned getNumLayers() const;
 
     std::vector<KinectCalibrationFile*> const& getCalibs() const;
 
@@ -96,7 +84,6 @@ namespace kinect{
     unsigned m_heightc;
 
     unsigned m_numLayers;
-    std::vector<KinectCalibrationFile*> m_kinectcs;
     mvt::TextureArray* m_colorArray;
     mvt::TextureArray* m_depthArray;
 
@@ -120,7 +107,7 @@ namespace kinect{
 
     std::string m_config;
     unsigned m_start_texture_unit;
-
+    CalibrationFiles const* m_calib_files;
   public:
     bool depth_compression_lex;
     float depth_compression_ratio;

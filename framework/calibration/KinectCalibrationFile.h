@@ -32,16 +32,16 @@ namespace kinect
 
     /*virtual*/ void updateMatrices();
 
-    float getNear();
-    float getFar();
+    float getNear() const;
+    float getFar() const;
 
-    unsigned getWidth();
-    unsigned getHeight();
-    unsigned getWidthC();
-    unsigned getHeightC();
+    unsigned getWidth() const;
+    unsigned getHeight() const;
+    unsigned getWidthC() const;
+    unsigned getHeightC() const;
 
-    unsigned isCompressedRGB();
-    bool isCompressedDepth();
+    bool isCompressedRGB() const;
+    bool isCompressedDepth() const;
 
   protected:
     gloost::vec2& getColorFocalLength();

@@ -68,7 +68,7 @@ void init(std::vector<std::string> args){
     std::cerr << ext << std::endl;
    if("ks" == ext){
       g_calib_files = std::unique_ptr<kinect::CalibrationFiles>{new kinect::CalibrationFiles(args[i].c_str())};
-      g_nka = std::unique_ptr<kinect::NetKinectArray>{new kinect::NetKinectArray(args[i].c_str())};
+      g_nka = std::unique_ptr<kinect::NetKinectArray>{new kinect::NetKinectArray(args[i].c_str(), g_calib_files.get())};
       found_file = true;
       break;
     }
@@ -79,7 +79,7 @@ void init(std::vector<std::string> args){
   }
 
   g_cv = std::unique_ptr<kinect::CalibVolume>{new kinect::CalibVolume(g_calib_files->getFileNames())};
-  g_ksV3 = std::unique_ptr<kinect::KinectSurfaceV3>(new kinect::KinectSurfaceV3(g_nka.get(), g_cv.get()));
+  g_ksV3 = std::unique_ptr<kinect::KinectSurfaceV3>(new kinect::KinectSurfaceV3(*g_calib_files, g_cv.get()));
   
   // binds to unit 0 and 1
   g_nka->bindToTextureUnits(0);
@@ -189,11 +189,11 @@ void draw3d(void)
   }   
 
   if(g_draw_frustums) {
-    for(unsigned idx = 0; idx  < g_nka->getCalibs().size(); ++idx){
+    for(unsigned idx = 0; idx  < g_calib_files->num(); ++idx){
       glPushAttrib(GL_ALL_ATTRIB_BITS);
       glPolygonMode( GL_FRONT_AND_BACK, GL_LINE);
       
-      mvt::CameraView* v = (mvt::CameraView*) g_nka->getCalibs()[idx];
+      mvt::CameraView* v = (mvt::CameraView*) &g_calib_files->getCalibs()[idx];
       v->updateMatrices();
       
       glPushMatrix();
@@ -269,11 +269,8 @@ void key(unsigned char key, int x, int y)
     break;
   case 's':
       g_nka->reloadShader();
-      for (auto& calib : g_nka->getCalibs()) {
-        calib->parse();
-      }
+      g_calib_files->reload();
       g_cv->reload();
-
       g_ksV3->reloadShader();
     break;
   case 'm':
@@ -283,7 +280,7 @@ void key(unsigned char key, int x, int y)
     g_play = !g_play;
     break;
   case '#':
-    for(unsigned i = 0; i < g_nka->getCalibs().size(); ++i){
+    for(unsigned i = 0; i < g_calib_files->num(); ++i){
       g_nka->depth_compression_lex = !g_nka->depth_compression_lex;
     }
     break;
