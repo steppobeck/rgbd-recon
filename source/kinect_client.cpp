@@ -32,7 +32,6 @@ bool     g_draw_frustums= false;
 bool     g_draw_grid    = true;
 bool     g_animate      = false;
 bool     g_wire         = false;
-bool     g_bfilter      = true;
 unsigned g_ks_mode      = 4;
 
 gloost::PerspectiveCamera g_camera{50.0, g_aspect, 0.1, 200.0};
@@ -279,12 +278,6 @@ void key(unsigned char key, int x, int y)
     break;
   case 'p':
     g_play = !g_play;
-    break;
-  case'f':
-    g_bfilter = !g_bfilter;
-    for(unsigned i = 0; i < g_nka->getCalibs().size(); ++i){
-      g_nka->getCalibs()[i]->use_bf = g_bfilter;
-    }
     break;
   case '#':
     for(unsigned i = 0; i < g_nka->getCalibs().size(); ++i){

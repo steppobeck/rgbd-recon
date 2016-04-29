@@ -33,8 +33,6 @@ namespace gloost{
 
 }
 
-
-
 namespace kinect
 {
 
@@ -93,30 +91,15 @@ KinectCalibrationFile::KinectCalibrationFile(const std::string& filePath)
     _height(0),
     _widthc(0),
     _heightc(0),
-    _baumer_serial(),
     _iscompressedrgb(1),
     _iscompresseddepth(false),
-    use_bf(true),
     min_length(0.0125),
-    num_channels_rgb(3),
-    depth_baseline(7.5e-02),
-    depth_offset(1090),
-    depth_meanfocal(580),
     _local_t(),
     _local_r(),
     pos_min(),
     pos_max(),
     neg_min(),
-    neg_max(),
-    _pcoords(),
-    cv_xyz(0),
-    cv_uv(0),
-    cv_width(0),
-    cv_height(0),
-    cv_depth(0),
-    cv_min_d(0),
-    cv_max_d(0)
-
+    neg_max()
 {
 #if 0
   if(s_compress_rgb == -1){ // i am the first to look if file exists rgbd_calib/compress.rgb
@@ -152,21 +135,6 @@ KinectCalibrationFile::KinectCalibrationFile(const std::string& filePath)
   }
 
 }
-
-
-////////////////////////////////////////////////////////////////////////////////
-
-
-/**
-  \brief Class destructor
-  \remarks ...
-*/
-
-KinectCalibrationFile::~KinectCalibrationFile()
-{
-	// insert your code here
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -300,9 +268,7 @@ KinectCalibrationFile::parse()
       _distortion_d[2] = _depthTangentialDistortion.u;
       _distortion_d[3] = _depthTangentialDistortion.v;
       _distortion_d[4] = _depthRadialDistortion.z;
-
     }
-
 
     // relative transform
     else if (token == "R:")
@@ -357,28 +323,6 @@ KinectCalibrationFile::parse()
       _width = getNextTokenAsFloat(infile);
       _height = getNextFloat(infile);
     }
-
-    else if (token == "baumer_serial:")
-    {
-//      std::cerr << std::endl << "baumer_serial:";
-      advanceToNextToken("[", infile);
-      infile >> _baumer_serial;
-
-    }
-
-    else if(token == "depth_base_and_offset:"){
-      advanceToNextToken("[", infile);
-      depth_baseline = getNextTokenAsFloat(infile);
-      depth_offset = getNextFloat(infile);
-      
-    }
-    else if(token == "depth_base_and_offset_meanfocal:"){
-      advanceToNextToken("[", infile);
-      depth_baseline = getNextTokenAsFloat(infile);
-      depth_offset = getNextTokenAsFloat(infile);
-      depth_meanfocal = getNextFloat(infile);      
-    }
-
     else if(token == "near_far:"){
       std::cerr << std::endl << "near_far:";
       advanceToNextToken("[", infile);
@@ -397,22 +341,10 @@ KinectCalibrationFile::parse()
       }
 
     }
-    else if(token == "use_bf:"){
-      std::cerr << std::endl << "use_bf:";
-      advanceToNextToken("[", infile);
-      use_bf = ((unsigned) getNextTokenAsFloat(infile) > 0.0 ? true : false);
-      getNextFloat(infile);
-    }
     else if(token == "min_length:"){
       std::cerr << std::endl << "min_length:";
       advanceToNextToken("[", infile);
       min_length = getNextTokenAsFloat(infile);
-      getNextFloat(infile);
-    }
-    else if(token == "num_channels_rgb:"){
-      std::cerr << std::endl << "num_channels_rgb:";
-      advanceToNextToken("[", infile);
-      num_channels_rgb = (unsigned) getNextTokenAsFloat(infile);
       getNextFloat(infile);
     }
     else if(token == "compress_depth:"){
@@ -427,10 +359,6 @@ KinectCalibrationFile::parse()
     }
 
   }
-
-#if 0
-  depth_meanfocal = (_depthFocalLength.u + _depthFocalLength.v)/2.0;
-#endif
 
   infile.close();
 
@@ -637,7 +565,6 @@ KinectCalibrationFile::parse()
       std::cerr << "neg_min: " << neg_min << std::endl;
       std::cerr << "neg_max: " << neg_max << std::endl;
 
-
       infile.close();
     }
     else{
@@ -650,79 +577,12 @@ KinectCalibrationFile::parse()
     }
   }
 
-
-
   loadLocalTransform();
-
-
-  auto check_num = [](unsigned i){ if (i < 1) throw std::runtime_error{"file read failed"};};
-  { // load cv_xyz
-    if(cv_xyz){
-      delete [] cv_xyz;
-    }
-    std::string fpath(_filePath.c_str());
-    fpath.replace( fpath.end() - 3, fpath.end(), "cv_xyz");
-    //std::cerr << "loading " << fpath << std::endl;
-    
-    if( access( fpath.c_str(), R_OK ) != -1 ) {
-      FILE* f_xyz = fopen( fpath.c_str(), "rb");
-      unsigned nbr = 0;
-      nbr = fread(&cv_width, sizeof(unsigned), 1, f_xyz);
-      check_num(nbr);
-      nbr = fread(&cv_height, sizeof(unsigned), 1, f_xyz);
-      check_num(nbr);
-      nbr = fread(&cv_depth, sizeof(unsigned), 1, f_xyz);
-      check_num(nbr);
-      nbr = fread(&cv_min_d, sizeof(float), 1, f_xyz);
-      check_num(nbr);
-      nbr = fread(&cv_max_d, sizeof(float), 1, f_xyz);
-      check_num(nbr);
-      cv_xyz = new xyz[cv_width * cv_height * cv_depth];
-      nbr = fread(cv_xyz, sizeof(xyz), cv_width * cv_height * cv_depth, f_xyz);
-      check_num(nbr);
-      fclose(f_xyz);
-    }
-  }
-
-  { // load cv_uv;
-    if(cv_uv){
-      delete [] cv_uv;
-    }
-    std::string fpath(_filePath.c_str());
-    fpath.replace( fpath.end() - 3, fpath.end(), "cv_uv");
-    //std::cerr << "loading " << fpath << std::endl;
-
-    if( access( fpath.c_str(), R_OK ) != -1 ) {
-      FILE* f_uv = fopen( fpath.c_str(), "rb");
-      unsigned nbr = 0;
-      nbr = fread(&cv_width, sizeof(unsigned), 1, f_uv);
-      check_num(nbr);
-      nbr = fread(&cv_height, sizeof(unsigned), 1, f_uv);
-      check_num(nbr);
-      nbr = fread(&cv_depth, sizeof(unsigned), 1, f_uv);
-      check_num(nbr);
-      nbr = fread(&cv_min_d, sizeof(float), 1, f_uv);
-      check_num(nbr);
-      nbr = fread(&cv_max_d, sizeof(float), 1, f_uv);
-      check_num(nbr);
-      cv_uv = new uv[cv_width * cv_height * cv_depth];
-      nbr = fread(cv_uv, sizeof(uv), cv_width * cv_height * cv_depth, f_uv);
-      check_num(nbr);
-      fclose(f_uv);
-    }
-  }
-
-
 
   return true;
 }
 
-
-
-
 ////////////////////////////////////////////////////////////////////////////////
-
-
 void
 KinectCalibrationFile::advanceToNextToken(const std::string& searchToken,
                                           std::ifstream& infile)
@@ -912,34 +772,11 @@ KinectCalibrationFile::setWorldTranslation(gloost::Vector3& t){
   _worldTranslation = t;
 }
 
-float*
-KinectCalibrationFile::getIntrinsicRGB9(){
-  return _intrinsic_rgb;
-}
-
-
-float*
-KinectCalibrationFile::getDistortionRGB5(){
-  return _distortion_rgb;
-}
-
-
-float*
-KinectCalibrationFile::getIntrinsicD9(){
-  return _intrinsic_d;
-}
-
-
-float*
-KinectCalibrationFile::getDistortionD5(){
-  return _distortion_d;
-}
-
-  namespace{
-    float mydeg2rad(float d){
-      return (d * M_PI / 180.0);
-    }
+namespace {
+  float mydeg2rad(float d){
+    return (d * M_PI / 180.0);
   }
+}
 
 void
 KinectCalibrationFile::loadLocalTransform(){
@@ -971,118 +808,7 @@ KinectCalibrationFile::loadLocalTransform(){
     }
     infile.close();
   }
-
-  {
-    std::ifstream infile;
-    std::string filepath(_filePath.c_str());
-    filepath.replace( filepath.end() - 3, filepath.end(), "polygon");
-    infile.open( filepath.c_str());
-    if(infile){
-      std::string token;
-      while(infile >> token){
-	if("coord" == token){
-	  float x;
-	  float y;
-	  infile >> x >> y;
-	  _pcoords.push_back(gloost::Vector2(x,y));
-	}
-      }
-    }
-    infile.close();
-  }
-
-
 }
-
-
-void
-KinectCalibrationFile::saveExtrinsic(){
-
-  {
-    // write matlab ".ext" file
-    std::ofstream outfile;
-    std::string i_filepath(_filePath.c_str());
-    i_filepath.replace( i_filepath.end() - 3, i_filepath.end(), "ext");
-    std::cerr << "KinectCalibrationFile::saveExtrinsic() " << this << " saving to " << i_filepath << std::endl;
-    
-    outfile.open( i_filepath.c_str());
-    
-    
-    outfile << std::setprecision(20)
-	    << _worldTranslation[0] << std::endl
-	    << _worldTranslation[1] << std::endl
-	    << _worldTranslation[2] << std::endl
-	    << _worldRotation[0] << " " << _worldRotation[1] << " " << _worldRotation[2] << std::endl
-	    << _worldRotation[4] << " " << _worldRotation[5] << " " << _worldRotation[6] << std::endl
-	    << _worldRotation[8] << " " << _worldRotation[9] << " " << _worldRotation[10] << std::endl;
-    
-    outfile.close();
-  }
-
-  {
-    // write matlab ".ext2" file
-    std::ofstream outfile;
-    std::string i_filepath(_filePath.c_str());
-    i_filepath.replace( i_filepath.end() - 3, i_filepath.end(), "ext2");
-    std::cerr << "KinectCalibrationFile::saveExtrinsic() " << this << " saving to " << i_filepath << std::endl;
-    
-    outfile.open( i_filepath.c_str());
-    
-    
-    outfile << std::setprecision(20)
-	    << _worldTranslation2[0] << std::endl
-	    << _worldTranslation2[1] << std::endl
-	    << _worldTranslation2[2] << std::endl
-	    << _worldRotation2[0] << " " << _worldRotation2[1] << " " << _worldRotation2[2] << std::endl
-	    << _worldRotation2[4] << " " << _worldRotation2[5] << " " << _worldRotation2[6] << std::endl
-	    << _worldRotation2[8] << " " << _worldRotation2[9] << " " << _worldRotation2[10] << std::endl;
-    
-    outfile.close();
-  }
-
-  {
-    // write matlab ".ext3" file
-    std::ofstream outfile;
-    std::string i_filepath(_filePath.c_str());
-    i_filepath.replace( i_filepath.end() - 3, i_filepath.end(), "ext3");
-    std::cerr << "KinectCalibrationFile::saveExtrinsic() " << this << " saving to " << i_filepath << std::endl;
-    
-    outfile.open( i_filepath.c_str());
-    
-    
-    outfile << std::setprecision(20)
-	    << _worldTranslation3[0] << std::endl
-	    << _worldTranslation3[1] << std::endl
-	    << _worldTranslation3[2] << std::endl
-	    << _worldRotation3[0] << " " << _worldRotation3[1] << " " << _worldRotation3[2] << std::endl
-	    << _worldRotation3[4] << " " << _worldRotation3[5] << " " << _worldRotation3[6] << std::endl
-	    << _worldRotation3[8] << " " << _worldRotation3[9] << " " << _worldRotation3[10] << std::endl;
-    
-    outfile.close();
-  }
-}
-
-
-void
-KinectCalibrationFile::resetExtrinsic(bool saveover){
-
-  _worldTranslation = gloost::Vector3(0.0,0.0,0.0);
-  _worldRotation.setIdentity();
-  
-  _worldTranslation2 = gloost::Vector3(0.0,0.0,0.0);
-  _worldRotation2.setIdentity();
-
-  _worldTranslation3 = gloost::Vector3(0.0,0.0,0.0);
-  _worldRotation3.setIdentity();
-  
-  _local_t.setIdentity();
-  _local_r.setIdentity();
-
-  if(saveover){
-    saveExtrinsic();
-  }
-}
-
 
 /*virtual*/ void
 KinectCalibrationFile::updateMatrices(){
@@ -1276,19 +1002,6 @@ KinectCalibrationFile::getFar(){
   return _far;
 }
 
-
-void
-KinectCalibrationFile::setNear(float n){
-  _near = n;
-}
-
-void
-KinectCalibrationFile::setFar(float f){
-  _far = f;
-}
-
-
-
 unsigned
 KinectCalibrationFile::getWidth(){
   return _width;
@@ -1309,82 +1022,6 @@ unsigned
   return _heightc;
 }
 
-
-std::string&
-KinectCalibrationFile::getBaumerSerial(){
-  return _baumer_serial;
-}
-
-void
-KinectCalibrationFile::applyCoordinateSystem(const CoordinateSystem& c, const gloost::Matrix& postMult){
-
-
-
-  _worldTranslation[0] = -c._o[0];
-  _worldTranslation[1] = -c._o[1];
-  _worldTranslation[2] = -c._o[2];
-
-  _worldRotation.setIdentity();
-
-  _worldRotation[0] = c._ex[0];
-  _worldRotation[1] = c._ex[1];
-  _worldRotation[2] = c._ex[2];
-
-  _worldRotation[4] = c._ey[0];
-  _worldRotation[5] = c._ey[1];
-  _worldRotation[6] = c._ey[2];
-
-  _worldRotation[8] = c._ez[0];
-  _worldRotation[9] = c._ez[1];
-  _worldRotation[10]= c._ez[2];
-  
-  //_worldRotation.transpose();
-  _worldRotation.invert();
-
-
-
-  _worldTranslation2[0] = postMult[12];
-  _worldTranslation2[1] = postMult[13];
-  _worldTranslation2[2] = postMult[14];
-
-  _worldRotation2 = postMult;
-
-  _worldRotation2[12] = 0.0;
-  _worldRotation2[13] = 0.0;
-  _worldRotation2[14] = 0.0;
-
-
-}
-
-void
-KinectCalibrationFile::applyCoordinateSystem3(const CoordinateSystem& c){
-
-  std::cerr << this << " KinectCalibrationFile::applyCoordinateSystem3" << std::endl;
-
-  _worldTranslation3[0] = -c._o[0];
-  _worldTranslation3[1] = -c._o[1];
-  _worldTranslation3[2] = -c._o[2];
-
-  _worldRotation3.setIdentity();
-
-  _worldRotation3[0] = c._ex[0];
-  _worldRotation3[1] = c._ex[1];
-  _worldRotation3[2] = c._ex[2];
-
-  _worldRotation3[4] = c._ey[0];
-  _worldRotation3[5] = c._ey[1];
-  _worldRotation3[6] = c._ey[2];
-
-  _worldRotation3[8] = c._ez[0];
-  _worldRotation3[9] = c._ez[1];
-  _worldRotation3[10]= c._ez[2];
-
-  
-  //_worldRotation3.transpose();
-  _worldRotation3.invert();
-}
-
-
   unsigned
   KinectCalibrationFile::isCompressedRGB(){
     return _iscompressedrgb;
@@ -1394,242 +1031,4 @@ KinectCalibrationFile::applyCoordinateSystem3(const CoordinateSystem& c){
   KinectCalibrationFile::isCompressedDepth(){
     return _iscompresseddepth;
   }
-
-  void
-  KinectCalibrationFile::toggleCompressedDepth(){
-    _iscompresseddepth = !_iscompresseddepth;
-  }
-
-  const std::vector<gloost::Vector2>&
-  KinectCalibrationFile::getPolygonCoords(){
-    return _pcoords;
-  }
-
-gloost::Point3
-KinectCalibrationFile::calcPosEyeD(float depth, unsigned x, unsigned y){
-
-  const float cx_d(getDepthPrincipalPoint().u);
-  const float cy_d(getDepthPrincipalPoint().v);
-    
-  const float fx_d(getDepthFocalLength().u);
-  const float fy_d(getDepthFocalLength().v);
-
-  float X_d  = ((x - cx_d)/fx_d) * depth;
-  float Y_d  = ((y - cy_d)/fy_d) * depth;
-  return gloost::Point3(X_d, Y_d, depth);
-}
-
-
-gloost::Point3
-KinectCalibrationFile::calcPosEyeDFloat(float depth, float x, float y){
-
-  const float cx_d(getDepthPrincipalPoint().u);
-  const float cy_d(getDepthPrincipalPoint().v);
-    
-  const float fx_d(getDepthFocalLength().u);
-  const float fy_d(getDepthFocalLength().v);
-
-  float X_d  = ((x - cx_d)/fx_d) * depth;
-  float Y_d  = ((y - cy_d)/fy_d) * depth;
-  return gloost::Point3(X_d, Y_d, depth);
-}
-
-
-
-gloost::Point3
-KinectCalibrationFile::calcPosWS(float depth, float u, float v){
-
-  const static float inv_u = (cv_width  * 1.0f)/getWidth();
-  const static float inv_v = (cv_height * 1.0f)/getHeight();
-
-  const float x = u * inv_u;
-  const float y = v * inv_v;
-  const float z = cv_depth * (  depth - cv_min_d)/(cv_max_d - cv_min_d);
-  xyz pos = getTrilinear(cv_xyz, cv_width, cv_height, cv_depth, x , y , z );
-
-  return gloost::Point3(pos.x, pos.y, pos.z);
-}
- 
-uv
-KinectCalibrationFile::calcPosUV(float depth, float u, float v){
-  const static float inv_u = (cv_width  * 1.0f)/getWidth();
-  const static float inv_v = (cv_height * 1.0f)/getHeight();
-
-  const float x = u * inv_u;
-  const float y = v * inv_v;
-  const float z = cv_depth * (  depth - cv_min_d)/(cv_max_d - cv_min_d);
-  
-  uv coords_norm = getTrilinear(cv_uv, cv_width, cv_height, cv_depth, x , y , z );
-  uv coords;
-  coords.u = std::max(0.0f, std::min(coords_norm.u, 1.0f)) * _widthc;
-  coords.v = std::max(0.0f, std::min(coords_norm.v, 1.0f)) * _heightc;
-  return coords;
-}
-
-gloost::Point3
-KinectCalibrationFile::calcPosWSUV(float depth, float u, float v, uv& coords){
-
-  const static float inv_u = (cv_width  * 1.0f)/getWidth();
-  const static float inv_v = (cv_height * 1.0f)/getHeight();
-
-#if 0
-  const float x = u * inv_u;
-  const float y = v * inv_v;
-  const float z = cv_depth * (  depth - cv_min_d)/(cv_max_d - cv_min_d);
-  xyz pos = getTrilinear(cv_xyz, cv_width, cv_height, cv_depth, x , y , z );
-
-  uv coords_norm = getTrilinear(cv_uv, cv_width, cv_height, cv_depth, x , y , z );
-#else
-  const unsigned x = std::max(0.0f, u * inv_u);
-  const unsigned y = std::max(0.0f, v * inv_v);
-  const unsigned z = std::max(0.0f, cv_depth * (  depth - cv_min_d)/(cv_max_d - cv_min_d));
-  xyz pos = cv_xyz[z * cv_width * cv_height + y * cv_width + x];
-
-  uv coords_norm = cv_uv[z * cv_width * cv_height + y * cv_width + x];
-#endif
-
-  coords.u = std::max(0.0f, std::min(coords_norm.u, 1.0f)) * _widthc;
-  coords.v = std::max(0.0f, std::min(coords_norm.v, 1.0f)) * _heightc;
-
-  return gloost::Point3(pos.x, pos.y, pos.z);
-
-}
-
-
-gloost::Point3
-KinectCalibrationFile::calcPosWSNearest(float depth, float u, float v){
-  const static float inv_u = (cv_width  * 1.0f)/getWidth();
-  const static float inv_v = (cv_height * 1.0f)/getHeight();
-  const unsigned x = std::max(0.0f, u * inv_u);
-  const unsigned y = std::max(0.0f, v * inv_v);
-  const unsigned z = std::max(0.0f, cv_depth * (  depth - cv_min_d)/(cv_max_d - cv_min_d));
-  xyz pos = cv_xyz[z * cv_width * cv_height + y * cv_width + x];
-  return gloost::Point3(pos.x, pos.y, pos.z);
-}
-
-uv
-KinectCalibrationFile::calcPosUVNearest(float depth, float u, float v){
-  const static float inv_u = (cv_width  * 1.0f)/getWidth();
-  const static float inv_v = (cv_height * 1.0f)/getHeight();
-  const unsigned x = std::max(0.0f, u * inv_u);
-  const unsigned y = std::max(0.0f, v * inv_v);
-  const unsigned z = std::max(0.0f, cv_depth * (  depth - cv_min_d)/(cv_max_d - cv_min_d));
-  uv coords_norm = cv_uv[z * cv_width * cv_height + y * cv_width + x];
-  uv coords;
-  coords.u = std::max(0.0f, std::min(coords_norm.u, 1.0f)) * _widthc;
-  coords.v = std::max(0.0f, std::min(coords_norm.v, 1.0f)) * _heightc;
-  return coords;
-}
-
-
-
-
-  xyz
-  KinectCalibrationFile::getTrilinear(xyz* data, unsigned width, unsigned height, unsigned depth, float x, float y, float z){
-
-    // calculate weights and boundaries along x direction
-    unsigned xa = std::floor(x);
-    unsigned xb = std::ceil(x);
-    float w_xb = x - xa;
-    float w_xa = 1.0 - w_xb;
-
-    // calculate weights and boundaries along y direction
-    unsigned ya = std::floor(y);
-    unsigned yb = std::ceil(y);
-    float w_yb = y - ya;
-    float w_ya = 1.0 - w_yb;
-
-    // calculate weights and boundaries along z direction
-    unsigned za = std::floor(z);
-    unsigned zb = std::ceil(z);
-    float w_zb = z - za;
-    float w_za = 1.0 - w_zb;
-
-    // calculate indices to access data
-    const unsigned idmax = width * height * depth;
-    unsigned id000 = std::min( za * width * height + ya * width + xa  , idmax);
-    unsigned id100 = std::min( za * width * height + ya * width + xb  , idmax);
-    unsigned id110 = std::min( za * width * height + yb * width + xb  , idmax);
-    unsigned id010 = std::min( za * width * height + yb * width + xa  , idmax);
-
-    unsigned id001 = std::min( zb * width * height + ya * width + xa  , idmax);
-    unsigned id101 = std::min( zb * width * height + ya * width + xb  , idmax);
-    unsigned id111 = std::min( zb * width * height + yb * width + xb  , idmax);
-    unsigned id011 = std::min( zb * width * height + yb * width + xa  , idmax);
-
-
-
-    // 1. interpolate between x direction: 4 times;
-    xyz   tmp_000_100 = w_xa * data[id000] + w_xb * data[id100];
-    xyz   tmp_010_110 = w_xa * data[id010] + w_xb * data[id110];
-    xyz   tmp_001_101 = w_xa * data[id001] + w_xb * data[id101];
-    xyz   tmp_011_111 = w_xa * data[id011] + w_xb * data[id111];
-
-    // 2. interpolate between y direction: 2 times;
-
-    xyz   tmp_A = w_ya * tmp_000_100 + w_yb * tmp_010_110;
-    xyz   tmp_B = w_ya * tmp_001_101 + w_yb * tmp_011_111;
-
-    xyz result = w_za * tmp_A + w_zb * tmp_B;
-
-    return result;
-  }
-
-
-  uv
-  KinectCalibrationFile::getTrilinear(uv* data, unsigned width, unsigned height, unsigned depth, float x, float y, float z){
-
-    // calculate weights and boundaries along x direction
-    unsigned xa = std::floor(x);
-    unsigned xb = std::ceil(x);
-    float w_xb = x - xa;
-    float w_xa = 1.0 - w_xb;
-
-    // calculate weights and boundaries along y direction
-    unsigned ya = std::floor(y);
-    unsigned yb = std::ceil(y);
-    float w_yb = y - ya;
-    float w_ya = 1.0 - w_yb;
-
-    // calculate weights and boundaries along z direction
-    unsigned za = std::floor(z);
-    unsigned zb = std::ceil(z);
-    float w_zb = z - za;
-    float w_za = 1.0 - w_zb;
-
-    // calculate indices to access data
-    const unsigned idmax = width * height * depth;
-    unsigned id000 = std::min( za * width * height + ya * width + xa  , idmax);
-    unsigned id100 = std::min( za * width * height + ya * width + xb  , idmax);
-    unsigned id110 = std::min( za * width * height + yb * width + xb  , idmax);
-    unsigned id010 = std::min( za * width * height + yb * width + xa  , idmax);
-
-    unsigned id001 = std::min( zb * width * height + ya * width + xa  , idmax);
-    unsigned id101 = std::min( zb * width * height + ya * width + xb  , idmax);
-    unsigned id111 = std::min( zb * width * height + yb * width + xb  , idmax);
-    unsigned id011 = std::min( zb * width * height + yb * width + xa  , idmax);
-
-
-
-    // 1. interpolate between x direction: 4 times;
-    uv   tmp_000_100 = w_xa * data[id000] + w_xb * data[id100];
-    uv   tmp_010_110 = w_xa * data[id010] + w_xb * data[id110];
-    uv   tmp_001_101 = w_xa * data[id001] + w_xb * data[id101];
-    uv   tmp_011_111 = w_xa * data[id011] + w_xb * data[id111];
-
-    // 2. interpolate between y direction: 2 times;
-
-    uv   tmp_A = w_ya * tmp_000_100 + w_yb * tmp_010_110;
-    uv   tmp_B = w_ya * tmp_001_101 + w_yb * tmp_011_111;
-
-    uv result = w_za * tmp_A + w_zb * tmp_B;
-
-    return result;
-  }
-
-
-
-
 } // namespace kinect
-
-
