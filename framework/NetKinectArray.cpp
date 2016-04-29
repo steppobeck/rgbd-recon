@@ -62,8 +62,6 @@ namespace kinect{
       m_readThread(0),
       m_running(true),
       m_serverport(""),
-      m_isrecording(false),
-      m_readfromfile(readfromfile),
       m_config(config),
       m_start_texture_unit(0),
       depth_compression_lex(false),
@@ -80,11 +78,6 @@ namespace kinect{
       else{
 	       s_glewInit = true;
       }
-    }
-
-    std::string tmp_config(config);
-    if(std::string::npos == tmp_config.find("kinect_surface")){
-      m_isrecording = true;
     }
 
     std::ifstream in(config);
@@ -104,7 +97,7 @@ namespace kinect{
 
     init();
 
-    if(m_readfromfile){
+    if(readfromfile){
       readFromFiles();
     }
     else{
@@ -112,7 +105,7 @@ namespace kinect{
     }
   }
 
-  NetKinectArray::NetKinectArray(std::vector<KinectCalibrationFile*>& calibs, bool readfromfile)
+  NetKinectArray::NetKinectArray(std::vector<KinectCalibrationFile*>& calibs)
     : m_width(0),
       m_widthc(0),
       m_height(0),
@@ -135,8 +128,6 @@ namespace kinect{
       m_readThread(0),
       m_running(true),
       m_serverport(""),
-      m_isrecording(false),
-      m_readfromfile(readfromfile),
       m_config(""),
       depth_compression_lex(false),
       depth_compression_ratio(100.0f)

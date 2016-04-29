@@ -8,7 +8,7 @@ namespace kinect{
 
   /*static*/ std::string CalibVolume::serverendpoint("tcp://141.54.147.22:7001");
 
-  CalibVolume::CalibVolume(const std::vector<KinectCalibrationFile*>& calibs):
+  CalibVolume::CalibVolume(std::vector<std::string> const& calib_volume_files):
     m_cv_xyz_filenames(),
     m_cv_uv_filenames(),
     m_cv_xyz_ids(),
@@ -20,11 +20,10 @@ namespace kinect{
     m_cv_max_ds(),
     m_cv_xyzs(),
     m_cv_uvs(),
-    m_calibs(calibs),
     m_start_texture_unit(0)
   {
-    for(unsigned i = 0; i < calibs.size(); ++i){
-    	std::string basefile = calibs[i]->_filePath;
+    for(auto const& calib_file : calib_volume_files){
+    	std::string basefile = calib_file;
     	basefile.replace( basefile.end() - 3, basefile.end(), "");
     	m_cv_xyz_filenames.push_back(basefile + "cv_xyz");
     	m_cv_uv_filenames.push_back(basefile + "cv_uv");
@@ -138,7 +137,7 @@ namespace kinect{
 
   void
   CalibVolume::bindToTextureUnits(unsigned start_texture_unit) {
-    for(unsigned layer = 0; layer < m_calibs.size(); ++layer){
+    for(unsigned layer = 0; layer < m_cv_xyzs.size(); ++layer){
       glActiveTexture(GL_TEXTURE0 + start_texture_unit + layer * 2);
       glBindTexture(GL_TEXTURE_3D, m_cv_xyz_ids[layer]);
       glActiveTexture(GL_TEXTURE0 + start_texture_unit + layer * 2 + 1);

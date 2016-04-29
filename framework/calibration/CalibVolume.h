@@ -7,13 +7,10 @@
 #include <vector>
 
 namespace kinect{
-
-  class KinectCalibrationFile;
-
   class CalibVolume{
 
   public:
-    CalibVolume(const std::vector<KinectCalibrationFile*>& calibs);
+    CalibVolume(std::vector<std::string> const& calib_volume_files);
     virtual ~CalibVolume();
 
     bool reload();
@@ -35,7 +32,6 @@ namespace kinect{
     std::vector<uv*> m_cv_uvs;
 
   protected:
-    std::vector<KinectCalibrationFile*> m_calibs;
     unsigned m_start_texture_unit;
 
   public:

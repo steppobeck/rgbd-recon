@@ -20,10 +20,7 @@ namespace boost{
 }
 
 namespace mvt{
-
-
   class TextureArray;
-
 }
 
 namespace gloost{
@@ -57,7 +54,7 @@ namespace kinect{
   public:
     NetKinectArray(const char* config, bool readfromfile = false);
 
-    NetKinectArray(std::vector<KinectCalibrationFile*>& calibs, bool readfromfile = false);
+    NetKinectArray(std::vector<KinectCalibrationFile*>& calibs);
 
     virtual ~NetKinectArray();
 
@@ -120,10 +117,6 @@ namespace kinect{
     bool m_running;
     std::string m_serverport;
     static bool s_glewInit;
-
-    bool m_isrecording;
-
-    bool m_readfromfile;
 
     std::string m_config;
     unsigned m_start_texture_unit;

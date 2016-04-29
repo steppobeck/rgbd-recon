@@ -13,6 +13,7 @@
 #include <CameraNavigator.h>
 #include <FourTiledWindow.h>
 #include <CalibVolume.h>
+#include <calibration_files.hpp>
 #include <KinectSurfaceV3.h>
 #include <NetKinectArray.h>
 #include <KinectCalibrationFile.h>
@@ -41,6 +42,7 @@ std::unique_ptr<mvt::Statistics> g_stats{};
 ScreenSpaceMeasureTool g_ssmt{&g_camera, g_screenWidth, g_screenHeight};
 std::unique_ptr<kinect::NetKinectArray> g_nka;
 std::unique_ptr<kinect::CalibVolume> g_cv;
+std::unique_ptr<kinect::CalibrationFiles> g_calib_files;
 
 void init(std::vector<std::string>& args);
 void update_view_matrix();
@@ -65,6 +67,7 @@ void init(std::vector<std::string> args){
     const std::string ext(args[i].substr(args[i].find_last_of(".") + 1));
     std::cerr << ext << std::endl;
    if("ks" == ext){
+      g_calib_files = std::unique_ptr<kinect::CalibrationFiles>{new kinect::CalibrationFiles(args[i].c_str())};
       g_nka = std::unique_ptr<kinect::NetKinectArray>{new kinect::NetKinectArray(args[i].c_str())};
       found_file = true;
       break;
@@ -75,7 +78,7 @@ void init(std::vector<std::string> args){
     throw std::invalid_argument{"No .ks file specified"};
   }
 
-  g_cv = std::unique_ptr<kinect::CalibVolume>{new kinect::CalibVolume(g_nka->getCalibs())};
+  g_cv = std::unique_ptr<kinect::CalibVolume>{new kinect::CalibVolume(g_calib_files->getFileNames())};
   g_ksV3 = std::unique_ptr<kinect::KinectSurfaceV3>(new kinect::KinectSurfaceV3(g_nka.get(), g_cv.get()));
   
   // binds to unit 0 and 1
