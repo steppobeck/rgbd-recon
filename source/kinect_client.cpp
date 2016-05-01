@@ -25,7 +25,6 @@ unsigned g_screenWidth  = 1280;
 unsigned g_screenHeight = 720;
 float    g_aspect       = g_screenWidth * 1.0/g_screenHeight;
 unsigned g_frameCounter = 0;
-float    g_scale        = 1.0f;
 bool     g_info         = false;
 bool     g_play         = true;
 bool     g_draw_axes    = false;
@@ -133,8 +132,6 @@ void update_view_matrix() {
 
   gloostMultMatrix(camview.data());
 
-  glScalef(g_scale, g_scale, g_scale);
-
   gloost::Matrix modelview;
   glGetFloatv(GL_MODELVIEW_MATRIX, modelview.data());
   g_ssmt.setModelView(modelview);
@@ -163,7 +160,7 @@ void draw3d(void)
   }
 
   if(g_ks_mode == 4){
-    g_ksV3->draw(g_scale);
+    g_ksV3->draw();
   }
   else {
     throw std::runtime_error{"ks mode incorrect"};
@@ -271,7 +268,7 @@ void key(unsigned char key, int x, int y)
       g_nka->reloadShader();
       g_calib_files->reload();
       g_cv->reload();
-      g_ksV3->reloadShader();
+      g_ksV3->reload();
     break;
   case 'm':
     g_picking = !g_picking;
