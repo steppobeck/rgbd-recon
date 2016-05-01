@@ -143,7 +143,7 @@ ReconTrigrid::draw(){
     	  m_uniforms_pass_accum->applyToShader(m_shader_pass_accum.get());
     	  
 
-    	  m_proxyMesh->draw(1.0f);
+    	  m_proxyMesh->draw();
     	  m_shader_pass_accum->disable();
     	}
       glPopMatrix();
