@@ -1,5 +1,5 @@
-#ifndef KINECT_KINECTSURFACEV3_H
-#define KINECT_KINECTSURFACEV3_H
+#ifndef RECON_TRIGRID_HPP
+#define RECON_TRIGRID_HPP
 
 #include <ProxyMeshGridV2.h>
 #include <ViewArray.h>
@@ -16,10 +16,10 @@ namespace kinect{
   class CalibVolume;
   class CalibrationFiles;
 
-  class KinectSurfaceV3{
+  class ReconTrigrid{
 
   public:
-    KinectSurfaceV3(CalibrationFiles const& cfs, CalibVolume const* cv);
+    ReconTrigrid(CalibrationFiles const& cfs, CalibVolume const* cv);
 
     void draw(float scale);
 
@@ -45,4 +45,4 @@ namespace kinect{
   };
 }
 
-#endif // #ifndef KINECT_KINECTSURFACE3_H
+#endif // #ifndef RECON_TRIGRID_HPP

@@ -20,3 +20,4 @@ target_include_directories(framework PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/navigati
 target_include_directories(framework PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/measurement)
 target_include_directories(framework PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/rendering)
 target_include_directories(framework PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/io)
+target_include_directories(framework PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/reconstruction)

@@ -1,4 +1,4 @@
-#include "KinectSurfaceV3.h"
+#include "recon_trigrid.hpp"
 
 #include <NetKinectArray.h>
 #include "calibration_files.hpp"
@@ -15,7 +15,7 @@ namespace kinect{
     height = vp_params[3];
   }
 
-  KinectSurfaceV3::KinectSurfaceV3(CalibrationFiles const& cfs, CalibVolume const* cv)
+  ReconTrigrid::ReconTrigrid(CalibrationFiles const& cfs, CalibVolume const* cv)
     : m_cv(cv),
       m_shader_pass_depth(),
       m_shader_pass_accum(),
@@ -58,7 +58,7 @@ namespace kinect{
   }
 
   void
-  KinectSurfaceV3::draw(float scale){
+  ReconTrigrid::draw(float scale){
     // calculate img_to_eye for this view
     gloost::Matrix projection_matrix;
     glGetFloatv(GL_PROJECTION_MATRIX, projection_matrix.data());
@@ -201,7 +201,7 @@ namespace kinect{
   }
 
   void
-  KinectSurfaceV3::reloadShader(){
+  ReconTrigrid::reloadShader(){
     m_shader_pass_depth.reset(new gloost::Shader("glsl/ksv3_vertex.vs",
 					     "glsl/ksv3_fragment.fs",
 					     "glsl/ksv3_geometry.gs"));

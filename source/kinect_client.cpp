@@ -14,7 +14,7 @@
 #include <FourTiledWindow.h>
 #include <CalibVolume.h>
 #include <calibration_files.hpp>
-#include <KinectSurfaceV3.h>
+#include <recon_trigrid.hpp>
 #include <NetKinectArray.h>
 #include <KinectCalibrationFile.h>
 #include <Statistics.h>
@@ -53,7 +53,7 @@ void motionFunc(int mouse_h, int mouse_v);
 void mouseFunc(int button, int state, int mouse_h, int mouse_v);
 void idle(void);
 
-std::unique_ptr<kinect::KinectSurfaceV3> g_ksV3;// 4
+std::unique_ptr<kinect::ReconTrigrid> g_ksV3;// 4
 
 bool g_picking = false;
 
@@ -79,7 +79,7 @@ void init(std::vector<std::string> args){
   }
 
   g_cv = std::unique_ptr<kinect::CalibVolume>{new kinect::CalibVolume(g_calib_files->getFileNames())};
-  g_ksV3 = std::unique_ptr<kinect::KinectSurfaceV3>(new kinect::KinectSurfaceV3(*g_calib_files, g_cv.get()));
+  g_ksV3 = std::unique_ptr<kinect::ReconTrigrid>(new kinect::ReconTrigrid(*g_calib_files, g_cv.get()));
   
   // binds to unit 0 and 1
   g_nka->bindToTextureUnits(0);
