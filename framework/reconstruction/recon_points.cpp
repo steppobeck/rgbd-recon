@@ -41,41 +41,40 @@ ReconPoints::draw(){
   unsigned width  = 0;
   unsigned height = 0;
   getWidthHeight(width, height);
+  // std::cout << "got " << width << ", " << height << std::endl;
+  // std::cout << "tex " << m_tex_width << ", " << m_tex_height << std::endl;
   viewport_scale.setScale(width * 0.5, height * 0.5, 0.5f);
   gloost::Matrix image_to_eye =  viewport_scale * viewport_translate * projection_matrix;
   image_to_eye.invert();
+  projection_matrix.invert();
 
   glEnable(GL_DEPTH_TEST);
-  glPushAttrib(GL_ALL_ATTRIB_BITS);
-  glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-  // m_va.enable(0, false, &ox, &oy, false);
-  for(unsigned layer = 0; layer < m_num_kinects; ++layer){
+  m_shader.set();
+  m_uniforms.set_vec2("viewportSizeInv", gloost::vec2(1.0f/width, 1.0f/height));
+  m_uniforms.set_mat4("img_to_eye_curr", image_to_eye);
+  m_uniforms.set_mat4("projection_inv", projection_matrix);
+  m_uniforms.set_float("epsilon" , 0.075);
+
+  for(unsigned layer = 0; layer < m_num_kinects; ++layer) {
     m_uniforms.set_int("layer",  layer);
     m_uniforms.set_int("cv_xyz",m_cv->getStartTextureUnit() + layer * 2);
     m_uniforms.set_int("cv_uv",m_cv->getStartTextureUnit() + layer * 2 + 1);
     m_uniforms.set_float("cv_min_d",m_cv->m_cv_min_ds[layer]);
     m_uniforms.set_float("cv_max_d",m_cv->m_cv_max_ds[layer]);
-    {
-    	glPushMatrix();
-    	{
-    	  m_shader.set();
-    	  m_uniforms.applyToShader(&m_shader);
-        
-        glBegin(GL_POINTS);
-        const float stepX = 1.0f / m_tex_width;
-        const float stepY = 1.0f / m_tex_height;
-  	    for(unsigned y = 0; y < m_tex_height; ++y) {
-          for(unsigned x = 0; x < m_tex_width; ++x) {
-            glVertex2f( (x+0.5) * stepX, (y + 0.5) * stepY );
-          }
-        }
-    	  glEnd();
-    	  m_shader.disable();
-    	}
-    	glPopMatrix();
+
+	  m_uniforms.applyToShader(&m_shader);
+    
+    glBegin(GL_POINTS);
+    const float stepX = 1.0f / m_tex_width;
+    const float stepY = 1.0f / m_tex_height;
+    for(unsigned y = 0; y < m_tex_height; ++y) {
+      for(unsigned x = 0; x < m_tex_width; ++x) {
+        glVertex2f( (x+0.5) * stepX, (y + 0.5) * stepY );
+      }
     }
+	  glEnd();
   }
-  glPopAttrib();
+  m_shader.disable();
 }
 
 void

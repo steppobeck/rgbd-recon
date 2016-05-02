@@ -75,36 +75,31 @@ ReconTrigrid::draw(){
 
   unsigned ox;
   unsigned oy;
+  // cull in the geometry shader
+	glDisable(GL_CULL_FACE);
 // pass 1 goes to depth buffer only
   m_va_pass_depth->enable(0, false, &ox, &oy, false);
-  m_uniforms_pass_depth->set_float("min_length", m_min_length);
+  m_shader_pass_depth->set();
   m_uniforms_pass_depth->set_int("stage", 0);
+  m_uniforms_pass_depth->set_float("min_length", m_min_length);
+
   for(unsigned layer = 0; layer < m_num_kinects; ++layer){
     m_uniforms_pass_depth->set_int("layer",  layer);
     m_uniforms_pass_depth->set_int("cv_xyz",m_cv->getStartTextureUnit() + layer * 2);
     m_uniforms_pass_depth->set_int("cv_uv",m_cv->getStartTextureUnit() + layer * 2 + 1);
     m_uniforms_pass_depth->set_float("cv_min_d",m_cv->m_cv_min_ds[layer]);
     m_uniforms_pass_depth->set_float("cv_max_d",m_cv->m_cv_max_ds[layer]);
-    {
-    	glDisable(GL_CULL_FACE);
-    	glPushMatrix();
-    	{
-    	  m_shader_pass_depth->set();
-    	  m_uniforms_pass_depth->applyToShader(m_shader_pass_depth.get());
-    	  
-    	  m_proxyMesh->draw();
-    	  m_shader_pass_depth->disable();
-    	}
-    	glPopMatrix();
-    }
-    
+	  m_uniforms_pass_depth->applyToShader(m_shader_pass_depth.get());
+	  
+	  m_proxyMesh->draw();
   }
+
+  m_shader_pass_depth->disable();
   m_va_pass_depth->disable(false);
 
 // pass 2 goes to accumulation buffer
   glDisable(GL_DEPTH_TEST);
   glEnable(GL_BLEND); 
-  // glEnablei(GL_BLEND, GL_COLOR_ATTACHMENT0_EXT);
   glBlendFuncSeparateEXT(GL_ONE,GL_ONE,GL_ONE,GL_ONE);
   glBlendEquationSeparateEXT(GL_FUNC_ADD, GL_FUNC_ADD);
   m_va_pass_accum->enable(0, false, &ox, &oy);
@@ -113,7 +108,9 @@ ReconTrigrid::draw(){
   m_uniforms_pass_accum->set_vec2("viewportSizeInv", gloost::vec2(1.0f/m_va_pass_depth->getWidth(), 1.0f/m_va_pass_depth->getHeight()));
   m_uniforms_pass_accum->set_mat4("img_to_eye_curr", image_to_eye);
   m_uniforms_pass_accum->set_float("epsilon"    , 0.075);
+  
   m_va_pass_depth->bindToTextureUnitDepth(14);
+  m_shader_pass_accum->set();
 
   for(unsigned layer = 0; layer < m_num_kinects; ++layer){
     m_uniforms_pass_accum->set_int("layer",  layer);
@@ -121,25 +118,17 @@ ReconTrigrid::draw(){
     m_uniforms_pass_accum->set_int("cv_uv",m_cv->getStartTextureUnit() + layer * 2 + 1);
     m_uniforms_pass_accum->set_float("cv_min_d",m_cv->m_cv_min_ds[layer]);
     m_uniforms_pass_accum->set_float("cv_max_d",m_cv->m_cv_max_ds[layer]);
-    {
-    	glDisable(GL_CULL_FACE);
-    	glPushMatrix();
-    	{
-    	  m_shader_pass_accum->set();
-    	  m_uniforms_pass_accum->applyToShader(m_shader_pass_accum.get());
-    	  
-    	  m_proxyMesh->draw();
-    	  m_shader_pass_accum->disable();
-    	}
-      glPopMatrix();
-    }      
+    m_uniforms_pass_accum->applyToShader(m_shader_pass_accum.get());
+    
+    m_proxyMesh->draw();
   }
 
+  m_shader_pass_accum->disable();
   m_va_pass_accum->disable(false);
   glDisable(GL_BLEND);
-  glEnable(GL_DEPTH_TEST);
 
 // normalize pass outputs best quality color and depth to framebuffer of parent renderstage
+  glEnable(GL_DEPTH_TEST);
   m_shader_pass_normalize->set();
   m_uniforms_pass_normalize->set_vec2("texSizeInv", gloost::vec2(1.0f/m_va_pass_depth->getWidth(), 1.0f/m_va_pass_depth->getHeight()));
   m_uniforms_pass_normalize->set_vec2("offset"    , gloost::vec2(1.0f*ox,                          1.0f*oy));

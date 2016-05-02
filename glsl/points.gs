@@ -43,7 +43,7 @@ bool clip(vec3 p){
 void main() {
 
   if(clip(geo_pos_cs[0]) || geo_depth[0] <= -1.0f) {
-    return;
+    // return;
   }
 
   pass_texcoord = geo_texcoord[0];
