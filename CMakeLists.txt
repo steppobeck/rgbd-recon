@@ -112,6 +112,8 @@ else()
   SET(LIBRARY_OUTPUT_PATH  ${PROJECT_BINARY_DIR}/${CMAKE_BUILD_TYPE})
 endif()
 
+SET(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
 # framework
 add_subdirectory(framework)
 # applications
