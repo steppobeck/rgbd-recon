@@ -10,7 +10,6 @@ uniform int layer;
 
 uniform mat4 img_to_eye_curr;
 uniform vec2 viewportSizeInv;
-uniform vec2 offset;
 uniform float epsilon;
 
 /*uniform*/ int bbxclip = 1;

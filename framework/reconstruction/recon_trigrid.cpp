@@ -73,21 +73,14 @@ ReconTrigrid::draw(){
   gloost::Matrix image_to_eye =  viewport_scale * viewport_translate * projection_matrix;
   image_to_eye.invert();
 
-  const float min_length = m_min_length;
-  //std::cerr << "min_length: " << min_length << std::endl;
-
   unsigned ox;
   unsigned oy;
-
-  // pass 1 goes to depth buffer only
-  glPushAttrib(GL_ALL_ATTRIB_BITS);
-  glColorMask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+// pass 1 goes to depth buffer only
   m_va_pass_depth->enable(0, false, &ox, &oy, false);
-  m_uniforms_pass_depth->set_float("min_length", min_length);
+  m_uniforms_pass_depth->set_float("min_length", m_min_length);
   m_uniforms_pass_depth->set_int("stage", 0);
   for(unsigned layer = 0; layer < m_num_kinects; ++layer){
     m_uniforms_pass_depth->set_int("layer",  layer);
-    m_uniforms_pass_depth->set_vec2("tex_size_inv", gloost::vec2(1.0f/m_tex_width, 1.0f/m_tex_height));
     m_uniforms_pass_depth->set_int("cv_xyz",m_cv->getStartTextureUnit() + layer * 2);
     m_uniforms_pass_depth->set_int("cv_uv",m_cv->getStartTextureUnit() + layer * 2 + 1);
     m_uniforms_pass_depth->set_float("cv_min_d",m_cv->m_cv_min_ds[layer]);
@@ -105,33 +98,25 @@ ReconTrigrid::draw(){
     	}
     	glPopMatrix();
     }
-    //glPopAttrib();
     
   }
   m_va_pass_depth->disable(false);
-  glPopAttrib();
-  // end pass 1
-#if 1
-  // pass 2 goes to accumulation buffer
-  glPushAttrib(GL_ALL_ATTRIB_BITS);
-  glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
+// pass 2 goes to accumulation buffer
   glDisable(GL_DEPTH_TEST);
   glEnable(GL_BLEND); // glEnablei(GL_BLEND, GL_COLOR_ATTACHMENT0_EXT);
   glBlendFuncSeparateEXT(GL_ONE,GL_ONE,GL_ONE,GL_ONE);
   glBlendEquationSeparateEXT(GL_FUNC_ADD, GL_FUNC_ADD);
   m_va_pass_accum->enable(0, false, &ox, &oy);
   m_uniforms_pass_accum->set_int("stage", 1);
-  m_uniforms_pass_accum->set_float("min_length", min_length);
+  m_uniforms_pass_accum->set_float("min_length", m_min_length);
   m_uniforms_pass_accum->set_vec2("viewportSizeInv", gloost::vec2(1.0f/m_va_pass_depth->getWidth(), 1.0f/m_va_pass_depth->getHeight()));
-  m_uniforms_pass_accum->set_vec2("offset"         , gloost::vec2(1.0f*ox,                          1.0f*oy));
   m_uniforms_pass_accum->set_mat4("img_to_eye_curr", image_to_eye);
   m_uniforms_pass_accum->set_float("epsilon"    , 0.075);
   m_va_pass_depth->bindToTextureUnitDepth(14);
 
   for(unsigned layer = 0; layer < m_num_kinects; ++layer){
     m_uniforms_pass_accum->set_int("layer",  layer);
-    m_uniforms_pass_accum->set_vec2("tex_size_inv", gloost::vec2(1.0f/m_tex_width, 1.0f/m_tex_height));
-
     m_uniforms_pass_accum->set_int("cv_xyz",m_cv->getStartTextureUnit() + layer * 2);
     m_uniforms_pass_accum->set_int("cv_uv",m_cv->getStartTextureUnit() + layer * 2 + 1);
     m_uniforms_pass_accum->set_float("cv_min_d",m_cv->m_cv_min_ds[layer]);
@@ -153,22 +138,9 @@ ReconTrigrid::draw(){
 
   m_va_pass_accum->disable(false);
   glDisable(GL_BLEND);
-  glPopAttrib();
-  // end pass 2
-#endif
+  glEnable(GL_DEPTH_TEST);
 
-#if 1
-  // normalize pass outputs best quality color and depth to framebuffer of parent renderstage
-  glPushAttrib(GL_ALL_ATTRIB_BITS);
-  
-  glMatrixMode(GL_PROJECTION);
-  glPushMatrix();
-  glLoadIdentity();
-  glOrtho(0.0,1.0,0.0,1.0,1.0,-1.0);
-  glMatrixMode(GL_MODELVIEW);
-  glPushMatrix();
-  glLoadIdentity();
-
+// normalize pass outputs best quality color and depth to framebuffer of parent renderstage
   m_shader_pass_normalize->set();
   m_uniforms_pass_normalize->set_vec2("texSizeInv", gloost::vec2(1.0f/m_va_pass_depth->getWidth(), 1.0f/m_va_pass_depth->getHeight()));
   m_uniforms_pass_normalize->set_vec2("offset"    , gloost::vec2(1.0f*ox,                          1.0f*oy));
@@ -177,26 +149,17 @@ ReconTrigrid::draw(){
 
   m_va_pass_accum->bindToTextureUnitRGBA(15);
   m_va_pass_depth->bindToTextureUnitDepth(16);
-
-  glBegin(GL_QUADS);
+  
+  glBegin(GL_TRIANGLE_STRIP);
   {
-    glVertex3f  (0.0f, 0.0f, 0.0f);
-    glVertex3f  (1.0f, 0.0f, 0.0f);
-    glVertex3f  (1.0f, 1.0f, 0.0f);
-    glVertex3f  (0.0f, 1.0f, 0.0f);
+    glVertex2f(-1.0f, -1.0f);
+    glVertex2f(1.0f, -1.0f);
+    glVertex2f(-1.0f, 1.0f);
+    glVertex2f(1.0f, 1.0f);
   }
   glEnd();
 
   m_shader_pass_normalize->disable();
-  
-  glMatrixMode(GL_PROJECTION);
-  glPopMatrix();
-  glMatrixMode(GL_MODELVIEW);
-  glPopMatrix();
-
-  glPopAttrib();
-  // end pass normalize
-#endif
 }
 
 void

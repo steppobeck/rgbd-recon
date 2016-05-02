@@ -1,5 +1,4 @@
 #version 130
-
 #extension GL_EXT_texture_array : enable
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -43,7 +42,6 @@ void main() {
    vec3  position_curr_es = (position_curr / position_curr.w).xyz;
    
    vec4 color = texture2DArray(kinect_colors, vec3(pass_texcoord, float(layer)));
-   color = texture2DArray(kinect_qualities, vec3(pass_texcoord, float(layer)));
    gl_FragColor = vec4(color.rgb, quality);
    
    if(epsilon < length(position_curr_es - pass_pos_es)){

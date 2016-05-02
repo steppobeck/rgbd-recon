@@ -74,7 +74,6 @@ ReconPoints::draw(){
     	}
     	glPopMatrix();
     }
-    
   }
   glPopAttrib();
 }

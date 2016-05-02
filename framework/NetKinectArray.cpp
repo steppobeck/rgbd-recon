@@ -181,6 +181,10 @@ namespace kinect{
 
     m_qualityArray = new mvt::TextureArray(m_width, m_height, m_numLayers, GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT);
     m_qualityArray->getGLHandle();
+    glActiveTexture(GL_TEXTURE0);
+    m_qualityArray->bind();
+    glTexParameteri(GL_TEXTURE_2D_ARRAY_EXT, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY_EXT, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
     check_gl_errors("after m_qualityArray->getGLHandle()", false);
 
@@ -327,7 +331,6 @@ void NetKinectArray::bindToFramebuffer(GLuint array_handle, GLuint layer) {
   NetKinectArray::bilateralFilter(){
 
     glPushAttrib(GL_ALL_ATTRIB_BITS);
-    glDisable(GL_DEPTH_TEST);
 
     GLint current_fbo;
     glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &current_fbo);
@@ -383,9 +386,6 @@ void NetKinectArray::bindToFramebuffer(GLuint array_handle, GLuint layer) {
           break;
       }
 
-      glClearColor(0.0,0.0,0.0,0.0);
-      glClear(GL_COLOR_BUFFER_BIT);
-
       m_uniforms_bf->set_int("layer",i);
       m_uniforms_bf->set_int("mode", 0);
       m_uniforms_bf->set_float("cv_min_d",m_calib_vols->m_cv_min_ds[i]);
@@ -394,28 +394,23 @@ void NetKinectArray::bindToFramebuffer(GLuint array_handle, GLuint layer) {
       const float near = m_calib_files->getCalibs()[i].getNear();
       const float far  = m_calib_files->getCalibs()[i].getFar();
       const float scale = (far - near);
-      // float d = d_c * scale + near;
       m_uniforms_bf->set_float("scale",scale);
       m_uniforms_bf->set_float("near",near);
       m_uniforms_bf->set_float("scaled_near",scale/255.0);
       m_shader_bf->set();
       m_uniforms_bf->applyToShader(m_shader_bf);
 
-    	// glActiveTexture(GL_TEXTURE0 + 2);
-    	// m_colorArray->bind();
-
-    	glBegin(GL_QUADS);
+    	glBegin(GL_TRIANGLE_STRIP);
     	{
-    	  glVertex3f(-1.0f, -1.0f, 0.0f);
-    	  glVertex3f(1.0f, -1.0f, 0.0f);
-    	  glVertex3f(1.0f, 1.0f, 0.0f);
-    	  glVertex3f(-1.0f, 1.0f, 0.0f);
+    	  glVertex2f(-1.0f, -1.0f);
+    	  glVertex2f(1.0f, -1.0f);
+    	  glVertex2f(-1.0f, 1.0f);
+        glVertex2f(1.0f, 1.0f);
     	}
     	glEnd();
 
     }
     
-  	glActiveTexture(GL_TEXTURE0);
     m_shader_bf->disable();
 
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, current_fbo);

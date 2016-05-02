@@ -33,5 +33,4 @@ void main() {
   to_geom_lateral_quality = texture2DArray(kinect_qualities, coords).r;
 
   gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * vec4(to_geom_pos_cs, 1.0);
-
 }
