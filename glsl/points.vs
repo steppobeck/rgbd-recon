@@ -12,12 +12,12 @@ uniform float cv_max_d;
 uniform vec2 tex_size_inv;
 uniform int layer;
 
-out vec2 pass_texcoord;
-out vec3 pass_pos_es;
-out vec3 pass_pos_cs;
-out float pass_depth;
-out float pass_lateral_quality;
-out float pass_vizvalue;
+out vec2 geo_texcoord;
+out vec3 geo_pos_es;
+out vec3 geo_pos_cs;
+out float geo_depth;
+out float geo_lateral_quality;
+out float geo_vizvalue;
 
 int kernel_size = 6; // in pixel
 int kernel_end = kernel_size + 1;
@@ -107,7 +107,7 @@ void main() {
   float depth = texture2DArray(kinect_depths, coords).r;
   // return vec2(depth, 1.0f);
   if(is_outside(depth)){
-    depth = 0.0f;
+    depth = -1.0f;
   }
 
   // vec2 bf_result          = bilateral_filter();
@@ -116,11 +116,11 @@ void main() {
   // lookup from calibvolume
   float d_idx = (depth - cv_min_d)/(cv_max_d - cv_min_d);
 
-  pass_pos_cs        = texture(cv_xyz, vec3(in_position, d_idx)).rgb;
-  pass_pos_es        = (gl_ModelViewMatrix * vec4(pass_pos_cs, 1.0)).xyz;
-  pass_texcoord      = texture(cv_uv,  vec3(in_position, d_idx)).rg;
-  pass_depth         = depth;
-  pass_lateral_quality = 1.0f;
+  geo_pos_cs        = texture(cv_xyz, vec3(in_position, d_idx)).rgb;
+  geo_pos_es        = (gl_ModelViewMatrix * vec4(geo_pos_cs, 1.0)).xyz;
+  geo_texcoord      = texture(cv_uv,  vec3(in_position, d_idx)).rg;
+  geo_depth         = depth;
+  geo_lateral_quality = 1.0f;
 
-  gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * vec4(pass_pos_cs, 1.0);
+  gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * vec4(geo_pos_cs, 1.0);
 }

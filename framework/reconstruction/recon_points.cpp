@@ -93,11 +93,11 @@ ReconPoints::draw(){
 
 void
 ReconPoints::reload(){
-  m_shader.reset(new gloost::Shader("glsl/points.vs", "glsl/points.fs"));
+  m_shader.reset(new gloost::Shader("glsl/points.vs", "glsl/points.fs", "glsl/points.gs"));
   // m_shader.reset(new gloost::Shader("glsl/ksv3_vertex.vs", "glsl/ksv3_fragment.fs", "glsl/ksv3_geometry.gs"));
-  // m_shader->setProgramParameter(GL_GEOMETRY_INPUT_TYPE_EXT ,GL_TRIANGLES);
-  // m_shader->setProgramParameter(GL_GEOMETRY_OUTPUT_TYPE_EXT ,GL_TRIANGLE_STRIP);
-  // m_shader->setProgramParameter(GL_GEOMETRY_VERTICES_OUT_EXT ,3);
+  m_shader->setProgramParameter(GL_GEOMETRY_INPUT_TYPE_EXT ,GL_POINTS);
+  m_shader->setProgramParameter(GL_GEOMETRY_OUTPUT_TYPE_EXT ,GL_POINTS);
+  m_shader->setProgramParameter(GL_GEOMETRY_VERTICES_OUT_EXT ,1);
 }
 
 }

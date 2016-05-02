@@ -23,37 +23,14 @@ uniform float epsilon;
 
 out vec4 gl_FragColor;
 ///////////////////////////////////////////////////////////////////////////////
-
-const vec3 bbx_max = vec3( 1.,2.2,   1.);
-const vec3 bbx_min = vec3(-1.,0.0, -1.);
-
-bool clip(vec3 p){
-  if(p.x < bbx_min.x ||
-     p.y < bbx_min.y ||
-     p.z < bbx_min.z ||
-     p.x > bbx_max.x ||
-     p.y > bbx_max.y ||
-     p.z > bbx_max.z){
-    return true;
-  }
-  return false;
-}
-
 // main
 ///////////////////////////////////////////////////////////////////////////////
 void main() {
-
-  if(clip(pass_pos_cs))
-    gl_FragColor = vec4(0.0f, 1.0f, 0.0f, 1.0f);
-    // discard;
-
-#if 1
    // to cull away borders of the rgb camera view
    if(pass_texcoord.s > 0.99 || pass_texcoord.s < 0.01 ||
       pass_texcoord.t > 0.99 || pass_texcoord.t < 0.01) {
         discard;
    }
-#endif
 
    //float quality = 1.0/(pass_depth * pass_depth);
    float quality = pass_lateral_quality/pass_depth;
