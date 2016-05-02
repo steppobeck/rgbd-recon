@@ -91,5 +91,6 @@ void main() {
      vec4 color = texture2DArray(kinect_colors, vec3(texture_coord, float(layer)));
      gl_FragColor = vec4(color.rgb * quality, quality);
      //gl_FragColor = vec4(1.5*normal.bgr * quality, quality);
+     // gl_FragColor = vec4(quality);
    }
 }

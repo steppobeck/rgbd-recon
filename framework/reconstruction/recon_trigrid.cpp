@@ -40,6 +40,7 @@ ReconTrigrid::ReconTrigrid(CalibrationFiles const& cfs, CalibVolume const* cv)
   m_uniforms_pass_accum = std::unique_ptr<gloost::UniformSet>{new gloost::UniformSet};
   m_uniforms_pass_accum->set_int("kinect_colors",1);
   m_uniforms_pass_accum->set_int("kinect_depths",2);
+  m_uniforms_pass_accum->set_int("kinect_qualities",3);
   m_uniforms_pass_accum->set_int("depth_map_curr",14);
 
   m_uniforms_pass_normalize = std::unique_ptr<gloost::UniformSet>{new gloost::UniformSet};
