@@ -1,6 +1,5 @@
 #include "recon_trigrid.hpp"
 
-#include <NetKinectArray.h>
 #include "calibration_files.hpp"
 #include <KinectCalibrationFile.h>
 #include <CalibVolume.h>

@@ -322,6 +322,30 @@ Shader::initInContext(unsigned int contextId)
 
   /// link programs
   glLinkProgram(shaderHandle);
+  GLint success = 0;
+  glGetProgramiv(shaderHandle, GL_LINK_STATUS, &success);
+  if(success == 0) {
+    // get log length
+    GLint log_size = 0;
+    glGetProgramiv(shaderHandle, GL_INFO_LOG_LENGTH, &log_size);
+    // get log
+    GLchar* log_buffer = (GLchar*)malloc(sizeof(GLchar) * log_size);
+    glGetProgramInfoLog(shaderHandle, log_size, &log_size, log_buffer);
+    
+    // utils::output_log(log_buffer, paths);
+
+    std::string error{};
+    std::istringstream error_stream{log_buffer};
+    while(std::getline(error_stream, error)) {
+      std::cerr << error << std::endl;
+    }
+    // free broken shaderHandle
+    glDeleteProgram(shaderHandle);
+    free(log_buffer);
+
+    // throw std::logic_error("Linking of " + paths);
+    vsCompiled = false;
+  }
 
 
 #ifndef GLOOST_SYSTEM_DISABLE_OUTPUT_MESSAGES

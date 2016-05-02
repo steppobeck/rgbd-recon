@@ -14,11 +14,14 @@
 #include <FourTiledWindow.h>
 #include <CalibVolume.h>
 #include <calibration_files.hpp>
-#include <recon_trigrid.hpp>
 #include <NetKinectArray.h>
 #include <KinectCalibrationFile.h>
 #include <Statistics.h>
 #include <GlPrimitives.h>
+
+#include <reconstruction.hpp>
+#include <recon_trigrid.hpp>
+#include <recon_points.hpp>
 
 /// general setup
 unsigned g_screenWidth  = 1280;
@@ -32,7 +35,7 @@ bool     g_draw_frustums= false;
 bool     g_draw_grid    = true;
 bool     g_animate      = false;
 bool     g_wire         = false;
-unsigned g_ks_mode      = 4;
+unsigned g_recon_mode   = 1;
 
 gloost::PerspectiveCamera g_camera{50.0, g_aspect, 0.1, 200.0};
 mvt::FourTiledWindow g_ftw{g_screenWidth, g_screenHeight};
@@ -53,6 +56,7 @@ void mouseFunc(int button, int state, int mouse_h, int mouse_v);
 void idle(void);
 
 std::unique_ptr<kinect::ReconTrigrid> g_ksV3;// 4
+std::vector<std::unique_ptr<kinect::Reconstruction>> g_recons;// 4
 
 bool g_picking = false;
 
@@ -78,7 +82,9 @@ void init(std::vector<std::string> args){
   }
 
   g_cv = std::unique_ptr<kinect::CalibVolume>{new kinect::CalibVolume(g_calib_files->getFileNames())};
-  g_ksV3 = std::unique_ptr<kinect::ReconTrigrid>(new kinect::ReconTrigrid(*g_calib_files, g_cv.get()));
+  // g_ksV3 = std::unique_ptr<kinect::ReconTrigrid>(new kinect::ReconTrigrid(*g_calib_files, g_cv.get()));
+  g_recons.emplace_back(new kinect::ReconTrigrid(*g_calib_files, g_cv.get()));
+  g_recons.emplace_back(new kinect::ReconPoints(*g_calib_files, g_cv.get()));
   
   // binds to unit 0 and 1
   g_nka->bindToTextureUnits(0);
@@ -158,13 +164,8 @@ void draw3d(void)
   if (g_play) {
     g_nka->update();
   }
-
-  if(g_ks_mode == 4){
-    g_ksV3->draw();
-  }
-  else {
-    throw std::runtime_error{"ks mode incorrect"};
-  }
+  // draw active reconstruction
+  g_recons.at(g_recon_mode)->draw();
 
   g_stats->stopGPU();
   //std::cerr << "after stopGPU" << std::endl; check_gl_errors("after stopGPU", false);
@@ -249,6 +250,9 @@ void key(unsigned char key, int x, int y)
   case 'q':
     exit(0);
     break;
+  case 9:
+    g_recon_mode = (g_recon_mode + 1) % g_recons.size();
+    break;
   case 'r':
     g_draw_axes = !g_draw_axes;
     break;
@@ -268,7 +272,9 @@ void key(unsigned char key, int x, int y)
       g_nka->reloadShader();
       g_calib_files->reload();
       g_cv->reload();
-      g_ksV3->reload();
+      for (auto& recon : g_recons) {
+        recon->reload();
+      }
     break;
   case 'm':
     g_picking = !g_picking;
