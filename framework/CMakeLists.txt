@@ -9,9 +9,10 @@ add_library(framework STATIC
   ${FRAMEWORK_INLINE}
   ${FRAMEWORK_HEADER})
 
-target_link_libraries(framework ${SVG_LIBRARIES})
-target_link_libraries(framework ${GLOOST_LIBRARIES})
-target_link_libraries(framework ${FASTDXT_LIBRARIES})
+# self built libraries
+target_link_libraries(framework ${SVG_LIBRARIES} ${GLOOST_LIBRARIES} ${FASTDXT_LIBRARIES} ${SQUISH_LIBRARIES})
+# global libraries
+target_link_libraries(framework GLU ${ZMQ_LIBRARIES} ${CGAL_LIBRARIES} ${BOOST_LIBRARIES} ${GMP_LIBRARIES} ${MPFR_LIBRARIES})
 
 target_include_directories(framework PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(framework PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/calibration)

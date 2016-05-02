@@ -71,16 +71,13 @@ add_sublibrary(fastdxt ${CMAKE_CURRENT_SOURCE_DIR}/external/fastdxt "-O3 -funrol
 add_sublibrary(gloost ${CMAKE_CURRENT_SOURCE_DIR}/external/gloost "-w")
 ################################
 # svg
-add_sublibrary(svg ${CMAKE_CURRENT_SOURCE_DIR}/external/svg "")
+add_sublibrary(svg ${CMAKE_CURRENT_SOURCE_DIR}/external/svg "-w")
 ################################
 # catch
 set(CATCH_DIRECTORY catch-1.1)
 list(APPEND INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/external/${CATCH_DIRECTORY})
 
 ################################
-# set link libraries
-set(LIBRARIES glfw GLU glut ${GLFW_LIBRARIES} ${ZMQ_LIBRARIES} ${CGAL_LIBRARIES} ${BOOST_LIBRARIES} ${SQUISH_LIBRARIES} ${GMP_LIBRARIES} ${MPFR_LIBRARIES})
-
 add_definitions(-DGLEW_STATIC)
 # to prevent CGAL assertion fail 
 add_definitions(-frounding-math)
@@ -135,3 +132,12 @@ mark_as_advanced(BUILD_SQUISH_WITH_SSE2 BUILD_SQUISH_WITH_ALTIVEC
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set(CMAKE_INSTALL_PREFIX "${PROJECT_SOURCE_DIR}/install" CACHE STRING "Install path prefix, prepended onto install directories." FORCE)
 endif(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+
+# copy over shaders
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/glsl 
+        DESTINATION bin/
+        FILES_MATCHING 
+        PATTERN "*.fs"
+        PATTERN "*.vs"
+        PATTERN "*.gs"
+)
