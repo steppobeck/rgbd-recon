@@ -1,5 +1,7 @@
-#extension GL_EXT_gpu_shader4 : enable
+#version 130
 #extension GL_EXT_texture_array : enable
+
+in vec2 in_position;
 
 uniform sampler2DArray kinect_depths;
 uniform sampler3D cv_xyz;
@@ -10,12 +12,12 @@ uniform float cv_max_d;
 uniform vec2 tex_size_inv;
 uniform int layer;
 
-varying vec2 pass_texcoord;
-varying vec3 pass_pos_es;
-varying vec3 pass_pos_cs;
-varying float pass_depth;
-varying float pass_lateral_quality;
-varying float pass_vizvalue;
+out vec2 pass_texcoord;
+out vec3 pass_pos_es;
+out vec3 pass_pos_cs;
+out float pass_depth;
+out float pass_lateral_quality;
+out float pass_vizvalue;
 
 int kernel_size = 6; // in pixel
 int kernel_end = kernel_size + 1;
@@ -40,8 +42,9 @@ bool is_outside(float d){
 
 vec2 bilateral_filter(){
 
-  vec3 coords = vec3(gl_Vertex.xy,layer);
+  vec3 coords = vec3(in_position,layer);
   float depth = texture2DArray(kinect_depths, coords).r;
+  return vec2(depth, 1.0f);
   if(is_outside(depth)){
     return vec2(0.0,0.0);
   }
@@ -100,17 +103,24 @@ vec2 bilateral_filter(){
 
 void main() {
 
-  vec2 bf_result          = bilateral_filter();
-  float depth             = bf_result.x;
+  vec3 coords = vec3(in_position,layer);
+  float depth = texture2DArray(kinect_depths, coords).r;
+  // return vec2(depth, 1.0f);
+  if(is_outside(depth)){
+    depth = 0.0f;
+  }
+
+  // vec2 bf_result          = bilateral_filter();
+  // float depth             = bf_result.x;
 
   // lookup from calibvolume
   float d_idx = (depth - cv_min_d)/(cv_max_d - cv_min_d);
 
-  pass_pos_cs        = texture3D(cv_xyz, vec3(gl_Vertex.xy, d_idx)).rgb;
+  pass_pos_cs        = texture(cv_xyz, vec3(in_position, d_idx)).rgb;
   pass_pos_es        = (gl_ModelViewMatrix * vec4(pass_pos_cs, 1.0)).xyz;
-  pass_texcoord = texture3D(cv_uv,  vec3(gl_Vertex.xy, d_idx)).rg;
+  pass_texcoord      = texture(cv_uv,  vec3(in_position, d_idx)).rg;
   pass_depth         = depth;
-  pass_lateral_quality = bf_result.y;
+  pass_lateral_quality = 1.0f;
 
   gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * vec4(pass_pos_cs, 1.0);
 }

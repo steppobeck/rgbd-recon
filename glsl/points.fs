@@ -1,5 +1,15 @@
-#extension GL_EXT_gpu_shader4 : enable
+#version 130
+
 #extension GL_EXT_texture_array : enable
+
+///////////////////////////////////////////////////////////////////////////////
+in vec2  pass_texcoord;
+in vec3  pass_pos_es;
+in vec3  pass_pos_cs;
+
+in float pass_depth;
+in float pass_lateral_quality;
+in vec3  normal_es;
 
 // used by accumulation pass
 uniform sampler2DArray kinect_colors;
@@ -11,24 +21,11 @@ uniform vec2 viewportSizeInv;
 uniform vec2 offset;
 uniform float epsilon;
 
-/*uniform*/ int bbxclip = 1;
-//uniform vec3 bbx_min;
-//uniform vec3 bbx_max;
-vec3 bbx_min = vec3(-1.,0.0, -1.);
-vec3 bbx_max = vec3( 1.,2.2,   1.);
-
+out vec4 gl_FragColor;
 ///////////////////////////////////////////////////////////////////////////////
-// input
-///////////////////////////////////////////////////////////////////////////////
-varying vec2  pass_texcoord;
-varying vec3  pass_pos_es;
-varying vec3  pass_pos_cs;
 
-varying float pass_depth;
-varying float pass_lateral_quality;
-varying vec3  normal_es;
-
-// methods 
+const vec3 bbx_max = vec3( 1.,2.2,   1.);
+const vec3 bbx_min = vec3(-1.,0.0, -1.);
 
 bool clip(vec3 p){
   if(p.x < bbx_min.x ||
@@ -42,13 +39,13 @@ bool clip(vec3 p){
   return false;
 }
 
-///////////////////////////////////////////////////////////////////////////////
 // main
 ///////////////////////////////////////////////////////////////////////////////
 void main() {
 
-  if(clip(pass_pos_cs) && bbxclip > 0)
-    discard;
+  if(clip(pass_pos_cs))
+    gl_FragColor = vec4(0.0f, 1.0f, 0.0f, 1.0f);
+    // discard;
 
 #if 1
    // to cull away borders of the rgb camera view
@@ -62,15 +59,17 @@ void main() {
    float quality = pass_lateral_quality/pass_depth;
    //float packed_normal = pack_vec3(normal);
 
+   vec3  coords = vec3(gl_FragCoord.xy * viewportSizeInv, 0.0 /*here layer is always 0*/);
+   float depth_curr = texture2DArray(depth_map_curr, coords).r;
+   vec4  position_curr = img_to_eye_curr * vec4(gl_FragCoord.xy + vec2(0.5,0.5),depth_curr,1.0);
+   vec3  position_curr_es = (position_curr / position_curr.w).xyz;
+   
+   vec4 color = texture2DArray(kinect_colors, vec3(pass_texcoord, float(layer)));
+   gl_FragColor = vec4(color.rgb, quality);
+   
+   if(epsilon < length(position_curr_es - pass_pos_es)){
+    gl_FragColor = vec4(1.0f, 0.0f, 0.0f, 1.0f);
+     // discard;
+   }
 
-     vec3  coords = vec3(gl_FragCoord.xy * viewportSizeInv, 0.0 /*here layer is always 0*/);
-     float depth_curr = texture2DArray(depth_map_curr, coords).r;
-     vec4  position_curr = img_to_eye_curr * vec4(gl_FragCoord.xy + vec2(0.5,0.5),depth_curr,1.0);
-     vec3  position_curr_es = (position_curr / position_curr.w).xyz;
-     if(epsilon < length(position_curr_es - pass_pos_es)){
-       discard;
-     }
-
-     vec4 color = texture2DArray(kinect_colors, vec3(pass_texcoord, float(layer)));
-     gl_FragColor = vec4(color.rgb, quality);
 }
