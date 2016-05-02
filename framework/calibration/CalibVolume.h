@@ -32,7 +32,7 @@ namespace kinect{
     std::vector<uv*> m_cv_uvs;
 
   protected:
-    unsigned m_start_texture_unit;
+    int m_start_texture_unit;
 
   public:
     static std::string serverendpoint;

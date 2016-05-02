@@ -20,7 +20,7 @@ namespace kinect{
     m_cv_max_ds(),
     m_cv_xyzs(),
     m_cv_uvs(),
-    m_start_texture_unit(0)
+    m_start_texture_unit(-1)
   {
     for(auto const& calib_file : calib_volume_files){
     	std::string basefile = calib_file;
@@ -131,6 +131,10 @@ namespace kinect{
     }
 
     std::cerr << "reload done" << std::endl;
+
+  if(m_start_texture_unit >= 0) {
+    bindToTextureUnits(m_start_texture_unit);
+  }
 
     return true;
   }
