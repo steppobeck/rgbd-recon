@@ -1022,7 +1022,7 @@ unsigned
   return _heightc;
 }
 
-  bool
+  unsigned
   KinectCalibrationFile::isCompressedRGB() const {
     return _iscompressedrgb;
   }

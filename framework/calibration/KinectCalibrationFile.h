@@ -40,7 +40,7 @@ namespace kinect
     unsigned getWidthC() const;
     unsigned getHeightC() const;
 
-    bool isCompressedRGB() const;
+    unsigned isCompressedRGB() const;
     bool isCompressedDepth() const;
 
   protected:

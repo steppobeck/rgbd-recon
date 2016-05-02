@@ -75,6 +75,9 @@ namespace kinect{
     mvt::TextureArray* getDepthArray();
 
   protected:
+
+    void bindBackToTextureUnits(unsigned start_texture_unit);
+
     void readLoop();
     void readFromFiles();
     bool init();
@@ -86,9 +89,11 @@ namespace kinect{
     unsigned m_numLayers;
     mvt::TextureArray* m_colorArray;
     mvt::TextureArray* m_depthArray;
+    mvt::TextureArray*  m_qualityArray;
 
     mvt::TextureArray*  m_colorArray_back;
     mvt::TextureArray*  m_depthArray_back;
+
     gloost::Shader*     m_shader_bf;
     gloost::UniformSet* m_uniforms_bf;
     unsigned m_fboID;
@@ -113,8 +118,6 @@ namespace kinect{
     float depth_compression_ratio;
   };
 
-
 }
-
 
 #endif // #ifndef KINECT_NETKINECTARRAY_H

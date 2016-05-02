@@ -23,7 +23,7 @@ namespace kinect{
     unsigned num() const;
     float minLength() const;
 
-    bool isCompressedRGB() const;
+    unsigned isCompressedRGB() const;
     bool isCompressedDepth() const;
 
     std::vector<KinectCalibrationFile> const& getCalibs() const;
@@ -36,7 +36,7 @@ namespace kinect{
     unsigned m_numLayers;
     float m_min_length;
 
-    bool m_compressed_rgb;
+    unsigned m_compressed_rgb;
     bool m_compressed_d;
 
     std::vector<KinectCalibrationFile> m_calibs;

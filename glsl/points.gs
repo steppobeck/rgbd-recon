@@ -21,7 +21,6 @@ uniform float min_length;// = 0.0125;
 varying out vec2  pass_texcoord;
 varying out vec3  pass_pos_es;
 varying out vec3  pass_pos_cs;
-varying out float pass_sq_area_cs;
 
 varying out float pass_depth;
 varying out float pass_lateral_quality;
@@ -56,14 +55,13 @@ void main() {
   pass_texcoord = geo_texcoord[0];
   pass_pos_es        = geo_pos_es[0];
   pass_pos_cs        = geo_pos_cs[0];
-  pass_sq_area_cs    = 1.0f;
   pass_lateral_quality = geo_lateral_quality[0];
   pass_depth         = geo_depth[0];
   pass_normal_es     = vec3(1.0f);
   gl_Position   = gl_PositionIn[0];
 
   float dist = length(gl_ModelViewMatrix * vec4(geo_pos_cs[0], 1.0));
-  gl_PointSize  = 5.0f / dist;
+  gl_PointSize  = 10.0f / dist;
   
   EmitVertex();
 }

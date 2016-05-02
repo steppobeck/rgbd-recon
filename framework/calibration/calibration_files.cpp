@@ -73,7 +73,7 @@ namespace kinect{
     return m_min_length;
   }
 
-  bool CalibrationFiles::isCompressedRGB() const {
+  unsigned CalibrationFiles::isCompressedRGB() const {
     return m_compressed_rgb;
   }
   bool CalibrationFiles::isCompressedDepth() const {

@@ -172,15 +172,16 @@ namespace kinect{
       m_colorArray = new mvt::TextureArray(m_widthc, m_heightc, m_numLayers, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE);
     }
 
-    m_depthArray = new mvt::TextureArray(m_width, m_height, m_numLayers, GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT);
+    m_colorArray_back = new mvt::TextureArray(m_widthc, m_heightc, m_numLayers, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE);
     
     m_colorArray->getGLHandle();
     check_gl_errors("after m_colorArray->getGLHandle()", false);
-    m_depthArray->getGLHandle();
-    check_gl_errors("after m_depthArray->getGLHandle()", false);
 
+    m_qualityArray = new mvt::TextureArray(m_width, m_height, m_numLayers, GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT);
+    m_qualityArray->getGLHandle();
+    check_gl_errors("after m_qualityArray->getGLHandle()", false);
 
-    m_colorArray_back = new mvt::TextureArray(m_widthc, m_heightc, m_numLayers, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE);
+    m_depthArray = new mvt::TextureArray(m_width, m_height, m_numLayers, GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT);
 
     if(m_calib_files->isCompressedDepth()){
       m_depthArray_back = new mvt::TextureArray(m_width, m_height, m_numLayers, GL_LUMINANCE, GL_RED, GL_UNSIGNED_BYTE);
@@ -189,19 +190,19 @@ namespace kinect{
       m_depthArray_back = new mvt::TextureArray(m_width, m_height, m_numLayers, GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT);
     }
     
+    m_depthArray->getGLHandle();
+    check_gl_errors("after m_depthArray->getGLHandle()", false);
 
     m_colorArray_back->getGLHandle();
     m_depthArray_back->getGLHandle();
+
     glGenFramebuffersEXT(1, &m_fboID);
     m_uniforms_bf = new gloost::UniformSet;
-
-
-    m_uniforms_bf->set_int("kinect_depths",1);
-    //m_uniforms_bf->set_int("kinect_colors",2);
+    m_uniforms_bf->set_int("kinect_depths",40);
+    // m_uniforms_bf->set_int("kinect_colors",2);
     m_uniforms_bf->set_vec2("texSizeInv", gloost::vec2(1.0f/m_width, 1.0f/m_height));
 
     reloadShader();
-
 
     gloost::TextureManager* texManager = gloost::TextureManager::getInstance();
     if(m_gaussID){
@@ -209,7 +210,6 @@ namespace kinect{
       texManager->cleanUp();
     }
 
-    
     m_gaussID = texManager->createTexture("glsl/gauss.png");
     texManager->getTextureWithoutRefcount(m_gaussID)->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     texManager->getTextureWithoutRefcount(m_gaussID)->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -225,6 +225,7 @@ namespace kinect{
 
   NetKinectArray::~NetKinectArray(){
     delete m_colorArray;
+    delete m_qualityArray;
     delete m_depthArray;
     delete m_colorArray_back;
     delete m_depthArray_back;
@@ -272,6 +273,7 @@ namespace kinect{
     m_colorArray->fillLayersFromPBO(m_colorsCPU3.frontID);
     m_depthArray->fillLayersFromPBO(m_depthsCPU3.frontID);
     bindToTextureUnits(m_start_texture_unit);
+
   }
 
   void
@@ -290,10 +292,10 @@ namespace kinect{
     	//std::cerr << current_fbo << std::endl;
     	// render to depth
     	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, m_fboID);
-    	GLenum buffers[] = {GL_COLOR_ATTACHMENT0_EXT/*, GL_COLOR_ATTACHMENT1_EXT*/ };
-    	glDrawBuffers(1, buffers);
-    	glFramebufferTextureLayerEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, m_depthArray->getGLHandle(), 0, i);
-    	//glFramebufferTextureLayerEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT1_EXT, m_colorArray->getGLHandle(), 0, i);
+    	GLenum buffers[] = {GL_COLOR_ATTACHMENT0_EXT, GL_COLOR_ATTACHMENT1_EXT };
+    	glDrawBuffers(2, buffers);
+    	glFramebufferTextureLayerEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, m_depthArray_back->getGLHandle(), 0, i);
+    	glFramebufferTextureLayerEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT1_EXT, m_qualityArray->getGLHandle(), 0, i);
     	//glFramebufferTextureLayerEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT,  m_ogldepthArray->getGLHandle(), 0, i);
 
     	GLenum status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
@@ -302,7 +304,7 @@ namespace kinect{
         	  printf("Error:Frame buffer not supported in NetKinectArray::update().\n");
     	      break;
         case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT:
-            printf("Error:Frame buffer not supported in NetKinectArray::update().\n");
+            printf("Error:Frame buffer attachments not supported in NetKinectArray::update().\n");
     	      break;
         case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT:
             printf("Error:Missing color attachment in NetKinectArray::update().\n");
@@ -348,7 +350,8 @@ namespace kinect{
     	const float near = m_calib_files->getCalibs()[i].getNear();
     	const float far  = m_calib_files->getCalibs()[i].getFar();
     	const float scale = (far - near);
-    	
+	    // m_uniforms_bf->set_float("cv_min_d",m_cv->m_cv_min_ds[layer]);
+      // m_uniforms_bf->set_float("cv_max_d",m_cv->m_cv_max_ds[layer]);
     	// float d = d_c * scale + near;
     	m_uniforms_bf->set_float("scale",scale);
     	m_uniforms_bf->set_float("near",near);
@@ -356,10 +359,10 @@ namespace kinect{
     	m_shader_bf->set();
     	m_uniforms_bf->applyToShader(m_shader_bf);
 
-    	glActiveTexture(GL_TEXTURE0 + 1);
-    	m_depthArray_back->bind();
-    	//glActiveTexture(GL_TEXTURE0 + 2);
-    	//m_colorArray_back->bind();
+    	glActiveTexture(GL_TEXTURE0 + 40);
+    	m_depthArray->bind();
+    	// glActiveTexture(GL_TEXTURE0 + 2);
+    	// m_colorArray->bind();
 
     	glBegin(GL_QUADS);
     	{
@@ -390,6 +393,8 @@ namespace kinect{
 
     vp.leave();
     glPopAttrib();
+
+    bindBackToTextureUnits(m_start_texture_unit);
   }
 
   void
@@ -398,6 +403,15 @@ namespace kinect{
     m_colorArray->bind();
     glActiveTexture(GL_TEXTURE0 + start_texture_unit + 1);
     m_depthArray->bind();
+    m_start_texture_unit = start_texture_unit;
+  }
+
+  void
+  NetKinectArray::bindBackToTextureUnits(unsigned start_texture_unit) {
+    glActiveTexture(GL_TEXTURE0 + start_texture_unit);
+    m_colorArray->bind();
+    glActiveTexture(GL_TEXTURE0 + start_texture_unit + 1);
+    m_depthArray_back->bind();
     m_start_texture_unit = start_texture_unit;
   }
 

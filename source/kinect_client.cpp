@@ -36,6 +36,7 @@ bool     g_draw_grid    = true;
 bool     g_animate      = false;
 bool     g_wire         = false;
 unsigned g_recon_mode   = 1;
+bool     g_bilateral    = true;
 
 gloost::PerspectiveCamera g_camera{50.0, g_aspect, 0.1, 200.0};
 mvt::FourTiledWindow g_ftw{g_screenWidth, g_screenHeight};
@@ -71,6 +72,7 @@ void init(std::vector<std::string> args){
     std::cerr << ext << std::endl;
    if("ks" == ext){
       g_calib_files = std::unique_ptr<kinect::CalibrationFiles>{new kinect::CalibrationFiles(args[i].c_str())};
+      g_cv = std::unique_ptr<kinect::CalibVolume>{new kinect::CalibVolume(g_calib_files->getFileNames())};
       g_nka = std::unique_ptr<kinect::NetKinectArray>{new kinect::NetKinectArray(args[i].c_str(), g_calib_files.get())};
       found_file = true;
       break;
@@ -81,7 +83,6 @@ void init(std::vector<std::string> args){
     throw std::invalid_argument{"No .ks file specified"};
   }
 
-  g_cv = std::unique_ptr<kinect::CalibVolume>{new kinect::CalibVolume(g_calib_files->getFileNames())};
   // g_ksV3 = std::unique_ptr<kinect::ReconTrigrid>(new kinect::ReconTrigrid(*g_calib_files, g_cv.get()));
   g_recons.emplace_back(new kinect::ReconTrigrid(*g_calib_files, g_cv.get()));
   g_recons.emplace_back(new kinect::ReconPoints(*g_calib_files, g_cv.get()));
@@ -166,6 +167,10 @@ void draw3d(void)
   g_stats->startGPU();
   if (g_play) {
     g_nka->update();
+  }
+
+  if (g_bilateral) {
+    g_nka->bilateralFilter();
   }
   // draw active reconstruction
   g_recons.at(g_recon_mode)->draw();
@@ -261,6 +266,9 @@ void key(unsigned char key, int x, int y)
     break;
   case 'c':
     g_draw_frustums = !g_draw_frustums;
+    break;
+  case 'b':
+    g_bilateral = !g_bilateral;
     break;
   case 'g':
     g_draw_grid = !g_draw_grid;

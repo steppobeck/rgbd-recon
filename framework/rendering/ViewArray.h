@@ -16,13 +16,10 @@ namespace mvt{
   class ViewArray{
 
   public:
-
-
     ViewArray(unsigned width, unsigned height, unsigned numLayers);
     ~ViewArray();
-  public:
+
     void init();
-  public:
     void enable(unsigned layer, bool use_vp = true, unsigned* ox = 0, unsigned* oy = 0, bool clearcolor = true);
     void disable(bool use_vp = true);
 
@@ -30,13 +27,10 @@ namespace mvt{
     void bindToTextureUnitDepth(unsigned start_texture_unit);
     void bindToTextureUnitRGBA(unsigned start_texture_unit);
 
-
     unsigned getWidth();
     unsigned getHeight();
 
     unsigned getNumLayers();
-
-   
 
   private:
 
