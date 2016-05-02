@@ -8,8 +8,6 @@
 #include <Shader.h>
 #include <UniformSet.h>
 
-#include <memory>
-
 namespace kinect{
 
   class ReconPoints : public Reconstruction {
@@ -22,13 +20,11 @@ namespace kinect{
     void reload() override;
 
   private:
-    std::unique_ptr<gloost::Shader> m_shader;
+    gloost::Shader m_shader;
 
-    std::unique_ptr<gloost::UniformSet> m_uniforms;
+    gloost::UniformSet m_uniforms;
 
-    // std::unique_ptr<mvt::ProxyMeshGridV2> m_proxyMesh;
-
-    std::unique_ptr<mvt::ViewArray>     m_va;
+    // mvt::ViewArray     m_va;
   };
 }
 

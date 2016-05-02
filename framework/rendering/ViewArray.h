@@ -26,9 +26,9 @@ namespace mvt{
     void enable(unsigned layer, bool use_vp = true, unsigned* ox = 0, unsigned* oy = 0, bool clearcolor = true);
     void disable(bool use_vp = true);
 
-    void bindToTextureUnits(unsigned start_texture_unit = GL_TEXTURE0);
-    void bindToTextureUnitsDepth(unsigned start_texture_unit = GL_TEXTURE0);
-    void bindToTextureUnitsRGBA(unsigned start_texture_unit = GL_TEXTURE0);
+    void bindToTextureUnits(unsigned start_texture_unit);
+    void bindToTextureUnitDepth(unsigned start_texture_unit);
+    void bindToTextureUnitRGBA(unsigned start_texture_unit);
 
 
     unsigned getWidth();

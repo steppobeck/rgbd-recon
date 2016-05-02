@@ -20,20 +20,11 @@ ReconPoints::ReconPoints(CalibrationFiles const& cfs, CalibVolume const* cv)
  :Reconstruction(cfs, cv)
  ,m_shader()
  ,m_uniforms()
- // ,m_proxyMesh()
- ,m_va()
 {
-  // m_proxyMesh = std::unique_ptr<mvt::ProxyMeshGridV2>{new mvt::ProxyMeshGridV2(m_tex_width,
-  //          m_tex_height)};
-
-  m_uniforms = std::unique_ptr<gloost::UniformSet>{new gloost::UniformSet};
-  m_uniforms->set_int("kinect_colors", 0);
-  m_uniforms->set_int("kinect_depths", 1);
+  m_uniforms.set_int("kinect_colors", 0);
+  m_uniforms.set_int("kinect_depths", 1);
 
   reload();
-  
-  // m_va = std::unique_ptr<mvt::ViewArray>{new mvt::ViewArray(1920,1200, 1)};
-  // m_va->init();
 }
 
 void
@@ -56,19 +47,18 @@ ReconPoints::draw(){
   glEnable(GL_DEPTH_TEST);
   glPushAttrib(GL_ALL_ATTRIB_BITS);
   glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-  // m_va->enable(0, false, &ox, &oy, false);
+  // m_va.enable(0, false, &ox, &oy, false);
   for(unsigned layer = 0; layer < m_num_kinects; ++layer){
-    m_uniforms->set_int("layer",  layer);
-    m_uniforms->set_int("cv_xyz",m_cv->getStartTextureUnit() + layer * 2);
-    m_uniforms->set_int("cv_uv",m_cv->getStartTextureUnit() + layer * 2 + 1);
-    m_uniforms->set_float("cv_min_d",m_cv->m_cv_min_ds[layer]);
-    m_uniforms->set_float("cv_max_d",m_cv->m_cv_max_ds[layer]);
+    m_uniforms.set_int("layer",  layer);
+    m_uniforms.set_int("cv_xyz",m_cv->getStartTextureUnit() + layer * 2);
+    m_uniforms.set_int("cv_uv",m_cv->getStartTextureUnit() + layer * 2 + 1);
+    m_uniforms.set_float("cv_min_d",m_cv->m_cv_min_ds[layer]);
+    m_uniforms.set_float("cv_max_d",m_cv->m_cv_max_ds[layer]);
     {
-    	// glDisable(GL_CULL_FACE);
     	glPushMatrix();
     	{
-    	  m_shader->set();
-    	  m_uniforms->applyToShader(m_shader.get());
+    	  m_shader.set();
+    	  m_uniforms.applyToShader(&m_shader);
         
         glBegin(GL_POINTS);
         const float stepX = 1.0f / m_tex_width;
@@ -79,25 +69,21 @@ ReconPoints::draw(){
           }
         }
     	  glEnd();
-    	  // m_proxyMesh->draw();
-    	  m_shader->disable();
+    	  m_shader.disable();
     	}
     	glPopMatrix();
     }
-    //glPopAttrib();
     
   }
-  // m_va->disable(false);
   glPopAttrib();
 }
 
 void
 ReconPoints::reload(){
-  m_shader.reset(new gloost::Shader("glsl/points.vs", "glsl/points.fs", "glsl/points.gs"));
-  // m_shader.reset(new gloost::Shader("glsl/ksv3_vertex.vs", "glsl/ksv3_fragment.fs", "glsl/ksv3_geometry.gs"));
-  m_shader->setProgramParameter(GL_GEOMETRY_INPUT_TYPE_EXT ,GL_POINTS);
-  m_shader->setProgramParameter(GL_GEOMETRY_OUTPUT_TYPE_EXT ,GL_POINTS);
-  m_shader->setProgramParameter(GL_GEOMETRY_VERTICES_OUT_EXT ,1);
+  m_shader = gloost::Shader("glsl/points.vs", "glsl/points.fs", "glsl/points.gs");
+  m_shader.setProgramParameter(GL_GEOMETRY_INPUT_TYPE_EXT ,GL_POINTS);
+  m_shader.setProgramParameter(GL_GEOMETRY_OUTPUT_TYPE_EXT ,GL_POINTS);
+  m_shader.setProgramParameter(GL_GEOMETRY_VERTICES_OUT_EXT ,1);
 }
 
 }

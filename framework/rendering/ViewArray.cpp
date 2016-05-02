@@ -57,7 +57,7 @@ namespace mvt{
     glDrawBuffers(1, buffers);
     glFramebufferTextureLayerEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, m_colorArray->getGLHandle(), 0, layer);
     glFramebufferTextureLayerEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT,  m_depthArray->getGLHandle(), 0, layer);
-#if 0
+#if 1
     GLenum status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
     switch(status){
         case GL_FRAMEBUFFER_UNSUPPORTED_EXT:
@@ -136,26 +136,26 @@ namespace mvt{
     if(0 == m_glHandle)
       init();
 
-    glActiveTexture(start_texture_unit);
+    glActiveTexture(GL_TEXTURE0 + start_texture_unit);
     m_colorArray->bind();
-    glActiveTexture(start_texture_unit + 1);
+    glActiveTexture(GL_TEXTURE0 + start_texture_unit + 1);
     m_depthArray->bind();
   }
 
   void
-  ViewArray::bindToTextureUnitsDepth(unsigned start_texture_unit){
+  ViewArray::bindToTextureUnitDepth(unsigned start_texture_unit){
     if(0 == m_glHandle)
       init();
-    glActiveTexture(start_texture_unit);
+    glActiveTexture(GL_TEXTURE0 + start_texture_unit);
     m_depthArray->bind();
   }
 
   void
-  ViewArray::bindToTextureUnitsRGBA(unsigned start_texture_unit){
+  ViewArray::bindToTextureUnitRGBA(unsigned start_texture_unit){
     if(0 == m_glHandle)
       init();
 
-    glActiveTexture(start_texture_unit);
+    glActiveTexture(GL_TEXTURE0 + start_texture_unit);
     m_colorArray->bind();
   }
 

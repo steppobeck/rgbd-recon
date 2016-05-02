@@ -124,7 +124,7 @@ ReconTrigrid::draw(){
   m_uniforms_pass_accum->set_vec2("offset"         , gloost::vec2(1.0f*ox,                          1.0f*oy));
   m_uniforms_pass_accum->set_mat4("img_to_eye_curr", image_to_eye);
   m_uniforms_pass_accum->set_float("epsilon"    , 0.075);
-  m_va_pass_depth->bindToTextureUnitsDepth(GL_TEXTURE0 + 12);
+  m_va_pass_depth->bindToTextureUnitDepth(12);
 
   for(unsigned layer = 0; layer < m_num_kinects; ++layer){
     m_uniforms_pass_accum->set_int("layer",  layer);
@@ -173,8 +173,7 @@ ReconTrigrid::draw(){
   
   m_uniforms_pass_normalize->applyToShader(m_shader_pass_normalize.get());
 
-  m_va_pass_accum->bindToTextureUnitsRGBA(GL_TEXTURE0 + 13);
-  m_va_pass_depth->bindToTextureUnitsDepth(GL_TEXTURE0 + 14);
+  m_va_pass_accum->bindToTextureUnits(13);
 
   glBegin(GL_QUADS);
   {
