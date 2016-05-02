@@ -344,7 +344,7 @@ Shader::initInContext(unsigned int contextId)
     free(log_buffer);
 
     // throw std::logic_error("Linking of " + paths);
-    vsCompiled = false;
+    vsCompiled = GL_FALSE;
   }
 
 

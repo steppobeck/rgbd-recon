@@ -1,8 +1,6 @@
 #extension GL_EXT_gpu_shader4 : enable
 #extension GL_EXT_texture_array : enable
 
-uniform int stage;
-
 // used by accumulation pass
 uniform sampler2DArray kinect_colors;
 uniform sampler2DArray depth_map_curr;
@@ -65,7 +63,6 @@ void main() {
    //float packed_normal = pack_vec3(normal);
 
 
-   if(stage > 0){ // accumulation pass write color and quality if within epsilon
      vec3  coords = vec3(gl_FragCoord.xy * viewportSizeInv, 0.0 /*here layer is always 0*/);
      float depth_curr = texture2DArray(depth_map_curr, coords).r;
      vec4  position_curr = img_to_eye_curr * vec4(gl_FragCoord.xy + vec2(0.5,0.5),depth_curr,1.0);
@@ -76,7 +73,4 @@ void main() {
 
      vec4 color = texture2DArray(kinect_colors, vec3(pass_texcoord, float(layer)));
      gl_FragColor = vec4(color.rgb, quality);
-     gl_FragColor = vec4(1.0f);
-     //gl_FragColor = vec4(1.5*normal.bgr * quality, quality);
-   }
 }

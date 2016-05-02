@@ -269,12 +269,12 @@ void key(unsigned char key, int x, int y)
     g_wire = !g_wire;
     break;
   case 's':
-      g_nka->reloadShader();
-      g_calib_files->reload();
-      g_cv->reload();
       for (auto& recon : g_recons) {
         recon->reload();
       }
+      g_nka->reloadShader();
+      g_calib_files->reload();
+      g_cv->reload();
     break;
   case 'm':
     g_picking = !g_picking;

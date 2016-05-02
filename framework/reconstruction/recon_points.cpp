@@ -53,7 +53,7 @@ ReconPoints::draw(){
   gloost::Matrix image_to_eye =  viewport_scale * viewport_translate * projection_matrix;
   image_to_eye.invert();
 
-  // pass 1 goes to depth buffer only
+  glEnable(GL_DEPTH_TEST);
   glPushAttrib(GL_ALL_ATTRIB_BITS);
   glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
   // m_va->enable(0, false, &ox, &oy, false);
