@@ -12,11 +12,11 @@ uniform float cv_min_d;
 uniform float cv_max_d;
 uniform int layer;
 
-out vec2 to_geom_texture_coord;
-out vec3 to_geom_pos_es;
-out vec3 to_geom_pos_cs;
-out float to_geom_depth;
-out float to_geom_lateral_quality;
+out vec2 geo_texcoord;
+out vec3 geo_pos_es;
+out vec3 geo_pos_cs;
+out float geo_depth;
+out float geo_lateral_quality;
 
 void main() {
 
@@ -26,11 +26,11 @@ void main() {
   // lookup from calibvolume
   float d_idx = (depth - cv_min_d)/(cv_max_d - cv_min_d);
 
-  to_geom_pos_cs        = texture(cv_xyz, vec3(in_Position, d_idx)).rgb;
-  to_geom_pos_es        = (gl_ModelViewMatrix * vec4(to_geom_pos_cs, 1.0)).xyz;
-  to_geom_texture_coord = texture(cv_uv,  vec3(in_Position, d_idx)).rg;
-  to_geom_depth         = depth;
-  to_geom_lateral_quality = texture2DArray(kinect_qualities, coords).r;
+  geo_pos_cs        = texture(cv_xyz, vec3(in_Position, d_idx)).rgb;
+  geo_pos_es        = (gl_ModelViewMatrix * vec4(geo_pos_cs, 1.0)).xyz;
+  geo_texcoord = texture(cv_uv,  vec3(in_Position, d_idx)).rg;
+  geo_depth         = depth;
+  geo_lateral_quality = texture2DArray(kinect_qualities, coords).r;
 
-  gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * vec4(to_geom_pos_cs, 1.0);
+  gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * vec4(geo_pos_cs, 1.0);
 }

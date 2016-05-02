@@ -92,7 +92,6 @@ ReconTrigrid::draw(){
     	  m_shader_pass_depth->set();
     	  m_uniforms_pass_depth->applyToShader(m_shader_pass_depth.get());
     	  
-    	  
     	  m_proxyMesh->draw();
     	  m_shader_pass_depth->disable();
     	}
@@ -104,7 +103,8 @@ ReconTrigrid::draw(){
 
 // pass 2 goes to accumulation buffer
   glDisable(GL_DEPTH_TEST);
-  glEnable(GL_BLEND); // glEnablei(GL_BLEND, GL_COLOR_ATTACHMENT0_EXT);
+  glEnable(GL_BLEND); 
+  // glEnablei(GL_BLEND, GL_COLOR_ATTACHMENT0_EXT);
   glBlendFuncSeparateEXT(GL_ONE,GL_ONE,GL_ONE,GL_ONE);
   glBlendEquationSeparateEXT(GL_FUNC_ADD, GL_FUNC_ADD);
   m_va_pass_accum->enable(0, false, &ox, &oy);
@@ -128,7 +128,6 @@ ReconTrigrid::draw(){
     	  m_shader_pass_accum->set();
     	  m_uniforms_pass_accum->applyToShader(m_shader_pass_accum.get());
     	  
-
     	  m_proxyMesh->draw();
     	  m_shader_pass_accum->disable();
     	}
