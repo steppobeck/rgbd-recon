@@ -76,6 +76,7 @@ namespace kinect{
     mvt::TextureArray* getDepthArray();
 
   protected:
+    void bindToFramebuffer(GLuint array_handle, GLuint layer);
 
     void bindBackToTextureUnits(unsigned start_texture_unit);
 

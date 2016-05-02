@@ -104,7 +104,7 @@ void main() {
   vec3 coords = vec3(gl_Vertex.xy,layer);
   float depth = texture2DArray(kinect_depths, coords).r;
   vec2 bf_result          = bilateral_filter();
-  // bf_result               = vec2(depth, texture2DArray(kinect_qualities, coords).r);
+  bf_result               = vec2(depth, texture2DArray(kinect_qualities, coords).r);
   depth             = bf_result.x;
 
   // lookup from calibvolume
@@ -115,6 +115,7 @@ void main() {
   to_geom_texture_coord = texture3D(cv_uv,  vec3(gl_Vertex.xy, d_idx)).rg;
   to_geom_depth         = depth;
   to_geom_lateral_quality = bf_result.y;
+  to_geom_lateral_quality = 0.1f;
 
   gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * vec4(to_geom_pos_cs, 1.0);
 

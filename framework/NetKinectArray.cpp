@@ -181,6 +181,7 @@ namespace kinect{
 
     m_qualityArray = new mvt::TextureArray(m_width, m_height, m_numLayers, GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT);
     m_qualityArray->getGLHandle();
+
     check_gl_errors("after m_qualityArray->getGLHandle()", false);
 
     m_depthArray = new mvt::TextureArray(m_width, m_height, m_numLayers, GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT);
@@ -277,37 +278,85 @@ namespace kinect{
     bindToTextureUnits(m_start_texture_unit);
 
   }
+void NetKinectArray::bindToFramebuffer(GLuint array_handle, GLuint layer) {
+  //
+  //std::cerr << current_fbo << std::endl;
+  // render to depth
+  glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, m_fboID);
+  GLenum buffers[] = {GL_COLOR_ATTACHMENT0_EXT};
+  glDrawBuffers(1, buffers);
+  glFramebufferTextureLayerEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, array_handle, 0, layer);
+  // glFramebufferTextureLayerEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT1_EXT, m_qualityArray->getGLHandle(), 0, i);
+  //glFramebufferTextureLayerEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT,  m_ogldepthArray->getGLHandle(), 0, i);
 
+  GLenum status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
+  switch(status){
+    case GL_FRAMEBUFFER_UNSUPPORTED_EXT:
+        printf("Error:Frame buffer not supported in NetKinectArray::update().\n");
+        break;
+    case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT:
+        printf("Error:Frame buffer attachments not supported in NetKinectArray::update().\n");
+        break;
+    case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT:
+        printf("Error:Missing color attachment in NetKinectArray::update().\n");
+        break;
+    case GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_EXT:
+        printf("Error:All textures attached to frame buffer must have same dimension in NetKinectArray::update().\n");
+        break;
+    case GL_FRAMEBUFFER_INCOMPLETE_FORMATS_EXT:
+        printf("Error:All textures attached to frame buffer must have same format in NetKinectArray::update().\n");
+        break;
+    case GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER_EXT:
+        printf("Error:Missing draw buffer in NetKinectArray::update().\n");
+        break;
+    case GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER_EXT:
+        printf("Error:Missing read buffer in NetKinectArray::update().\n");
+        break;
+    case GL_FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS_EXT:
+        printf("Error:Missing layer targets in NetKinectArray::update().\n");
+        break;
+    case GL_FRAMEBUFFER_INCOMPLETE_LAYER_COUNT_EXT:
+        printf("Error:Incomplete layer count in NetKinectArray::update().\n");
+        break;
+    case GL_FRAMEBUFFER_COMPLETE_EXT:
+    default:
+      break;
+  }
+}
   void
   NetKinectArray::bilateralFilter(){
 
     glPushAttrib(GL_ALL_ATTRIB_BITS);
-    glEnable(GL_DEPTH_TEST);
+    glDisable(GL_DEPTH_TEST);
 
-    gloost::Viewport vp(0,0,m_width,m_height);
-    vp.enter();
+    GLint current_fbo;
+    glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &current_fbo);
+    GLsizei old_vp_params[4];
+    glGetIntegerv(GL_VIEWPORT, old_vp_params);
+    glViewport(0, 0, m_width, m_height);
+
+  	glActiveTexture(GL_TEXTURE0 + 40);
+  	m_depthArray->bind();
 
     for(unsigned i = 0; i < m_calib_files->num(); ++i){
-    	//
-    	GLint current_fbo;
-    	glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &current_fbo);
-    	//std::cerr << current_fbo << std::endl;
-    	// render to depth
-    	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, m_fboID);
-    	GLenum buffers[] = {GL_COLOR_ATTACHMENT0_EXT, GL_COLOR_ATTACHMENT1_EXT };
-    	glDrawBuffers(2, buffers);
-    	glFramebufferTextureLayerEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, m_depthArray_back->getGLHandle(), 0, i);
-    	glFramebufferTextureLayerEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT1_EXT, m_qualityArray->getGLHandle(), 0, i);
-    	//glFramebufferTextureLayerEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT,  m_ogldepthArray->getGLHandle(), 0, i);
+      //
+      //std::cerr << current_fbo << std::endl;
+      // render to depth
+      glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, m_fboID);
+      GLenum buffers[] = {GL_COLOR_ATTACHMENT0_EXT, GL_COLOR_ATTACHMENT1_EXT };
+      glDrawBuffers(2, buffers);
+      glFramebufferTextureLayerEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, m_depthArray_back->getGLHandle(), 0, i);
+      glFramebufferTextureLayerEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT1_EXT, m_qualityArray->getGLHandle(), 0, i);
+      //glFramebufferTextureLayerEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT,  m_ogldepthArray->getGLHandle(), 0, i);
 
-    	GLenum status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
-    	switch(status){
+      GLenum status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
+      switch(status){
         case GL_FRAMEBUFFER_UNSUPPORTED_EXT:
-        	  printf("Error:Frame buffer not supported in NetKinectArray::update().\n");
-    	      break;
+            printf("Error:Frame buffer not supported in NetKinectArray::update().\n");
+            break;
         case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_EXT:
             printf("Error:Frame buffer attachments not supported in NetKinectArray::update().\n");
-    	      break;
+            break;
         case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_EXT:
             printf("Error:Missing color attachment in NetKinectArray::update().\n");
             break;
@@ -329,71 +378,52 @@ namespace kinect{
         case GL_FRAMEBUFFER_INCOMPLETE_LAYER_COUNT_EXT:
             printf("Error:Incomplete layer count in NetKinectArray::update().\n");
             break;
-      	case GL_FRAMEBUFFER_COMPLETE_EXT:
-      	default:
-      	  break;
-    	}
+        case GL_FRAMEBUFFER_COMPLETE_EXT:
+        default:
+          break;
+      }
 
-    #if 1
-    	glClearColor(0.0,0.0,0.0,0.0);
-    	glClear(GL_COLOR_BUFFER_BIT);
-    #endif
+      glClearColor(0.0,0.0,0.0,0.0);
+      glClear(GL_COLOR_BUFFER_BIT);
 
-    	glMatrixMode(GL_PROJECTION);
-    	glPushMatrix();
-    	glLoadIdentity();
-    	glOrtho(0.0,1.0,0.0,1.0,1.0,-1.0);
-    	glMatrixMode(GL_MODELVIEW);
-    	glPushMatrix();
-    	glLoadIdentity();
-
-    	m_uniforms_bf->set_int("layer",i);
-    	m_uniforms_bf->set_bool("compress",m_calib_files->getCalibs()[i].isCompressedDepth());
-    	const float near = m_calib_files->getCalibs()[i].getNear();
-    	const float far  = m_calib_files->getCalibs()[i].getFar();
-    	const float scale = (far - near);
-	    m_uniforms_bf->set_float("cv_min_d",m_calib_vols->m_cv_min_ds[i]);
+      m_uniforms_bf->set_int("layer",i);
+      m_uniforms_bf->set_int("mode", 0);
+      m_uniforms_bf->set_float("cv_min_d",m_calib_vols->m_cv_min_ds[i]);
       m_uniforms_bf->set_float("cv_max_d",m_calib_vols->m_cv_max_ds[i]);
-    	// float d = d_c * scale + near;
-    	m_uniforms_bf->set_float("scale",scale);
-    	m_uniforms_bf->set_float("near",near);
-    	m_uniforms_bf->set_float("scaled_near",scale/255.0);
-    	m_shader_bf->set();
-    	m_uniforms_bf->applyToShader(m_shader_bf);
+      m_uniforms_bf->set_bool("compress",m_calib_files->getCalibs()[i].isCompressedDepth());
+      const float near = m_calib_files->getCalibs()[i].getNear();
+      const float far  = m_calib_files->getCalibs()[i].getFar();
+      const float scale = (far - near);
+      // float d = d_c * scale + near;
+      m_uniforms_bf->set_float("scale",scale);
+      m_uniforms_bf->set_float("near",near);
+      m_uniforms_bf->set_float("scaled_near",scale/255.0);
+      m_shader_bf->set();
+      m_uniforms_bf->applyToShader(m_shader_bf);
 
-    	glActiveTexture(GL_TEXTURE0 + 40);
-    	m_depthArray->bind();
     	// glActiveTexture(GL_TEXTURE0 + 2);
     	// m_colorArray->bind();
 
     	glBegin(GL_QUADS);
     	{
-    	  glTexCoord2f(0.0f, 0.0f);
-    	  glVertex3f  (0.0f, 0.0f, 0.0f);
-    	  
-    	  glTexCoord2f(1.0f, 0.0f);
-    	  glVertex3f  (1.0f, 0.0f, 0.0f);
-    	  
-    	  glTexCoord2f(1.0f, 1.0f);
-    	  glVertex3f  (1.0f, 1.0f, 0.0f);
-    	  
-    	  glTexCoord2f(0.0f, 1.0f);
-    	  glVertex3f  (0.0f, 1.0f, 0.0f);
+    	  glVertex3f(-1.0f, -1.0f, 0.0f);
+    	  glVertex3f(1.0f, -1.0f, 0.0f);
+    	  glVertex3f(1.0f, 1.0f, 0.0f);
+    	  glVertex3f(-1.0f, 1.0f, 0.0f);
     	}
     	glEnd();
 
-    	glActiveTexture(GL_TEXTURE0);
-    	m_shader_bf->disable();
-
-    	glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, current_fbo);
-
-    	glMatrixMode(GL_PROJECTION);
-    	glPopMatrix();
-    	glMatrixMode(GL_MODELVIEW);
-    	glPopMatrix();
     }
+    
+  	glActiveTexture(GL_TEXTURE0);
+    m_shader_bf->disable();
 
-    vp.leave();
+    glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, current_fbo);
+    glViewport ((GLsizei)old_vp_params[0],
+                (GLsizei)old_vp_params[1],
+                (GLsizei)old_vp_params[2],
+                (GLsizei)old_vp_params[3]);
+ 
     glPopAttrib();
 
     bindBackToTextureUnits(m_start_texture_unit);

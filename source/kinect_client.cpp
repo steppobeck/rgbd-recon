@@ -88,10 +88,10 @@ void init(std::vector<std::string> args){
   g_recons.emplace_back(new kinect::ReconPoints(*g_calib_files, g_cv.get()));
   
   // binds to unit 0 and 1
-  g_nka->bindToTextureUnits(0);
+  g_nka->bindToTextureUnits(1);
 
   // bind calubration volumes from 2 - 11
-  g_cv->bindToTextureUnits(3);
+  g_cv->bindToTextureUnits(4);
 
   // enable point scaling in vertex shader
   glEnable(GL_PROGRAM_POINT_SIZE);
@@ -174,7 +174,7 @@ void draw3d(void)
   }
   // update textures if bilateral was disabled
   else {
-    g_nka->bindToTextureUnits(0);
+    g_nka->bindToTextureUnits(1);
   }
   // draw active reconstruction
   g_recons.at(g_recon_mode)->draw();

@@ -32,19 +32,19 @@ ReconTrigrid::ReconTrigrid(CalibrationFiles const& cfs, CalibVolume const* cv)
            m_tex_height)};
 
   m_uniforms_pass_depth = std::unique_ptr<gloost::UniformSet>{new gloost::UniformSet};
-  m_uniforms_pass_depth->set_int("kinect_colors",0);
-  m_uniforms_pass_depth->set_int("kinect_depths",1);
-  m_uniforms_pass_depth->set_int("kinect_qualities",2);
+  m_uniforms_pass_depth->set_int("kinect_colors",1);
+  m_uniforms_pass_depth->set_int("kinect_depths",2);
+  m_uniforms_pass_depth->set_int("kinect_qualities",3);
 
 
   m_uniforms_pass_accum = std::unique_ptr<gloost::UniformSet>{new gloost::UniformSet};
-  m_uniforms_pass_accum->set_int("kinect_colors",0);
-  m_uniforms_pass_accum->set_int("kinect_depths",1);
-  m_uniforms_pass_accum->set_int("depth_map_curr",12);
+  m_uniforms_pass_accum->set_int("kinect_colors",1);
+  m_uniforms_pass_accum->set_int("kinect_depths",2);
+  m_uniforms_pass_accum->set_int("depth_map_curr",14);
 
   m_uniforms_pass_normalize = std::unique_ptr<gloost::UniformSet>{new gloost::UniformSet};
-  m_uniforms_pass_normalize->set_int("color_map",13);
-  m_uniforms_pass_normalize->set_int("depth_map",14);
+  m_uniforms_pass_normalize->set_int("color_map",15);
+  m_uniforms_pass_normalize->set_int("depth_map",16);
 
   reload();
   
@@ -125,7 +125,7 @@ ReconTrigrid::draw(){
   m_uniforms_pass_accum->set_vec2("offset"         , gloost::vec2(1.0f*ox,                          1.0f*oy));
   m_uniforms_pass_accum->set_mat4("img_to_eye_curr", image_to_eye);
   m_uniforms_pass_accum->set_float("epsilon"    , 0.075);
-  m_va_pass_depth->bindToTextureUnitDepth(12);
+  m_va_pass_depth->bindToTextureUnitDepth(14);
 
   for(unsigned layer = 0; layer < m_num_kinects; ++layer){
     m_uniforms_pass_accum->set_int("layer",  layer);
@@ -174,8 +174,8 @@ ReconTrigrid::draw(){
   
   m_uniforms_pass_normalize->applyToShader(m_shader_pass_normalize.get());
 
-  m_va_pass_accum->bindToTextureUnitRGBA(13);
-  m_va_pass_depth->bindToTextureUnitDepth(14);
+  m_va_pass_accum->bindToTextureUnitRGBA(15);
+  m_va_pass_depth->bindToTextureUnitDepth(16);
 
   glBegin(GL_QUADS);
   {

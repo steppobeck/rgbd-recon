@@ -2,6 +2,8 @@
 
 #extension GL_EXT_texture_array : enable
 
+noperspective in vec2 pass_TexCoord;
+
 uniform sampler2D gauss;
 uniform sampler2DArray kinect_depths;
 //uniform sampler2DArray kinect_colors;
@@ -15,6 +17,7 @@ uniform float scaled_near;
 
 uniform float cv_min_d;
 uniform float cv_max_d;
+uniform int mode;
 
 int kernel_size = 6; // in pixel
 int kernel_end = kernel_size + 1;
@@ -118,9 +121,8 @@ vec2 bilateral_filter(vec3 coords){
 void main( void )
 {
 
-  vec3 coords = vec3(gl_TexCoord[0].xy,layer);
+  vec3 coords = vec3(pass_TexCoord, layer);
   vec2 res = bilateral_filter(coords);
-
   gl_FragData[0].r = res.x;
   gl_FragData[1].r = res.y;
 }

@@ -21,9 +21,9 @@ ReconPoints::ReconPoints(CalibrationFiles const& cfs, CalibVolume const* cv)
  ,m_shader()
  ,m_uniforms()
 {
-  m_uniforms.set_int("kinect_colors", 0);
-  m_uniforms.set_int("kinect_depths", 1);
-  m_uniforms.set_int("kinect_qualities", 2);
+  m_uniforms.set_int("kinect_colors", 1);
+  m_uniforms.set_int("kinect_depths", 2);
+  m_uniforms.set_int("kinect_qualities", 3);
 
   reload();
 }
