@@ -61,7 +61,7 @@ void main() {
   gl_Position   = gl_PositionIn[0];
 
   float dist = length(gl_ModelViewMatrix * vec4(geo_pos_cs[0], 1.0));
-  gl_PointSize  = 10.0f / dist;
+  gl_PointSize  = 5.0f / dist;
   
   EmitVertex();
 }

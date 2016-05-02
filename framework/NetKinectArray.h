@@ -45,11 +45,12 @@ namespace kinect{
 
   class KinectCalibrationFile;
   class CalibrationFiles;
+  class CalibVolume;
 
   class NetKinectArray{
 
   public:
-    NetKinectArray(const char* config, CalibrationFiles const* calibs, bool readfromfile = false);
+    NetKinectArray(const char* config, CalibrationFiles const* calibs, CalibVolume const* vols, bool readfromfile = false);
 
     NetKinectArray(std::vector<KinectCalibrationFile*>& calibs);
 
@@ -113,6 +114,7 @@ namespace kinect{
     std::string m_config;
     unsigned m_start_texture_unit;
     CalibrationFiles const* m_calib_files;
+    CalibVolume const* m_calib_vols;
   public:
     bool depth_compression_lex;
     float depth_compression_ratio;

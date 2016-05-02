@@ -63,10 +63,10 @@ bool is_outside(float d){
 
 vec2 bilateral_filter(vec3 coords){
 
-  float depth = texture2DArray(kinect_depths, coords).r;
-  // if(is_outside(depth)){
-  //   return vec2(0.0,0.0);
-  // }
+  float depth = sample(coords);
+  if(is_outside(depth)){
+    return vec2(0.0,0.0);
+  }
   // the valid range scales with depth
   float max_depth = 4.5; // Kinect V2
   float d_dmax = depth/max_depth;
@@ -84,12 +84,12 @@ vec2 bilateral_filter(vec3 coords){
       num_samples += 1.0;
       vec3 coords_s = vec3(coords.s + float(x) * texSizeInv.x, coords.t + float(y) * texSizeInv.y, float(layer));
       
-      float depth_s = texture2DArray(kinect_depths, coords_s).r;
+      float depth_s = sample(coords_s);
       float depth_range = abs(depth_s - depth);
-      // if(is_outside(depth_s) || (depth_range > dist_range_max)){
-      //   border_samples += 1.0;
-      //   continue;
-      // }
+      if(is_outside(depth_s) || (depth_range > dist_range_max)){
+        border_samples += 1.0;
+        continue;
+      }
       float gauss_space = computeGaussSpace(length(vec2(x,y)));
       float gauss_range = computeGaussRange(depth_range);
       float w_s = gauss_space * gauss_range;

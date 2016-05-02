@@ -34,6 +34,7 @@ ReconTrigrid::ReconTrigrid(CalibrationFiles const& cfs, CalibVolume const* cv)
   m_uniforms_pass_depth = std::unique_ptr<gloost::UniformSet>{new gloost::UniformSet};
   m_uniforms_pass_depth->set_int("kinect_colors",0);
   m_uniforms_pass_depth->set_int("kinect_depths",1);
+  m_uniforms_pass_depth->set_int("kinect_qualities",2);
 
 
   m_uniforms_pass_accum = std::unique_ptr<gloost::UniformSet>{new gloost::UniformSet};
@@ -173,7 +174,8 @@ ReconTrigrid::draw(){
   
   m_uniforms_pass_normalize->applyToShader(m_shader_pass_normalize.get());
 
-  m_va_pass_accum->bindToTextureUnits(13);
+  m_va_pass_accum->bindToTextureUnitRGBA(13);
+  m_va_pass_depth->bindToTextureUnitDepth(14);
 
   glBegin(GL_QUADS);
   {

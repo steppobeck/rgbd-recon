@@ -7,6 +7,7 @@
 #include <TextureArray.h>
 
 #include <KinectCalibrationFile.h>
+#include <CalibVolume.h>
 #include <gl_util.h>
 #include <Shader.h>
 #include <UniformSet.h>
@@ -37,7 +38,7 @@ namespace kinect{
 
   /*static*/ bool NetKinectArray::s_glewInit = false;
 
-  NetKinectArray::NetKinectArray(const char* config, CalibrationFiles const* calibs, bool readfromfile)
+  NetKinectArray::NetKinectArray(const char* config, CalibrationFiles const* calibs, CalibVolume const* vols, bool readfromfile)
     : m_width(0),
       m_widthc(0),
       m_height(0),
@@ -62,6 +63,7 @@ namespace kinect{
       m_config(config),
       m_start_texture_unit(0),
       m_calib_files{calibs},
+      m_calib_vols{vols},
       depth_compression_lex(false),
       depth_compression_ratio(100.0f)
   {
@@ -350,8 +352,8 @@ namespace kinect{
     	const float near = m_calib_files->getCalibs()[i].getNear();
     	const float far  = m_calib_files->getCalibs()[i].getFar();
     	const float scale = (far - near);
-	    // m_uniforms_bf->set_float("cv_min_d",m_cv->m_cv_min_ds[layer]);
-      // m_uniforms_bf->set_float("cv_max_d",m_cv->m_cv_max_ds[layer]);
+	    m_uniforms_bf->set_float("cv_min_d",m_calib_vols->m_cv_min_ds[i]);
+      m_uniforms_bf->set_float("cv_max_d",m_calib_vols->m_cv_max_ds[i]);
     	// float d = d_c * scale + near;
     	m_uniforms_bf->set_float("scale",scale);
     	m_uniforms_bf->set_float("near",near);
@@ -403,6 +405,8 @@ namespace kinect{
     m_colorArray->bind();
     glActiveTexture(GL_TEXTURE0 + start_texture_unit + 1);
     m_depthArray->bind();
+    glActiveTexture(GL_TEXTURE0 + start_texture_unit + 2);
+    m_qualityArray->bind();
     m_start_texture_unit = start_texture_unit;
   }
 

@@ -73,7 +73,7 @@ void init(std::vector<std::string> args){
    if("ks" == ext){
       g_calib_files = std::unique_ptr<kinect::CalibrationFiles>{new kinect::CalibrationFiles(args[i].c_str())};
       g_cv = std::unique_ptr<kinect::CalibVolume>{new kinect::CalibVolume(g_calib_files->getFileNames())};
-      g_nka = std::unique_ptr<kinect::NetKinectArray>{new kinect::NetKinectArray(args[i].c_str(), g_calib_files.get())};
+      g_nka = std::unique_ptr<kinect::NetKinectArray>{new kinect::NetKinectArray(args[i].c_str(), g_calib_files.get(), g_cv.get())};
       found_file = true;
       break;
     }
@@ -91,7 +91,7 @@ void init(std::vector<std::string> args){
   g_nka->bindToTextureUnits(0);
 
   // bind calubration volumes from 2 - 11
-  g_cv->bindToTextureUnits(2);
+  g_cv->bindToTextureUnits(3);
 
   // enable point scaling in vertex shader
   glEnable(GL_PROGRAM_POINT_SIZE);
@@ -171,6 +171,10 @@ void draw3d(void)
 
   if (g_bilateral) {
     g_nka->bilateralFilter();
+  }
+  // update textures if bilateral was disabled
+  else {
+    g_nka->bindToTextureUnits(0);
   }
   // draw active reconstruction
   g_recons.at(g_recon_mode)->draw();

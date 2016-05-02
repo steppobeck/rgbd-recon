@@ -2,6 +2,7 @@
 #extension GL_EXT_texture_array : enable
 
 uniform sampler2DArray kinect_depths;
+uniform sampler2DArray kinect_qualities;
 uniform sampler3D cv_xyz;
 uniform sampler3D cv_uv;
 
@@ -100,8 +101,11 @@ vec2 bilateral_filter(){
 
 void main() {
 
+  vec3 coords = vec3(gl_Vertex.xy,layer);
+  float depth = texture2DArray(kinect_depths, coords).r;
   vec2 bf_result          = bilateral_filter();
-  float depth             = bf_result.x;
+  // bf_result               = vec2(depth, texture2DArray(kinect_qualities, coords).r);
+  depth             = bf_result.x;
 
   // lookup from calibvolume
   float d_idx = (depth - cv_min_d)/(cv_max_d - cv_min_d);
