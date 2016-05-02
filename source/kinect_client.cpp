@@ -91,6 +91,9 @@ void init(std::vector<std::string> args){
 
   // bind calubration volumes from 2 - 11
   g_cv->bindToTextureUnits(2);
+
+  // enable point scaling in vertex shader
+  glEnable(GL_PROGRAM_POINT_SIZE);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////

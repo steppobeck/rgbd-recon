@@ -49,7 +49,7 @@ bool clip(vec3 p){
 ///////////////////////////////////////////////////////////////////////////////
 void main() {
 
-  if(clip(geo_pos_cs[0]) || geo_depth[0] > -1.0f) {
+  if(clip(geo_pos_cs[0]) || geo_depth[0] <= -1.0f) {
     return;
   }
 
@@ -60,8 +60,10 @@ void main() {
   pass_lateral_quality = geo_lateral_quality[0];
   pass_depth         = geo_depth[0];
   pass_normal_es     = vec3(1.0f);
-
   gl_Position   = gl_PositionIn[0];
+
+  float dist = length(gl_ModelViewMatrix * vec4(geo_pos_cs[0], 1.0));
+  gl_PointSize  = 5.0f / dist;
   
   EmitVertex();
 }
