@@ -50,7 +50,7 @@ namespace kinect{
   class NetKinectArray{
 
   public:
-    NetKinectArray(const char* config, CalibrationFiles const* calibs, CalibVolume const* vols, bool readfromfile = false);
+    NetKinectArray(std::string const& serverport, CalibrationFiles const* calibs, CalibVolume const* vols, bool readfromfile = false);
 
     NetKinectArray(std::vector<KinectCalibrationFile*>& calibs);
 
@@ -112,7 +112,6 @@ namespace kinect{
     std::string m_serverport;
     static bool s_glewInit;
 
-    std::string m_config;
     unsigned m_start_texture_unit;
     CalibrationFiles const* m_calib_files;
     CalibVolume const* m_calib_vols;

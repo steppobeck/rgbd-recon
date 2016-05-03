@@ -38,7 +38,7 @@ namespace kinect{
 
   /*static*/ bool NetKinectArray::s_glewInit = false;
 
-  NetKinectArray::NetKinectArray(const char* config, CalibrationFiles const* calibs, CalibVolume const* vols, bool readfromfile)
+  NetKinectArray::NetKinectArray(std::string const& serverport, CalibrationFiles const* calibs, CalibVolume const* vols, bool readfromfile)
     : m_width(0),
       m_widthc(0),
       m_height(0),
@@ -59,8 +59,7 @@ namespace kinect{
       m_mutex(new boost::mutex),
       m_readThread(0),
       m_running(true),
-      m_serverport(""),
-      m_config(config),
+      m_serverport(serverport),
       m_start_texture_unit(0),
       m_calib_files{calibs},
       m_calib_vols{vols},
@@ -79,15 +78,6 @@ namespace kinect{
 	       s_glewInit = true;
       }
     }
-
-    std::ifstream in(config);
-    std::string token;
-    while(in >> token){
-      if(token == "serverport"){
-        in >> m_serverport;
-      }
-    }
-    in.close();
 
     init();
 

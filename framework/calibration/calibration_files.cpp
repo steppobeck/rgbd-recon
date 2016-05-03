@@ -4,7 +4,7 @@
 #include <fstream>
 
 namespace kinect{
-  CalibrationFiles::CalibrationFiles(const char* config)
+  CalibrationFiles::CalibrationFiles(std::vector<std::string> const& calib_filenames)
     : m_width(0),
       m_widthc(0),
       m_height(0),
@@ -14,18 +14,11 @@ namespace kinect{
       m_compressed_rgb{false},
       m_compressed_d{false},
       m_calibs(),
-      m_filenames{}
+      m_filenames{calib_filenames}
   {
-    std::ifstream in(config);
-    std::string token;
-    while(in >> token){
-      if(token == "kinect"){
-        in >> token;
-        m_filenames.push_back(token);
-        m_calibs.push_back(KinectCalibrationFile{token});
-      }
+    for (auto const& file : m_filenames) { 
+      m_calibs.emplace_back(file);
     }
-    in.close();
 
     reload();
 

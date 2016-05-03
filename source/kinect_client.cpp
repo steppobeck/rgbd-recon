@@ -66,24 +66,39 @@ void init(std::vector<std::string> args){
   g_stats.reset(new mvt::Statistics{});
   g_stats->setInfoSlot("Volume Based Mapping", 0);
 
-  bool found_file = false;
+  std::string file_name{};
   for(unsigned i = 0; i < args.size(); ++i){
     const std::string ext(args[i].substr(args[i].find_last_of(".") + 1));
     std::cerr << ext << std::endl;
-   if("ks" == ext){
-      g_calib_files = std::unique_ptr<kinect::CalibrationFiles>{new kinect::CalibrationFiles(args[i].c_str())};
-      g_cv = std::unique_ptr<kinect::CalibVolume>{new kinect::CalibVolume(g_calib_files->getFileNames())};
-      g_nka = std::unique_ptr<kinect::NetKinectArray>{new kinect::NetKinectArray(args[i].c_str(), g_calib_files.get(), g_cv.get())};
-      found_file = true;
+    if("ks" == ext) {
+      file_name = args[i];
       break;
     }
   }
 
-  if (!found_file) {
+  if (file_name.empty()) {
     throw std::invalid_argument{"No .ks file specified"};
   }
 
-  // g_ksV3 = std::unique_ptr<kinect::ReconTrigrid>(new kinect::ReconTrigrid(*g_calib_files, g_cv.get()));
+  std::string serverport{};
+  std::vector<std::string> calib_filenames{};
+  std::ifstream in(file_name);
+  std::string token;
+  while(in >> token){
+    if(token == "serverport"){
+      in >> serverport;
+    } 
+    else if (token == "kinect") {
+      in >> token;
+      calib_filenames.push_back(token);
+    }
+  }
+  in.close();
+
+  g_calib_files = std::unique_ptr<kinect::CalibrationFiles>{new kinect::CalibrationFiles(calib_filenames)};
+  g_cv = std::unique_ptr<kinect::CalibVolume>{new kinect::CalibVolume(g_calib_files->getFileNames())};
+  g_nka = std::unique_ptr<kinect::NetKinectArray>{new kinect::NetKinectArray(serverport, g_calib_files.get(), g_cv.get())};
+
   g_recons.emplace_back(new kinect::ReconTrigrid(*g_calib_files, g_cv.get()));
   g_recons.emplace_back(new kinect::ReconPoints(*g_calib_files, g_cv.get()));
   

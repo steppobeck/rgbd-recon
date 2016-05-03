@@ -11,7 +11,7 @@ namespace kinect{
   class CalibrationFiles{
 
   public:
-    CalibrationFiles(const char* config);
+    CalibrationFiles(std::vector<std::string> const& calib_filenames);
 
     void reload();
 
