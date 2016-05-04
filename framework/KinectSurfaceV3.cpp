@@ -6,15 +6,12 @@
 #include <Obj.h>
 #include <GlPrimitives.h>
 #include <NetKinectArray.h>
-#include <ARTListener.h>
 #include <ProxyMeshGridV2.h>
 #include <KinectCalibrationFile.h>
 #include <CalibVolume.h>
 #include <EvaluationVolumes.h>
 #include <VolumeSliceRenderer.h>
 #include <ViewArray.h>
-
-#include <3DPoseTracker.h>
 
 #include <FileValue.h>
 
@@ -35,6 +32,7 @@ namespace kinect{
 
   KinectSurfaceV3::KinectSurfaceV3(const char* config)
     : m_config(config),
+      m_hostname(),
       m_nka(0),
       m_shader_pass_depth(0),
       m_shader_pass_accum(0),
@@ -50,25 +48,17 @@ namespace kinect{
       m_uniforms_pass_volviz(0),
       m_va_pass_volviz(0),
       m_vsr(0),
-      m_hostname(),
-      m_shader(0),
-      m_uniforms(0),
-      m_obj(0),
       m_cv(0),
       m_ev(0),
-      lookup(true),
-      m_trackThread(0),
       m_mutex(new boost::mutex),
       m_running(true),
-      m_trackposeART(),
-      m_trackposeKinect(),
+      lookup(true),
       viztype(0),
       viztype_num(0),
       black(false)
       
   {
     init(config);
-    m_trackThread = new boost::thread(boost::bind(&KinectSurfaceV3::trackloop, this));
   }
 
 
@@ -99,95 +89,10 @@ namespace kinect{
 #define SERVERENDPOINT "tcp://141.54.147.33:7010"
 
   void
-  KinectSurfaceV3::trackloop(){
-
-    
-
-    std::vector<KinectCalibrationFile*>& calibs(m_nka->getCalibs());
-
-
-    const unsigned num_kinects(calibs.size());
-    zmq::context_t ctx(1); // means single threaded
-    zmq::socket_t  socket(ctx, ZMQ_SUB); // means a subscriber
-
-    socket.setsockopt(ZMQ_SUBSCRIBE, "", 0);
-    uint64_t hwm = 1;
-    socket.setsockopt(ZMQ_HWM,&hwm, sizeof(hwm));
-
-    std::string endpoint(SERVERENDPOINT);
-
-    socket.connect(endpoint.c_str());
-
-    const unsigned pixelcount = calibs[0]->getWidth() * calibs[0]->getHeight();
-    const unsigned irsize = pixelcount * sizeof(unsigned char);
-    const unsigned depthsize = pixelcount * sizeof(float);
-
-
-    std::vector<float*> depth_buffers;
-    std::vector<unsigned char*> ir_buffers;
-    for(unsigned i = 0; i < num_kinects; ++i){
-      depth_buffers.push_back(new float [pixelcount]);
-      ir_buffers.push_back(new unsigned char [pixelcount]);
-    }
-
-    C3DPoseTracker pt(num_kinects, calibs[0]->getWidth(), calibs[0]->getHeight(), 8, 7, 5);
-    unsigned fc = 0;
-    while(m_running){
-      std::cerr << "trackloop: " << ++fc << std::endl;
-
-      std::cerr << "before recv"<< std::endl;
-      zmq::message_t zmqm((depthsize + irsize) * num_kinects);
-      socket.recv(&zmqm); // blocking
-      std::cerr << "after recv"<< std::endl;
-
-      unsigned offset = 0;
-      // receive data
-      for(unsigned i = 0; i < num_kinects; ++i){
-		
-	memcpy( (unsigned char*) depth_buffers[i], (unsigned char*) zmqm.data() + offset, depthsize);
-	offset += depthsize;
-	
-	memcpy( (unsigned char*)    ir_buffers[i], (unsigned char*) zmqm.data() + offset, irsize);
-	offset += irsize;
-      }
-
-
-      
-      {
-	gloost::Matrix tmpmat(pt.getPoseMatrixART());
-	std::cerr << "before CHESS"<< std::endl;
-	gloost::Matrix tmpmat2(pt.getPoseMatrixKinect2(ir_buffers, depth_buffers, m_cv, calibs));
-	std::cerr << "after CHESS"<< std::endl;
-	std::cerr << "before lock"<< std::endl;
-	boost::mutex::scoped_lock lock(*m_mutex);
-	std::cerr << "after lock"<< std::endl;
-	m_trackposeART = tmpmat;
-	m_trackposeKinect = tmpmat2;
-      }
-
-
-    }
-
-  }
-
-
-  void
   KinectSurfaceV3::draw(bool update, float scale){
-
-    if(m_nka->isPhoto()){
-      drawMesh(update,scale);
-      return;
-    }
-
-
-    if(0 == m_nka)
-	return;
 
     if(update)
       m_nka->update();
-
-
-
 
     // calculate img_to_eye for this view
     gloost::Matrix projection_matrix;
@@ -466,165 +371,11 @@ namespace kinect{
 #endif
 
 
-    m_nka->drawGeometry();
-
-
-
-
-#if 1
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
-    glDisable(GL_DEPTH_TEST);
-    glPushMatrix();
-    {
-      boost::mutex::scoped_lock lock(*m_mutex);
-      glMultMatrixf(m_trackposeART.data());
-    }
-    mvt::GlPrimitives::get()->drawCoords();
-    glPopMatrix();
-    glPopAttrib();
-
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
-    glDisable(GL_DEPTH_TEST);
-    glPushMatrix();
-    {
-      boost::mutex::scoped_lock lock(*m_mutex);
-      glMultMatrixf(m_trackposeKinect.data());
-    }
-    mvt::GlPrimitives::get()->drawCoords2();
-    glPopMatrix();
-    glPopAttrib();
-#endif
-
-
-
-
+    // m_nka->drawGeometry();
   }
-
-
-
-
-  void
-  KinectSurfaceV3::drawMesh(bool update, float scale){
-
-    //std::cerr << this << " draw " << update << std::endl;
-
-
-    if(0 == m_shader){
-      // initialize the uniforms and the shader like in RgbDepthRemapping
-      m_uniforms = new gloost::UniformSet;
-      m_uniforms->set_int("kinect_colors",0);
-      m_uniforms->set_int("kinect_depths",1);
-
-      m_shader = new gloost::Shader("glsl/body_texture.vs",
-				    "glsl/body_texture.fs");
-      
-      
-      std::string obj_filename(m_config);
-      obj_filename.replace( obj_filename.end() - 3, obj_filename.end(), "obj");
-      obj_filename = std::string("recordings/") + obj_filename;
-      std::cerr << obj_filename << std::endl;
-      m_obj = new gloost::Obj(obj_filename.c_str());
-    }
-
-#if 0
-    if("kerberos" == m_hostname && std::string::npos != m_config.find("DLP") && scale > 0.99)
-       return;
-    if("pandora" == m_hostname  && std::string::npos != m_config.find("LCD") && scale > 0.99)
-       return;
-#endif
-
-#if 0
-    if(update)
-      m_nka->update();
-#endif
-
-    /*
-      uniform mat4 v_world_to_eye_d[MAX_VIEWS];
-      uniform mat4 v_eye_d_to_eye_rgb[MAX_VIEWS];
-      uniform mat4 v_eye_rgb_to_image_rgb[MAX_VIEWS];
-    */
-
-    std::vector<gloost::mat4> v_world_to_eye_d;
-    std::vector<gloost::mat4> v_eye_d_to_world;
-    std::vector<gloost::mat4> v_eye_d_to_eye_rgb;
-    std::vector<gloost::mat4> v_eye_rgb_to_image_rgb;
-    std::vector<kinect::KinectCalibrationFile*>& calibs = m_nka->getCalibs();
-
-
-    for(unsigned i = 0; i < calibs.size(); ++i){
-
-      kinect::KinectCalibrationFile* v = calibs[i];
-      v->updateMatrices();
-
-      gloost::Matrix world_to_eye_d(v->eye_d_to_world);
-      world_to_eye_d.invert();
-      v_world_to_eye_d.push_back(world_to_eye_d);
-      v_eye_d_to_world.push_back(v->eye_d_to_world);
-      v_eye_d_to_eye_rgb.push_back(v->eye_d_to_eye_rgb);
-      v_eye_rgb_to_image_rgb.push_back(v->eye_rgb_to_image_rgb);
-
-    }
-
-    m_uniforms->set_mat4v(     "v_world_to_eye_d", v_world_to_eye_d);
-    m_uniforms->set_mat4v(     "v_eye_d_to_world", v_eye_d_to_world);
-    m_uniforms->set_mat4v(     "v_eye_d_to_eye_rgb", v_eye_d_to_eye_rgb);
-    m_uniforms->set_mat4v(     "v_eye_rgb_to_image_rgb", v_eye_rgb_to_image_rgb);
-
-    m_uniforms->set_int("num_layers", (int) calibs.size());
-
-    float min_length = 0.04;
-    min_length = scale * min_length;
-    m_uniforms->set_float("min_length", min_length);
-
-
-
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
-    {
-      m_nka->bindToTextureUnits(GL_TEXTURE0);
-
-      m_shader->set();
-      m_uniforms->applyToShader(m_shader);
-
-      m_obj->drawFacesNormalsTexcoords();
-
-      m_shader->disable();      
-      
-      glActiveTexture(GL_TEXTURE0);
-    }
-    glPopAttrib();
-
-    m_nka->drawGeometry();
-
-  }
-
 
   /*virtual*/ void
   KinectSurfaceV3::init(const char* config){
-
-    KinectCalibrationFile::s_use_sensor = false;
-    //KinectCalibrationFile::s_compress   = true;
-
-    char hostname[1024];
-    gethostname(hostname, 1024);
-    m_hostname = hostname;
-
-    // parse the file .ks and find the shader entry to get the names.
-    std::vector<std::string> hostnames;
-    std::ifstream in(config);
-    std::string token;
-    while(in >> token){
-      if(token == "hostname"){
-	in >> token;
-	hostnames.push_back(token);
-      }
-    }
-    in.close();
-
-    if (std::find(hostnames.begin(), hostnames.end(), hostname) == hostnames.end())
-    {
-        return;
-    }
-
     
     m_nka = new NetKinectArray(config);
     m_proxyMesh = new mvt::ProxyMeshGridV2(m_nka->getWidth(),
@@ -648,7 +399,7 @@ namespace kinect{
 
 
 
-    m_cv = new CalibVolume(m_nka->getCalibs(), 0/*m_nka->getARTL()*/);
+    m_cv = new CalibVolume(m_nka->getCalibs());
     m_cv->reload();
 #if 0
     m_ev = new EvaluationVolumes(m_nka->getCalibs(), m_cv);
@@ -710,7 +461,7 @@ namespace kinect{
 
 #if 0
     {
-      unsigned char pbuffer[200000];
+      byte pbuffer[200000];
       GLsizei bufsize = 200000;
       GLsizei length;
       GLenum binaryFormat;
@@ -718,7 +469,7 @@ namespace kinect{
       glGetProgramBinary(m_shader_pass_accum->getShaderHandle(),  bufsize,  &length,  &binaryFormat,  &pbuffer);
       std::cout << "used: " << length << " of " << bufsize << std::endl;
       FILE* shaderfile = fopen("shaderfile.bin", "wb");
-      fwrite(&pbuffer, length, sizeof(unsigned char),  shaderfile);
+      fwrite(&pbuffer, length, sizeof(byte),  shaderfile);
       fclose(shaderfile);
       //exit(0);
     }
@@ -738,62 +489,6 @@ namespace kinect{
 
   }
 
-
-
-  void
-  KinectSurfaceV3::switchCalibVolume(){
-
-    static std::vector<std::string> cv_xyz_filenames_orig;
-    static std::vector<std::string> cv_uv_filenames_orig;
-    static bool firsttime = true;
-    if(firsttime){
-      firsttime = false;
-      cv_xyz_filenames_orig = m_cv->m_cv_xyz_filenames;
-      cv_uv_filenames_orig = m_cv->m_cv_uv_filenames;
-    }
-
-    m_cv->m_cv_xyz_filenames = cv_xyz_filenames_orig;
-    m_cv->m_cv_uv_filenames = cv_uv_filenames_orig;
-
-    static unsigned cv_type = 0;
-    ++cv_type;
-    if(cv_type > 2){
-      cv_type = 0;
-    }
-    switch (cv_type) {
-    case 0:
-      std::cout << "cv type == initial" << std::endl;
-      for(auto& n : m_cv->m_cv_xyz_filenames){
-	n = n + "_initial";
-      }
-      for(auto& n : m_cv->m_cv_uv_filenames){
-	n = n + "_initial";
-      }
-      break;
-    case 1:
-      std::cout << "cv type == static" << std::endl;
-      for(auto& n : m_cv->m_cv_xyz_filenames){
-	n = n + "_static";
-      }
-      for(auto& n : m_cv->m_cv_uv_filenames){
-	n = n + "_static";
-      }
-      break;
-    case 2:
-      std::cout << "cv type == sweep" << std::endl;
-      for(auto& n : m_cv->m_cv_xyz_filenames){
-	n = n + "_sweep";
-      }
-      for(auto& n : m_cv->m_cv_uv_filenames){
-	n = n + "_sweep";
-      }
-      break;
-    }
-    
-    m_cv->reload();
-  }
-
-
   NetKinectArray*
   KinectSurfaceV3::getNetKinectArray(){
     return m_nka;
@@ -806,12 +501,4 @@ namespace kinect{
     width  = vp_params[2];
     height = vp_params[3];
   }
-
-
-
-  bool
-  KinectSurfaceV3::isPhoto(){
-    return m_nka->isPhoto();
-  }
-
 }

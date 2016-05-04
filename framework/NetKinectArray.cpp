@@ -5,8 +5,6 @@
 #include <Timer.h>
 #include <TextureArray.h>
 
-#include <FrameTimeAdjuster.h>
-
 #include <KinectCalibrationFile.h>
 #include <gl_util.h>
 #include <Shader.h>
@@ -65,10 +63,8 @@ namespace kinect{
       m_running(true),
       m_serverport(""),
       m_trigger(10), // means no update at the beginning
-      m_artl(new ARTListener(config)),
       m_isrecording(false),
       m_readfromfile(readfromfile),
-      m_isphoto(false),
       m_config(config),
       depth_compression_lex(false),
       depth_compression_ratio(100.0f)
@@ -145,10 +141,8 @@ namespace kinect{
       m_running(true),
       m_serverport(""),
       m_trigger(10), // means no update at the beginning
-      m_artl(0),
       m_isrecording(false),
       m_readfromfile(readfromfile),
-      m_isphoto(false),
       m_config(""),
       depth_compression_lex(false),
       depth_compression_ratio(100.0f)
@@ -169,6 +163,7 @@ namespace kinect{
     init();
 
   }
+#define ARTLISTENERNUMSENSORS 50
 
 
   bool
@@ -190,7 +185,7 @@ namespace kinect{
       m_colorsize = 307200;
     }
     else{
-      m_colorsize = m_widthc * m_heightc * 3 * sizeof(unsigned char);
+      m_colorsize = m_widthc * m_heightc * 3 * sizeof(byte);
     }
 
     m_colorsCPU3.matrixdata_back = new float [ARTLISTENERNUMSENSORS * sizeof(gloost::Matrix)];
@@ -207,12 +202,12 @@ namespace kinect{
     glGenBuffers(1,&m_colorsCPU3.backID);
     glBindBuffer(GL_PIXEL_PACK_BUFFER,m_colorsCPU3.backID);
     glBufferData(GL_PIXEL_PACK_BUFFER, m_colorsCPU3.size, 0, GL_DYNAMIC_DRAW);
-    m_colorsCPU3.back = (unsigned char *) glMapBufferRange(GL_PIXEL_PACK_BUFFER,0 /*offset*/, m_colorsCPU3.size /*length*/, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+    m_colorsCPU3.back = (byte*) glMapBufferRange(GL_PIXEL_PACK_BUFFER,0 /*offset*/, m_colorsCPU3.size /*length*/, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
     glBindBuffer(GL_PIXEL_PACK_BUFFER,0);
 
     if(m_kinectcs[0]->isCompressedDepth()){
-      m_depthsCPU3.size = m_width * m_height * m_numLayers * sizeof(unsigned char);
-      m_depthsize =  m_width * m_height * sizeof(unsigned char);
+      m_depthsCPU3.size = m_width * m_height * m_numLayers * sizeof(byte);
+      m_depthsize =  m_width * m_height * sizeof(byte);
     }
     else{
       m_depthsCPU3.size = m_width * m_height * m_numLayers * sizeof(float);
@@ -234,7 +229,7 @@ namespace kinect{
     glGenBuffers(1,&m_depthsCPU3.backID);
     glBindBuffer(GL_PIXEL_PACK_BUFFER,m_depthsCPU3.backID);
     glBufferData(GL_PIXEL_PACK_BUFFER, m_depthsCPU3.size, 0, GL_DYNAMIC_DRAW);
-    m_depthsCPU3.back = (unsigned char *) glMapBufferRange(GL_PIXEL_PACK_BUFFER,0 /*offset*/, m_depthsCPU3.size /*length*/, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+    m_depthsCPU3.back = (byte*) glMapBufferRange(GL_PIXEL_PACK_BUFFER,0 /*offset*/, m_depthsCPU3.size /*length*/, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
     glBindBuffer(GL_PIXEL_PACK_BUFFER,0);
 
 
@@ -365,18 +360,16 @@ namespace kinect{
 	m_depthsCPU3.swap();
 
 	glBindBuffer(GL_PIXEL_PACK_BUFFER,m_colorsCPU3.backID);
-	m_colorsCPU3.back = (unsigned char *) glMapBufferRange(GL_PIXEL_PACK_BUFFER,0 /*offset*/, m_colorsCPU3.size /*length*/, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+	m_colorsCPU3.back = (byte*) glMapBufferRange(GL_PIXEL_PACK_BUFFER,0 /*offset*/, m_colorsCPU3.size /*length*/, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 	glBindBuffer(GL_PIXEL_PACK_BUFFER,0);
 
 	glBindBuffer(GL_PIXEL_PACK_BUFFER,m_depthsCPU3.backID);
-	m_depthsCPU3.back = (unsigned char *) glMapBufferRange(GL_PIXEL_PACK_BUFFER,0 /*offset*/, m_depthsCPU3.size /*length*/, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+	m_depthsCPU3.back = (byte*) glMapBufferRange(GL_PIXEL_PACK_BUFFER,0 /*offset*/, m_depthsCPU3.size /*length*/, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 	glBindBuffer(GL_PIXEL_PACK_BUFFER,0);
 
 	
 	current_poses = m_depthsCPU3.current_poses;
 	
-	m_artl->get(m_colorsCPU3.matrixdata_front);
-
 	m_colorsCPU3.needSwap = false;
 	m_trigger = 0;
       }
@@ -598,106 +591,49 @@ namespace kinect{
     std::string endpoint("tcp://" + m_serverport);
     socket.connect(endpoint.c_str());
 
- 
-    //const unsigned pixelcountc = m_kinectcs[0]->getWidthC() * m_kinectcs[0]->getHeightC();
-    const unsigned pixelcount = m_kinectcs[0]->getWidth() * m_kinectcs[0]->getHeight();
-    
+    //const unsigned pixelcountc = m_kinectcs[0]->getWidthC() * m_kinectcs[0]->getHeightC();    
     const unsigned colorsize = m_colorsize;
     const unsigned depthsize = m_depthsize;//pixelcount * sizeof(float);
 
-    kinect::FrameTimeAdjuster fta;
     bool drop = false;
     sensor::timevalue ts(sensor::clock::time());
-    unsigned framenr = 0;
-    unsigned lastframenr = 99;
 
     while(m_running){
-
-
-
       zmq::message_t zmqm((colorsize + depthsize) * m_kinectcs.size());
       
       socket.recv(&zmqm); // blocking
       
-
       if(!drop){
+      	while(m_colorsCPU3.needSwap){
+      	  ;
+      	}
 
-
-	while(m_colorsCPU3.needSwap){
-	  ;
-	}
-
-	unsigned offset = 0;
-	// receive data
+      	unsigned offset = 0;
+      	// receive data
         const unsigned number_of_kinects = m_kinectcs.size(); // is 5 in the current example
         // this loop goes over each kinect like K1_frame_1 K2_frame_1 K3_frame_1 
-	for(unsigned i = 0; i < number_of_kinects; ++i){
-	  memcpy((unsigned char*) m_colorsCPU3.back + i*colorsize , (unsigned char*) zmqm.data() + offset, colorsize);
-	  offset += colorsize;
-	  memcpy((unsigned char*) m_depthsCPU3.back + i*depthsize , (unsigned char*) zmqm.data() + offset, depthsize);
-	  
-	  if(m_kinectcs[i]->isSensored()){
-	    // This is new and works only for one Kinect
-	    memcpy(m_depthsCPU3.current_poses[i].data(), (unsigned char*) zmqm.data() + offset, 16 * sizeof(float));
-	  }
-	  
-	  offset += depthsize;
-	}
+      	for(unsigned i = 0; i < number_of_kinects; ++i){
+      	  memcpy((byte*) m_colorsCPU3.back + i*colorsize , (byte*) zmqm.data() + offset, colorsize);
+      	  offset += colorsize;
+      	  memcpy((byte*) m_depthsCPU3.back + i*depthsize , (byte*) zmqm.data() + offset, depthsize);
 
-
+      	  offset += depthsize;
+      	}
       }
-
-
-
       
       const unsigned ts_address = ARTLISTENERNUMSENSORS * sizeof(gloost::Matrix);
       if(!drop){
-	memcpy((void *) m_colorsCPU3.matrixdata_back, zmqm.data(), ts_address /*ARTLISTENERNUMSENSORS * sizeof(gloost::Matrix)*/);
+	       memcpy((void *) m_colorsCPU3.matrixdata_back, zmqm.data(), ts_address /*ARTLISTENERNUMSENSORS * sizeof(gloost::Matrix)*/);
       }
-      memcpy(&ts,           zmqm.data() + ts_address, sizeof(sensor::timevalue));
+      memcpy(&ts, (byte*)zmqm.data() + ts_address, sizeof(sensor::timevalue));
       const unsigned framenr_address = ts_address + sizeof(sensor::timevalue);
       unsigned curr_framenr;
-      memcpy(&curr_framenr, zmqm.data() + framenr_address, sizeof(curr_framenr));
-      //std::cerr << "received frame " << curr_framenr << std::endl;
-      if((curr_framenr < framenr) || (lastframenr == framenr)){
-	bool tmp_isphoto = (((framenr - curr_framenr) < 29) && m_isrecording) ? true : false;
-	
-	if((tmp_isphoto) || (lastframenr == framenr)){
-
- 	  // check if ".rec" file is avaible
-	  size_t pos = m_config.rfind(".");
-	  std::string photoname = m_config.substr(0,pos);
-	  photoname = std::string("./recordings/") + photoname + ".photo";
-	  struct stat attrib;
-	  int ret = stat(photoname.c_str(), &attrib);
-	  if(0 == ret){
-	    m_isphoto = true; // maybe sync system?//true;
-	  }
-
-
-	}
-      }
-      lastframenr = framenr;
-      framenr = curr_framenr;
+      memcpy(&curr_framenr, (byte*)zmqm.data() + framenr_address, sizeof(curr_framenr));
       
-      //std::cerr << "is photo " << (int) m_isphoto << std::endl;
-
-
-
-
-
       if(!drop){ // swap
-	boost::mutex::scoped_lock lock(*m_mutex);
-	m_colorsCPU3.needSwap = true;
-	
+      	boost::mutex::scoped_lock lock(*m_mutex);
+      	m_colorsCPU3.needSwap = true;
       }
-
-      //drop = fta.putTime(ts);
-#if 0
-      if(m_isrecording){
-	bool tmp_drop = fta.putTime(ts);
-      }
-#endif
     }
   }
 
@@ -716,12 +652,6 @@ namespace kinect{
 
   }
 
-
-  void
-  NetKinectArray::drawGeometry(){
-    //m_artl->draw();
-  }
-
   void
   NetKinectArray::writeCurrentTexture(std::string prefix){
     //depths
@@ -735,14 +665,14 @@ namespace kinect{
       glGetTexLevelParameteriv (GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_HEIGHT, &height);
       glGetTexLevelParameteriv (GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_DEPTH, &depth);
       
-      std::vector<unsigned char> depths;
+      std::vector<std::uint8_t> depths;
       depths.resize(width*height*depth);
       
       glGetTexImage(GL_TEXTURE_2D_ARRAY, 0, GL_RED, GL_UNSIGNED_BYTE, (void*)&depths[0]); 
       
       int offset = 0;
       
-      for (unsigned int k = 0; k < depth; ++k)
+      for (int k = 0; k < depth; ++k)
       {
         std::stringstream sstr;
         sstr << "output/" << prefix << "_d_" << k << ".bmp";
@@ -770,17 +700,17 @@ namespace kinect{
       
       glGetTexImage(GL_TEXTURE_2D_ARRAY, 0, GL_RED, GL_FLOAT, (void*)&depthsTmp[0]); 
       
-      std::vector<unsigned char> depths;
+      std::vector<std::uint8_t> depths;
       depths.resize(depthsTmp.size());
       
-      for (unsigned int i = 0; i < width*height*depth; ++i)
+      for (int i = 0; i < width*height*depth; ++i)
       {
-        depths[i] = (unsigned char)depthsTmp[i] * 255.0f;
+        depths[i] = (std::uint8_t)depthsTmp[i] * 255.0f;
       }
       
       int offset = 0;
       
-      for (unsigned int k = 0; k < depth; ++k)
+      for (int k = 0; k < depth; ++k)
       {
         std::stringstream sstr;
         sstr << "output/" << prefix << "_d_" << k << ".bmp";
@@ -801,26 +731,24 @@ namespace kinect{
       int size;
       glGetTexLevelParameteriv (GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, &size);
       
-      std::vector<unsigned char> data;
+      std::vector<std::uint8_t> data;
       data.resize(size);
       
       glGetCompressedTexImage(GL_TEXTURE_2D_ARRAY, 0, (void*)&data[0]);
       
-      std::vector<unsigned char> depths;
-      depths.resize(4*m_widthc*m_heightc);
+      std::vector<std::uint8_t> colors;
+      colors.resize(4*m_widthc*m_heightc);
     
-      int offset = 0;
-      
-      for (unsigned int k = 0; k < getNumLayers(); ++k)
+      for (unsigned k = 0; k < getNumLayers(); ++k)
       {
-        squish::DecompressImage (&depths[0], m_widthc, m_heightc, &data[k*m_colorsize], squish::kDxt1);
+        squish::DecompressImage (&colors[0], m_widthc, m_heightc, &data[k*m_colorsize], squish::kDxt1);
         
         std::stringstream sstr;
         sstr << "output/" << prefix << "_col_" << k << ".bmp";
         std::string filename (sstr.str());
         std::cout << "writing color texture for kinect " << k << " to file " << filename << std::endl;
 
-        writeBMP(filename, depths, 0, 4);
+        writeBMP(filename, colors, 0, 4);
       }
     }
     else
@@ -833,21 +761,21 @@ namespace kinect{
       glGetTexLevelParameteriv (GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_HEIGHT, &height);
       glGetTexLevelParameteriv (GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_DEPTH, &depth);
       
-      std::vector<unsigned char> depths;
-      depths.resize(3*width*height*depth);
+      std::vector<std::uint8_t> colors;
+      colors.resize(3*width*height*depth);
       
-      glGetTexImage(GL_TEXTURE_2D_ARRAY, 0, GL_RGB, GL_UNSIGNED_BYTE, (void*)&depths[0]); 
+      glGetTexImage(GL_TEXTURE_2D_ARRAY, 0, GL_RGB, GL_UNSIGNED_BYTE, (void*)&colors[0]); 
       
       int offset = 0;
       
-      for (unsigned int k = 0; k < depth; ++k)
+      for (int k = 0; k < depth; ++k)
       {
         std::stringstream sstr;
         sstr << "output/" << prefix << "_col_" << k << ".bmp";
         std::string filename (sstr.str());
         std::cout << "writing color texture for kinect " << k << " to file " << filename << std::endl;
 
-        writeBMP(filename, depths, offset, 3);
+        writeBMP(filename, colors, offset, 3);
         offset += 3 * width*height;
       }
     }
@@ -855,7 +783,7 @@ namespace kinect{
   }
   
   // no universal use! very unflexible, resolution depth = resolution color, no row padding
-  void NetKinectArray::writeBMP(std::string filename, std::vector<unsigned char> const& data, unsigned int offset, unsigned int bytesPerPixel)
+  void NetKinectArray::writeBMP(std::string filename, std::vector<std::uint8_t> const& data, unsigned int offset, unsigned int bytesPerPixel)
   {
     std::ofstream file (filename, std::ofstream::binary);
     char c;
@@ -901,31 +829,6 @@ namespace kinect{
 
     file.close();
   }
-  
-  gloost::Matrix NetKinectArray::getArtlsensorMatrix(unsigned int sensorNumber) const
-  {
-//  	gloost::Matrix mat[ARTLISTENERNUMSENSORS] {};
-//	m_artl->fill(&mat[0]);
-//	
-//	return mat[sensorNumber];
-	
-	
-//  	gloost::Matrix* mat2 = new gloost::Matrix[ARTLISTENERNUMSENSORS];
-//	m_artl->fill(&(mat2[0]));
-//	gloost::Matrix mat3 (mat2[sensorNumber]);
-////	gloost::Matrix mat3;
-//	delete[] mat2;
-//	return mat3;
-	
-	// 18 statt 16 da vptr in matrix class
-	return gloost::Matrix(&m_colorsCPU3.matrixdata_front[sensorNumber*18 + 2]);
-  }
-
-  ARTListener*
-  NetKinectArray::getARTL(){
-    return m_artl;
-  }
-
 
   void
   NetKinectArray::readFromFiles(){
@@ -962,19 +865,12 @@ namespace kinect{
     unsigned offset = 0;
     // receive data
     for(unsigned i = 0; i < m_kinectcs.size(); ++i){
-      //memcpy((unsigned char*) m_colorsCPU3.back + i*colorsize , (unsigned char*) zmqm.data() + offset, colorsize);
-      fbs[i]->read((unsigned char*) m_colorsCPU3.back + i*colorsize, colorsize);
+      //memcpy((byte*) m_colorsCPU3.back + i*colorsize , (byte*) zmqm.data() + offset, colorsize);
+      fbs[i]->read((byte*) m_colorsCPU3.back + i*colorsize, colorsize);
       offset += colorsize;
 
-      //memcpy((unsigned char*) m_depthsCPU3.back + i*depthsize , (unsigned char*) zmqm.data() + offset, depthsize);
-      fbs[i]->read((unsigned char*) m_depthsCPU3.back + i*depthsize, depthsize);
-
-
-      
-      if(m_kinectcs[i]->isSensored()){
-	// This is new and works only for one Kinect
-	std::cerr << "NetKinectArray:: ERROR: this is not supported right now"<< std::endl;
-      }
+      //memcpy((byte*) m_depthsCPU3.back + i*depthsize , (byte*) zmqm.data() + offset, depthsize);
+      fbs[i]->read((byte*) m_depthsCPU3.back + i*depthsize, depthsize);
       
       offset += depthsize;
     }
@@ -992,18 +888,4 @@ namespace kinect{
     }
  
   }
-
-
-
-  bool
-  NetKinectArray::isRecording(){
-    return m_isrecording;
-  }
-
-  bool
-  NetKinectArray::isPhoto(){
-    return m_isphoto;
-  }
-
-
 }

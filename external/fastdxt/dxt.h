@@ -33,6 +33,7 @@
 #include <string.h>
 #include <math.h>
 
+namespace fastdxt {
 typedef unsigned char byte;
 typedef unsigned short word;
 typedef unsigned int dword;
@@ -66,3 +67,4 @@ void CompressImageDXT5YCoCg( const byte *inBuf, byte *outBuf, int width, int hei
 
 // Compute error between two images
 double ComputeError( const byte *original, const byte *dxt, int width, int height);
+}

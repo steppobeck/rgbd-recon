@@ -6,6 +6,9 @@
 
 #include <iostream>
 
+// non-numeric byte from Microsoft GSL implementation
+enum class byte : std::uint8_t{};
+
 namespace kinect{
 
   class xyz{

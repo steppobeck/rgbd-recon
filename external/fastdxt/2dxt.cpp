@@ -30,6 +30,8 @@
 
 #include "libdxt.h"
 
+using namespace fastdxt;
+
 int
 main(int argc, char** argv)
 {

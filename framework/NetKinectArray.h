@@ -7,12 +7,12 @@
 #include <GL/glew.h>
 #include <GL/gl.h>
 
-#include <ARTListener.h>
 #include <Matrix.h>
 
 #include <string>
 #include <vector>
 #include <atomic>
+#include "DataTypes.h"
 
 namespace boost{
   class thread;
@@ -35,7 +35,7 @@ namespace kinect{
 
   struct double_pbo{
     unsigned size;
-    unsigned char* back;
+    byte* back;
     std::atomic<bool> needSwap;
     unsigned frontID;
     unsigned backID;
@@ -89,15 +89,8 @@ namespace kinect{
 
     void drawGeometry();
     void writeCurrentTexture(std::string prefix);
-    void writeBMP(std::string, std::vector<unsigned char> const&, unsigned int offset, unsigned int bytesPerPixel);
+    void writeBMP(std::string, std::vector<std::uint8_t> const&, unsigned int offset, unsigned int bytesPerPixel);
     
-    gloost::Matrix getArtlsensorMatrix(unsigned int sensorNumber) const;
-
-    ARTListener* getARTL();
-
-    bool isRecording();
-    bool isPhoto();
-
     mvt::TextureArray* getDepthArrayBack();
     mvt::TextureArray* getDepthArray();
 
@@ -109,7 +102,6 @@ namespace kinect{
     unsigned m_widthc;
     unsigned m_height;
     unsigned m_heightc;
-
 
     unsigned m_numLayers;
     std::vector<KinectCalibrationFile*> m_kinectcs;
@@ -135,13 +127,9 @@ namespace kinect{
     unsigned m_trigger;
     static bool s_glewInit;
 
-    ARTListener* m_artl;
-
     bool m_isrecording;
 
     bool m_readfromfile;
-
-    bool m_isphoto;
 
     std::string m_config;
 

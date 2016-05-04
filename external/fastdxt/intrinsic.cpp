@@ -41,6 +41,7 @@
 
 #include <emmintrin.h>  // sse2
 
+namespace fastdxt {
 
 void ExtractBlock_Intrinsics( const byte *inPtr, int width, byte *colorBlock ) 
 {
@@ -531,3 +532,4 @@ void EmitAlphaIndices_Intrinsics( const byte *colorBlock, const byte minAlpha, c
 */
 }
 
+}
