@@ -43,15 +43,10 @@ ReconTrigrid::ReconTrigrid(CalibrationFiles const& cfs, CalibVolume const* cv, g
 
   reload();
   
-  m_va_pass_depth = std::unique_ptr<mvt::ViewArray>{new mvt::ViewArray(1920,1200, 1)};
-  m_va_pass_depth->init();
-
-  m_va_pass_accum = std::unique_ptr<mvt::ViewArray>{new mvt::ViewArray(1920,1200, 1)};
-  m_va_pass_accum->init();
+  resize(600, 480);
 }
 
-void
-ReconTrigrid::draw(){
+void ReconTrigrid::draw(){
   // calculate img_to_eye for this view
   gloost::Matrix projection_matrix;
   glGetFloatv(GL_PROJECTION_MATRIX, projection_matrix.data());
@@ -154,6 +149,14 @@ ReconTrigrid::reload(){
 
   m_shader_pass_normalize.reset(new gloost::Shader("glsl/pass_normalize.vs",
 					 "glsl/pass_normalize.fs"));
+}
+
+void ReconTrigrid::resize(std::size_t width, std::size_t height) {
+  m_va_pass_depth = std::unique_ptr<mvt::ViewArray>{new mvt::ViewArray(width, height, 1)};
+  m_va_pass_depth->init();
+
+  m_va_pass_accum = std::unique_ptr<mvt::ViewArray>{new mvt::ViewArray(width, height, 1)};
+  m_va_pass_accum->init();
 }
 
 }

@@ -275,6 +275,10 @@ void resize(int width, int height){
   g_aspect       = g_screenWidth * 1.0/g_screenHeight;
   g_camera.setAspect(g_aspect);
 
+  for (auto& recon : g_recons) {
+    recon->resize(width, height);
+  }
+
   g_navi.resize(width, height);
   g_ftw.resize(width, height);
   g_ssmt.resize(g_screenWidth, g_screenHeight);

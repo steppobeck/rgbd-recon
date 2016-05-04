@@ -21,6 +21,8 @@ namespace kinect{
 
     void reload() override;
 
+    void resize(std::size_t width, std::size_t height) override;
+
   private:
     std::unique_ptr<gloost::Shader> m_shader_pass_accum;
     std::unique_ptr<gloost::Shader> m_shader_pass_normalize;
