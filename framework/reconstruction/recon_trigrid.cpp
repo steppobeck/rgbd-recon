@@ -18,10 +18,8 @@ static getWidthHeight(unsigned& width, unsigned& height){
 
 ReconTrigrid::ReconTrigrid(CalibrationFiles const& cfs, CalibVolume const* cv, gloost::BoundingBox const&  bbox)
  :Reconstruction(cfs, cv, bbox)
- ,m_shader_pass_depth()
  ,m_shader_pass_accum()
  ,m_shader_pass_normalize()
- ,m_uniforms_pass_depth()
  ,m_uniforms_pass_accum()
  ,m_uniforms_pass_normalize()
  ,m_proxyMesh()
@@ -30,14 +28,6 @@ ReconTrigrid::ReconTrigrid(CalibrationFiles const& cfs, CalibVolume const* cv, g
 {
   m_proxyMesh = std::unique_ptr<mvt::ProxyMeshGridV2>{new mvt::ProxyMeshGridV2(m_tex_width,
            m_tex_height)};
-
-  m_uniforms_pass_depth = std::unique_ptr<gloost::UniformSet>{new gloost::UniformSet};
-  m_uniforms_pass_depth->set_int("kinect_colors",1);
-  m_uniforms_pass_depth->set_int("kinect_depths",2);
-  m_uniforms_pass_depth->set_int("kinect_qualities",3);
-  m_uniforms_pass_depth->set_vec3("bbox_min",m_bbox.getPMin());
-  m_uniforms_pass_depth->set_vec3("bbox_max",m_bbox.getPMax());
-
 
   m_uniforms_pass_accum = std::unique_ptr<gloost::UniformSet>{new gloost::UniformSet};
   m_uniforms_pass_accum->set_int("kinect_colors",1);
@@ -83,22 +73,22 @@ ReconTrigrid::draw(){
 	glDisable(GL_CULL_FACE);
 // pass 1 goes to depth buffer only
   m_va_pass_depth->enable(0, false, &ox, &oy, false);
-  m_shader_pass_depth->set();
-  m_uniforms_pass_depth->set_int("stage", 0);
-  m_uniforms_pass_depth->set_float("min_length", m_min_length);
+  m_shader_pass_accum->set();
+  m_uniforms_pass_accum->set_int("stage", 0);
+  m_uniforms_pass_accum->set_float("min_length", m_min_length);
 
   for(unsigned layer = 0; layer < m_num_kinects; ++layer){
-    m_uniforms_pass_depth->set_int("layer",  layer);
-    m_uniforms_pass_depth->set_int("cv_xyz",m_cv->getStartTextureUnit() + layer * 2);
-    m_uniforms_pass_depth->set_int("cv_uv",m_cv->getStartTextureUnit() + layer * 2 + 1);
-    m_uniforms_pass_depth->set_float("cv_min_d",m_cv->m_cv_min_ds[layer]);
-    m_uniforms_pass_depth->set_float("cv_max_d",m_cv->m_cv_max_ds[layer]);
-	  m_uniforms_pass_depth->applyToShader(m_shader_pass_depth.get());
+    m_uniforms_pass_accum->set_int("layer",  layer);
+    m_uniforms_pass_accum->set_int("cv_xyz",m_cv->getStartTextureUnit() + layer * 2);
+    m_uniforms_pass_accum->set_int("cv_uv",m_cv->getStartTextureUnit() + layer * 2 + 1);
+    m_uniforms_pass_accum->set_float("cv_min_d",m_cv->m_cv_min_ds[layer]);
+    m_uniforms_pass_accum->set_float("cv_max_d",m_cv->m_cv_max_ds[layer]);
+	  m_uniforms_pass_accum->applyToShader(m_shader_pass_accum.get());
 	  
 	  m_proxyMesh->draw();
   }
 
-  m_shader_pass_depth->disable();
+  m_shader_pass_accum->disable();
   m_va_pass_depth->disable(false);
 
 // pass 2 goes to accumulation buffer
@@ -108,7 +98,6 @@ ReconTrigrid::draw(){
   glBlendEquationSeparateEXT(GL_FUNC_ADD, GL_FUNC_ADD);
   m_va_pass_accum->enable(0, false, &ox, &oy);
   m_uniforms_pass_accum->set_int("stage", 1);
-  m_uniforms_pass_accum->set_float("min_length", m_min_length);
   m_uniforms_pass_accum->set_vec2("viewportSizeInv", gloost::vec2(1.0f/m_va_pass_depth->getWidth(), 1.0f/m_va_pass_depth->getHeight()));
   m_uniforms_pass_accum->set_mat4("img_to_eye_curr", image_to_eye);
   m_uniforms_pass_accum->set_float("epsilon"    , 0.075);
@@ -156,14 +145,6 @@ ReconTrigrid::draw(){
 
 void
 ReconTrigrid::reload(){
-  m_shader_pass_depth.reset(new gloost::Shader("glsl/ksv3_vertex.vs",
-				     "glsl/ksv3_fragment.fs",
-				     "glsl/ksv3_geometry.gs"));
-  m_shader_pass_depth->setProgramParameter(GL_GEOMETRY_INPUT_TYPE_EXT ,GL_TRIANGLES);
-  m_shader_pass_depth->setProgramParameter(GL_GEOMETRY_OUTPUT_TYPE_EXT ,GL_TRIANGLE_STRIP);
-  m_shader_pass_depth->setProgramParameter(GL_GEOMETRY_VERTICES_OUT_EXT ,3);
-
-
   m_shader_pass_accum.reset(new gloost::Shader("glsl/ksv3_vertex.vs",
 				     "glsl/ksv3_fragment.fs",
 				     "glsl/ksv3_geometry.gs"));

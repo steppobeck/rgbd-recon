@@ -22,10 +22,8 @@ namespace kinect{
     void reload() override;
 
   private:
-    std::unique_ptr<gloost::Shader> m_shader_pass_depth;
     std::unique_ptr<gloost::Shader> m_shader_pass_accum;
     std::unique_ptr<gloost::Shader> m_shader_pass_normalize;
-    std::unique_ptr<gloost::UniformSet> m_uniforms_pass_depth;
     std::unique_ptr<gloost::UniformSet> m_uniforms_pass_accum;
     std::unique_ptr<gloost::UniformSet> m_uniforms_pass_normalize;
 
