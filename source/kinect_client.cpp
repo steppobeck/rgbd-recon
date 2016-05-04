@@ -129,6 +129,7 @@ void init(std::vector<std::string> args){
 
   // enable point scaling in vertex shader
   glEnable(GL_PROGRAM_POINT_SIZE);
+  glEnable(GL_POINT_SPRITE);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////

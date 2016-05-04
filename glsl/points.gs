@@ -18,6 +18,7 @@ flat out vec3  pass_pos_cs;
 flat out float pass_depth;
 flat out float pass_lateral_quality;
 flat out vec3  pass_normal_es;
+flat out vec4  pass_glpos;
 
 ///////////////////////////////////////////////////////////////////////////////
 // methods 
@@ -42,7 +43,7 @@ bool clip(vec3 p){
 void main() {
 
   if(clip(geo_pos_cs[0]) || geo_depth[0] <= -1.0f) {
-    return;
+    // return;
   }
 
   pass_texcoord = geo_texcoord[0];
@@ -52,9 +53,10 @@ void main() {
   pass_depth         = geo_depth[0];
   pass_normal_es     = vec3(1.0f);
   gl_Position   = gl_PositionIn[0];
+  pass_glpos = gl_Position;
 
-  float dist = length(gl_ModelViewMatrix * vec4(geo_pos_cs[0], 1.0));
-  // gl_PointSize  = 5.0f / dist;
+  float dist = length(geo_pos_es[0]);
+  gl_PointSize  = 10.0f / dist;
   gl_PointSize  = 1.0f;
   
   EmitVertex();
