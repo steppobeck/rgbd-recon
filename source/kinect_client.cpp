@@ -86,8 +86,8 @@ void init(std::vector<std::string> args){
 
   std::string serverport{};
   std::vector<std::string> calib_filenames;
-  gloost::Point3 bbx_min{-1.0f ,0.0f, -1.0f};
-  gloost::Point3 bbx_max{ 1.0f ,2.2f, 1.0f};
+  gloost::Point3 bbox_min{-1.0f ,0.0f, -1.0f};
+  gloost::Point3 bbox_max{ 1.0f ,2.2f, 1.0f};
 
   std::ifstream in(file_name);
   std::string token;
@@ -99,14 +99,19 @@ void init(std::vector<std::string> args){
       in >> token;
       calib_filenames.push_back(token);
     }
-    else if (token == "bbox") {
-      // todo
+    else if (token == "bbx") {
+      in >> bbox_min[0];
+      in >> bbox_min[1];
+      in >> bbox_min[2];
+      in >> bbox_max[0];
+      in >> bbox_max[1];
+      in >> bbox_max[2];
     }
   }
   in.close();
   // update bounding box dimensions with read values
-  g_bbox.setPMin(bbx_min);
-  g_bbox.setPMax(bbx_max);
+  g_bbox.setPMin(bbox_min);
+  g_bbox.setPMax(bbox_max);
 
   g_calib_files = std::unique_ptr<kinect::CalibrationFiles>{new kinect::CalibrationFiles(calib_filenames)};
   g_cv = std::unique_ptr<kinect::CalibVolume>{new kinect::CalibVolume(g_calib_files->getFileNames())};
