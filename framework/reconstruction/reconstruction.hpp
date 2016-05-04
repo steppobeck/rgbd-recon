@@ -1,6 +1,8 @@
 #ifndef RECONSTRUCTION_HPP
 #define RECONSTRUCTION_HPP
 
+#include "gloost/BoundingBox.h"
+
 namespace kinect{
 
   class CalibVolume;
@@ -9,7 +11,7 @@ namespace kinect{
   class Reconstruction{
 
   public:
-    Reconstruction(CalibrationFiles const& cfs, CalibVolume const* cv);
+    Reconstruction(CalibrationFiles const& cfs, CalibVolume const* cv, gloost::BoundingBox const&  bbox);
 
     virtual void draw() = 0;
 
@@ -22,6 +24,7 @@ namespace kinect{
     unsigned m_tex_height;
     unsigned m_num_kinects;
     float m_min_length;
+    gloost::BoundingBox m_bbox;
   };
 }
 

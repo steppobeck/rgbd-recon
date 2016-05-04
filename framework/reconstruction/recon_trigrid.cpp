@@ -16,8 +16,8 @@ static getWidthHeight(unsigned& width, unsigned& height){
   height = vp_params[3];
 }
 
-ReconTrigrid::ReconTrigrid(CalibrationFiles const& cfs, CalibVolume const* cv)
- :Reconstruction(cfs, cv)
+ReconTrigrid::ReconTrigrid(CalibrationFiles const& cfs, CalibVolume const* cv, gloost::BoundingBox const&  bbox)
+ :Reconstruction(cfs, cv, bbox)
  ,m_shader_pass_depth()
  ,m_shader_pass_accum()
  ,m_shader_pass_normalize()
@@ -35,6 +35,8 @@ ReconTrigrid::ReconTrigrid(CalibrationFiles const& cfs, CalibVolume const* cv)
   m_uniforms_pass_depth->set_int("kinect_colors",1);
   m_uniforms_pass_depth->set_int("kinect_depths",2);
   m_uniforms_pass_depth->set_int("kinect_qualities",3);
+  m_uniforms_pass_depth->set_vec3("bbox_min",m_bbox.getPMin());
+  m_uniforms_pass_depth->set_vec3("bbox_max",m_bbox.getPMax());
 
 
   m_uniforms_pass_accum = std::unique_ptr<gloost::UniformSet>{new gloost::UniformSet};
@@ -42,6 +44,8 @@ ReconTrigrid::ReconTrigrid(CalibrationFiles const& cfs, CalibVolume const* cv)
   m_uniforms_pass_accum->set_int("kinect_depths",2);
   m_uniforms_pass_accum->set_int("kinect_qualities",3);
   m_uniforms_pass_accum->set_int("depth_map_curr",14);
+  m_uniforms_pass_accum->set_vec3("bbox_min",m_bbox.getPMin());
+  m_uniforms_pass_accum->set_vec3("bbox_max",m_bbox.getPMax());
 
   m_uniforms_pass_normalize = std::unique_ptr<gloost::UniformSet>{new gloost::UniformSet};
   m_uniforms_pass_normalize->set_int("color_map",15);

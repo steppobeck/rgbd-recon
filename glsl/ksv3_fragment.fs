@@ -12,9 +12,8 @@ uniform mat4 img_to_eye_curr;
 uniform vec2 viewportSizeInv;
 uniform float epsilon;
 
-const vec3 bbx_min = vec3(-1.,0.0, -1.);
-const vec3 bbx_max = vec3( 1.,2.2,   1.);
-
+uniform vec3 bbox_min;
+uniform vec3 bbox_max;
 ///////////////////////////////////////////////////////////////////////////////
 // input
 ///////////////////////////////////////////////////////////////////////////////
@@ -30,12 +29,12 @@ out vec4 gl_FragColor;
 // methods 
 
 bool clip(vec3 p){
-  if(p.x < bbx_min.x ||
-     p.y < bbx_min.y ||
-     p.z < bbx_min.z ||
-     p.x > bbx_max.x ||
-     p.y > bbx_max.y ||
-     p.z > bbx_max.z){
+  if(p.x < bbox_min.x ||
+     p.y < bbox_min.y ||
+     p.z < bbox_min.z ||
+     p.x > bbox_max.x ||
+     p.y > bbox_max.y ||
+     p.z > bbox_max.z){
     return true;
   }
   return false;

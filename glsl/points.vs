@@ -11,10 +11,10 @@ uniform float cv_min_d;
 uniform float cv_max_d;
 uniform int layer;
 
-out vec2 geo_texcoord;
-out vec3 geo_pos_es;
-out vec3 geo_pos_cs;
-out float geo_depth;
+flat out vec2 geo_texcoord;
+flat out vec3 geo_pos_es;
+flat out vec3 geo_pos_cs;
+flat out float geo_depth;
 
 bool is_outside(float d){
   return (d < cv_min_d) || (d > cv_max_d);

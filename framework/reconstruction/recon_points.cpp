@@ -16,14 +16,16 @@ static getWidthHeight(unsigned& width, unsigned& height){
   height = vp_params[3];
 }
 
-ReconPoints::ReconPoints(CalibrationFiles const& cfs, CalibVolume const* cv)
- :Reconstruction(cfs, cv)
+ReconPoints::ReconPoints(CalibrationFiles const& cfs, CalibVolume const* cv, gloost::BoundingBox const&  bbox)
+ :Reconstruction(cfs, cv, bbox)
  ,m_shader()
  ,m_uniforms()
 {
   m_uniforms.set_int("kinect_colors", 1);
   m_uniforms.set_int("kinect_depths", 2);
   m_uniforms.set_int("kinect_qualities", 3);
+  m_uniforms.set_vec3("bbox_min",m_bbox.getPMin());
+  m_uniforms.set_vec3("bbox_max",m_bbox.getPMax());
 
   reload();
 }
@@ -54,6 +56,17 @@ ReconPoints::draw(){
   m_uniforms.set_mat4("img_to_eye_curr", image_to_eye);
   m_uniforms.set_mat4("projection_inv", projection_matrix);
   m_uniforms.set_float("epsilon" , 0.075);
+  gloost::Matrix modelview_matrix;
+  gloost::Matrix modelview_inv;
+  glGetFloatv(GL_MODELVIEW_MATRIX, modelview_matrix.data());
+  modelview_inv = modelview_matrix;
+  modelview_inv.invert();
+  // std::cout << "orig " << modelview_matrix <<  " inv " << modelview_inv<< std::endl;
+  m_uniforms.set_mat4("modelview_inv", modelview_inv);
+  gloost::Point3 p {0.5f, 0.25f, -0.15f};
+  gloost::Point3 p2 = modelview_matrix * p;
+  gloost::Point3 p3 = modelview_inv * p2;
+  // std::cout << "vectors " << p << ", " << p2 << ", " << p3 << std::endl;
 
   for(unsigned layer = 0; layer < m_num_kinects; ++layer) {
     m_uniforms.set_int("layer",  layer);

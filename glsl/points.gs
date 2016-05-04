@@ -1,38 +1,37 @@
-//#version 140
+#version 130
 #extension GL_EXT_gpu_shader4 : enable
 #extension GL_EXT_geometry_shader4 : enable
 ///////////////////////////////////////////////////////////////////////////////
 // input
 ///////////////////////////////////////////////////////////////////////////////
-varying in vec2 geo_texcoord[];
-varying in vec3 geo_pos_es[];
-varying in vec3 geo_pos_cs[];
-varying in float geo_depth[];
-varying in float geo_lateral_quality[];
+flat in vec2 geo_texcoord[];
+flat in vec3 geo_pos_es[];
+flat in vec3 geo_pos_cs[];
+flat in float geo_depth[];
+flat in float geo_lateral_quality[];
 ///////////////////////////////////////////////////////////////////////////////
 // output
 ///////////////////////////////////////////////////////////////////////////////
-varying out vec2  pass_texcoord;
-varying out vec3  pass_pos_es;
-varying out vec3  pass_pos_cs;
-
-varying out float pass_depth;
-varying out float pass_lateral_quality;
-varying out vec3  pass_normal_es;
+flat out vec2  pass_texcoord;
+flat out vec3  pass_pos_es;
+flat out vec3  pass_pos_cs;
+flat out float pass_depth;
+flat out float pass_lateral_quality;
+flat out vec3  pass_normal_es;
 
 ///////////////////////////////////////////////////////////////////////////////
 // methods 
 ///////////////////////////////////////////////////////////////////////////////
-const vec3 bbx_max = vec3( 1.,2.2,   1.);
-const vec3 bbx_min = vec3(-1.,0.0, -1.);
+uniform vec3 bbox_max;
+uniform vec3 bbox_min;
 
 bool clip(vec3 p){
-  if(p.x < bbx_min.x ||
-     p.y < bbx_min.y ||
-     p.z < bbx_min.z ||
-     p.x > bbx_max.x ||
-     p.y > bbx_max.y ||
-     p.z > bbx_max.z){
+  if(p.x < bbox_min.x ||
+     p.y < bbox_min.y ||
+     p.z < bbox_min.z ||
+     p.x > bbox_max.x ||
+     p.y > bbox_max.y ||
+     p.z > bbox_max.z){
     return true;
   }
   return false;
@@ -43,7 +42,7 @@ bool clip(vec3 p){
 void main() {
 
   if(clip(geo_pos_cs[0]) || geo_depth[0] <= -1.0f) {
-    // return;
+    return;
   }
 
   pass_texcoord = geo_texcoord[0];
@@ -55,7 +54,8 @@ void main() {
   gl_Position   = gl_PositionIn[0];
 
   float dist = length(gl_ModelViewMatrix * vec4(geo_pos_cs[0], 1.0));
-  gl_PointSize  = 5.0f / dist;
+  // gl_PointSize  = 5.0f / dist;
+  gl_PointSize  = 1.0f;
   
   EmitVertex();
 }

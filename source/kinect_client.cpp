@@ -9,7 +9,10 @@
 #include <stdlib.h>
 #include <memory>
 
+#include <Point3.h>
+#include <BoundingBox.h>
 #include <PerspectiveCamera.h>
+
 #include <CameraNavigator.h>
 #include <FourTiledWindow.h>
 #include <CalibVolume.h>
@@ -37,6 +40,7 @@ bool     g_animate      = false;
 bool     g_wire         = false;
 unsigned g_recon_mode   = 1;
 bool     g_bilateral    = true;
+gloost::BoundingBox     g_bbox{};
 
 gloost::PerspectiveCamera g_camera{50.0, g_aspect, 0.1, 200.0};
 mvt::FourTiledWindow g_ftw{g_screenWidth, g_screenHeight};
@@ -81,7 +85,10 @@ void init(std::vector<std::string> args){
   }
 
   std::string serverport{};
-  std::vector<std::string> calib_filenames{};
+  std::vector<std::string> calib_filenames;
+  gloost::Point3 bbx_min{-1.0f ,0.0f, -1.0f};
+  gloost::Point3 bbx_max{ 1.0f ,2.2f, 1.0f};
+
   std::ifstream in(file_name);
   std::string token;
   while(in >> token){
@@ -92,21 +99,28 @@ void init(std::vector<std::string> args){
       in >> token;
       calib_filenames.push_back(token);
     }
+    else if (token == "bbox") {
+      // todo
+    }
   }
   in.close();
+  // update bounding box dimensions with read values
+  g_bbox.setPMin(bbx_min);
+  g_bbox.setPMax(bbx_max);
 
   g_calib_files = std::unique_ptr<kinect::CalibrationFiles>{new kinect::CalibrationFiles(calib_filenames)};
   g_cv = std::unique_ptr<kinect::CalibVolume>{new kinect::CalibVolume(g_calib_files->getFileNames())};
   g_nka = std::unique_ptr<kinect::NetKinectArray>{new kinect::NetKinectArray(serverport, g_calib_files.get(), g_cv.get())};
 
-  g_recons.emplace_back(new kinect::ReconTrigrid(*g_calib_files, g_cv.get()));
-  g_recons.emplace_back(new kinect::ReconPoints(*g_calib_files, g_cv.get()));
+  g_recons.emplace_back(new kinect::ReconTrigrid(*g_calib_files, g_cv.get(), g_bbox));
+  g_recons.emplace_back(new kinect::ReconPoints(*g_calib_files, g_cv.get(), g_bbox));
   
   // binds to unit 0 and 1
   g_nka->bindToTextureUnits(1);
 
   // bind calubration volumes from 2 - 11
   g_cv->bindToTextureUnits(4);
+
 
   // enable point scaling in vertex shader
   glEnable(GL_PROGRAM_POINT_SIZE);
@@ -247,6 +261,8 @@ void draw3d(void)
     glEnd();
     glPopAttrib();
   }
+
+  g_bbox.draw();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
