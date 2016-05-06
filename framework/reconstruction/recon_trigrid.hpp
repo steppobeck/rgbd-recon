@@ -2,7 +2,6 @@
 #define RECON_TRIGRID_HPP
 
 #include "reconstruction.hpp"
-#include <ProxyMeshGridV2.h>
 #include <ViewArray.h>
 
 #include <Shader.h>
@@ -10,13 +9,16 @@
 
 #include <memory>
 
+#include <globjects/Buffer.h>
+#include <globjects/VertexArray.h>
+
 namespace kinect{
 
   class ReconTrigrid : public Reconstruction {
 
   public:
     ReconTrigrid(CalibrationFiles const& cfs, CalibVolume const* cv, gloost::BoundingBox const&  bbox);
-
+    ~ReconTrigrid();
     void draw() override;
 
     void reload() override;
@@ -29,9 +31,10 @@ namespace kinect{
     std::unique_ptr<gloost::UniformSet> m_uniforms_pass_accum;
     std::unique_ptr<gloost::UniformSet> m_uniforms_pass_normalize;
 
-    std::unique_ptr<mvt::ProxyMeshGridV2> m_proxyMesh;
     std::unique_ptr<mvt::ViewArray>     m_va_pass_depth;
     std::unique_ptr<mvt::ViewArray>     m_va_pass_accum;
+    globjects::VertexArray*              m_tri_grid;
+    globjects::Buffer*                  m_tri_buffer;
   };
 }
 

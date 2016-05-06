@@ -467,5 +467,8 @@ int main(int argc, char *argv[])
   /// start the loop (this will call display() every frame)
   glutMainLoop();
 
+  //free globjects 
+  globjects::detachAllObjects();
+
   return EXIT_SUCCESS;
 }

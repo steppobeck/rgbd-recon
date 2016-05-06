@@ -3,8 +3,10 @@
 #include "calibration_files.hpp"
 #include <KinectCalibrationFile.h>
 #include <CalibVolume.h>
+#include <glm/gtc/type_precision.hpp>
 
 #include <Matrix.h>
+#include <globjects/VertexAttributeBinding.h>
 
 namespace kinect{
 
@@ -22,13 +24,11 @@ ReconTrigrid::ReconTrigrid(CalibrationFiles const& cfs, CalibVolume const* cv, g
  ,m_shader_pass_normalize()
  ,m_uniforms_pass_accum()
  ,m_uniforms_pass_normalize()
- ,m_proxyMesh()
  ,m_va_pass_depth()
  ,m_va_pass_accum()
+ ,m_tri_grid{nullptr}
+ ,m_tri_buffer{nullptr}
 {
-  m_proxyMesh = std::unique_ptr<mvt::ProxyMeshGridV2>{new mvt::ProxyMeshGridV2(m_tex_width,
-           m_tex_height)};
-
   m_uniforms_pass_accum = std::unique_ptr<gloost::UniformSet>{new gloost::UniformSet};
   m_uniforms_pass_accum->set_int("kinect_colors",1);
   m_uniforms_pass_accum->set_int("kinect_depths",2);
@@ -41,9 +41,39 @@ ReconTrigrid::ReconTrigrid(CalibrationFiles const& cfs, CalibVolume const* cv, g
   m_uniforms_pass_normalize->set_int("color_map",15);
   m_uniforms_pass_normalize->set_int("depth_map",16);
 
+  m_tri_grid = new globjects::VertexArray();
+  m_tri_buffer = new globjects::Buffer();
+
+  std::vector<glm::fvec2> data{};
+  float stepX = 1.0f/m_tex_width;
+  float stepY = 1.0f/m_tex_height;
+  for(unsigned y = 0; y < m_tex_width; ++y){
+    for(unsigned x = 0; x < m_tex_height; ++x){
+      data.emplace_back( (x+0.5) * stepX, (y + 0.5) * stepY );
+      data.emplace_back( (x+1.5) * stepX, (y + 0.5) * stepY );
+      data.emplace_back( (x+0.5) * stepX, (y + 1.5) * stepY );
+
+      data.emplace_back( (x+1.5) * stepX, (y + 0.5) * stepY );
+      data.emplace_back( (x+1.5) * stepX, (y + 1.5) * stepY );
+      data.emplace_back( (x+0.5) * stepX, (y + 1.5) * stepY );
+    }
+  }
+
+  m_tri_buffer->setData(data, GL_STATIC_DRAW);
+
+  m_tri_grid->enable(0);
+  m_tri_grid->binding(0)->setAttribute(0);
+  m_tri_grid->binding(0)->setBuffer(m_tri_buffer, 0, sizeof(glm::fvec2));
+  m_tri_grid->binding(0)->setFormat(2, GL_FLOAT);
+
   reload();
   
   resize(600, 480);
+}
+
+ReconTrigrid::~ReconTrigrid() {
+  m_tri_grid->destroy();
+  m_tri_buffer->destroy();
 }
 
 void ReconTrigrid::draw(){
@@ -80,7 +110,7 @@ void ReconTrigrid::draw(){
     m_uniforms_pass_accum->set_float("cv_max_d",m_cv->m_cv_max_ds[layer]);
 	  m_uniforms_pass_accum->applyToShader(m_shader_pass_accum.get());
 	  
-	  m_proxyMesh->draw();
+    m_tri_grid->drawArrays(GL_TRIANGLES, 0, m_tex_width * m_tex_height * 6);
   }
 
   m_shader_pass_accum->disable();
@@ -108,7 +138,7 @@ void ReconTrigrid::draw(){
     m_uniforms_pass_accum->set_float("cv_max_d",m_cv->m_cv_max_ds[layer]);
     m_uniforms_pass_accum->applyToShader(m_shader_pass_accum.get());
     
-    m_proxyMesh->draw();
+    m_tri_grid->drawArrays(GL_TRIANGLES, 0, m_tex_width * m_tex_height * 6);
   }
 
   m_shader_pass_accum->disable();

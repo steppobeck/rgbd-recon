@@ -2,7 +2,6 @@
 #define RECON_POINTS_HPP
 
 #include "reconstruction.hpp"
-#include <ProxyMeshGridV2.h>
 #include <ViewArray.h>
 
 #include <Shader.h>
