@@ -26,14 +26,10 @@ ReconPoints::ReconPoints(CalibrationFiles const& cfs, CalibVolume const* cv, glo
  ,m_program{new globjects::Program()}
 {
   m_program->attach(
-     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/points.vs")
-    ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/points.fs")
-    ,globjects::Shader::fromFile(GL_GEOMETRY_SHADER, "glsl/points.gs")
-    );
-
-  m_program->setParameter(GL_GEOMETRY_INPUT_TYPE_EXT ,GLint(GL_POINTS));
-  m_program->setParameter(GL_GEOMETRY_OUTPUT_TYPE_EXT ,GLint(GL_POINTS));
-  m_program->setParameter(GL_GEOMETRY_VERTICES_OUT_EXT ,1);
+    globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/points.vs"),
+    globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/points.fs"),
+    globjects::Shader::fromFile(GL_GEOMETRY_SHADER, "glsl/points.gs")
+  );
 
   m_program->setUniform("kinect_colors", 1);
   m_program->setUniform("kinect_depths", 2);

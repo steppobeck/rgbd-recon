@@ -75,8 +75,8 @@ namespace kinect{
     }
 
     m_program_filter->attach(
-     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/bf.vs")
-    ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/bf.fs")
+     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/depth_filter.vs")
+    ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/depth_filter.fs")
     );
   }
 

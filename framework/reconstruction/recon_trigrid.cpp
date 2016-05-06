@@ -30,9 +30,9 @@ ReconTrigrid::ReconTrigrid(CalibrationFiles const& cfs, CalibVolume const* cv, g
  ,m_program_normalize{new globjects::Program()}
 {
   m_program_accum->attach(
-   globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/ksv3_vertex.vs")
-  ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/ksv3_fragment.fs")
-  ,globjects::Shader::fromFile(GL_GEOMETRY_SHADER, "glsl/ksv3_geometry.gs")
+    globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/trigrid_accum.vs"),
+    globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/trigrid_accum.fs"),
+    globjects::Shader::fromFile(GL_GEOMETRY_SHADER, "glsl/trigrid_accum.gs")
   );
 
   m_program_accum->setUniform("kinect_colors",1);
@@ -43,8 +43,8 @@ ReconTrigrid::ReconTrigrid(CalibrationFiles const& cfs, CalibVolume const* cv, g
   m_program_accum->setUniform("bbox_max",m_bbox.getPMax());
 
   m_program_normalize->attach(
-     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/pass_normalize.vs")
-    ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/pass_normalize.fs")
+     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/trigrid_normalize.vs")
+    ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/trigrid_normalize.fs")
     );
   m_program_normalize->setUniform("color_map",15);
   m_program_normalize->setUniform("depth_map",16);

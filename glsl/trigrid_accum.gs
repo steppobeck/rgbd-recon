@@ -1,7 +1,7 @@
-#version 130
-// #extension GL_EXT_gpu_shader4 : enable
-#extension GL_EXT_geometry_shader4 : enable
+#version 150
 
+layout(triangles) in;
+layout(triangle_strip, max_vertices = 3) out;
 ///////////////////////////////////////////////////////////////////////////////
 // input
 in vec2 geo_texcoord[];
@@ -10,7 +10,7 @@ in vec3 geo_pos_cs[];
 in float geo_depth[];
 in float geo_lateral_quality[];
 
-uniform float min_length;// = 0.0125;
+uniform float min_length;
 ///////////////////////////////////////////////////////////////////////////////
 // output
 out vec2  pass_texcoord;
@@ -20,7 +20,6 @@ out float pass_sq_area_cs;
 out float pass_depth;
 out float pass_lateral_quality;
 out vec3  pass_normal_es;
-
 
 ///////////////////////////////////////////////////////////////////////////////
 // methods 
@@ -70,7 +69,7 @@ void main() {
       pass_depth         = geo_depth[i];
       pass_normal_es     = tri_normal;
       
-      gl_Position   = gl_PositionIn[i];
+      gl_Position   = gl_in[i].gl_Position;
       
       EmitVertex();
     }

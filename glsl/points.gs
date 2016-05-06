@@ -1,6 +1,7 @@
-#version 130
-#extension GL_EXT_gpu_shader4 : enable
-#extension GL_EXT_geometry_shader4 : enable
+#version 150
+
+layout(points) in;
+layout(points, max_vertices = 1) out;
 ///////////////////////////////////////////////////////////////////////////////
 // input
 ///////////////////////////////////////////////////////////////////////////////
@@ -52,7 +53,7 @@ void main() {
   pass_lateral_quality = geo_lateral_quality[0];
   pass_depth         = geo_depth[0];
   pass_normal_es     = vec3(1.0f);
-  gl_Position   = gl_PositionIn[0];
+  gl_Position   = gl_in[0].gl_Position;
   pass_glpos = gl_Position;
 
   float dist = length(geo_pos_es[0]);
