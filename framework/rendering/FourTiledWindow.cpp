@@ -1,6 +1,7 @@
 #include "FourTiledWindow.h"
 
-#include <GL/glew.h>
+#include <glbinding/gl/gl.h>
+using namespace gl;
 #include <GL/glut.h>
 
 namespace mvt{

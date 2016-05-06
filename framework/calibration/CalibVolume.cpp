@@ -2,6 +2,7 @@
 #include <KinectCalibrationFile.h>
 #include <timevalue.h>
 
+#include <glbinding/gl/functions-patches.h>
 // #include <fstream>
 
 namespace kinect{
@@ -99,21 +100,21 @@ namespace kinect{
       glGenTextures(1, &cv_xyz_id);
       
       glBindTexture(GL_TEXTURE_3D, cv_xyz_id);
-      glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-      glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-      glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-      glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-      glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP);
+      glTexParametere(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+      glTexParametere(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      glTexParametere(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+      glTexParametere(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+      glTexParametere(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP);
       glTexImage3D(GL_TEXTURE_3D, 0, GL_RGB32F, cv_width, cv_height, cv_depth, 0, GL_RGB, GL_FLOAT, (byte*) cv_xyz);
 
 
       glGenTextures(1, &cv_uv_id);
       glBindTexture(GL_TEXTURE_3D, cv_uv_id);
-      glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-      glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-      glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-      glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-      glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP);
+      glTexParametere(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+      glTexParametere(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      glTexParametere(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+      glTexParametere(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+      glTexParametere(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP);
       glTexImage3D(GL_TEXTURE_3D, 0, GL_RG32F, cv_width, cv_height, cv_depth, 0, GL_RG, GL_FLOAT, (byte*) cv_uv);
 
       std::cerr << "done generating textures" << std::endl;

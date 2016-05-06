@@ -93,8 +93,8 @@ ReconPoints::draw(){
 void
 ReconPoints::reload(){
   m_shader = gloost::Shader("glsl/points.vs", "glsl/points.fs", "glsl/points.gs");
-  m_shader.setProgramParameter(GL_GEOMETRY_INPUT_TYPE_EXT ,GL_POINTS);
-  m_shader.setProgramParameter(GL_GEOMETRY_OUTPUT_TYPE_EXT ,GL_POINTS);
+  m_shader.setProgramParameter(GL_GEOMETRY_INPUT_TYPE_EXT ,GLint(GL_POINTS));
+  m_shader.setProgramParameter(GL_GEOMETRY_OUTPUT_TYPE_EXT ,GLint(GL_POINTS));
   m_shader.setProgramParameter(GL_GEOMETRY_VERTICES_OUT_EXT ,1);
 }
 

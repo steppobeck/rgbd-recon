@@ -143,8 +143,9 @@ ReconTrigrid::reload(){
   m_shader_pass_accum.reset(new gloost::Shader("glsl/ksv3_vertex.vs",
 				     "glsl/ksv3_fragment.fs",
 				     "glsl/ksv3_geometry.gs"));
-  m_shader_pass_accum->setProgramParameter(GL_GEOMETRY_INPUT_TYPE_EXT ,GL_TRIANGLES);
-  m_shader_pass_accum->setProgramParameter(GL_GEOMETRY_OUTPUT_TYPE_EXT ,GL_TRIANGLE_STRIP);
+  
+  m_shader_pass_accum->setProgramParameter(GL_GEOMETRY_INPUT_TYPE_EXT ,GLint(GL_TRIANGLES));
+  m_shader_pass_accum->setProgramParameter(GL_GEOMETRY_OUTPUT_TYPE_EXT ,GLint(GL_TRIANGLE_STRIP));
   m_shader_pass_accum->setProgramParameter(GL_GEOMETRY_VERTICES_OUT_EXT ,3);
 
   m_shader_pass_normalize.reset(new gloost::Shader("glsl/pass_normalize.vs",

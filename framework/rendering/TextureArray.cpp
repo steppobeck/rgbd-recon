@@ -7,6 +7,7 @@
 #include <string.h>
 
 #include <cmath>
+#include <glbinding/gl/functions-patches.h>
 
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
 
@@ -20,7 +21,7 @@ namespace mvt{
   /*static*/ unsigned TextureArray::s_accumbufferSize = 20;
 
   TextureArray::TextureArray(unsigned width, unsigned height, unsigned depth,
-			     GLint internalFormat/* = GL_RGBA*/, GLenum pixelFormat /* = GL_RGBA*/, GLenum pixelType /* = GL_FLOAT*/, unsigned storage)
+			     GLenum internalFormat/* = GL_RGBA*/, GLenum pixelFormat /* = GL_RGBA*/, GLenum pixelType /* = GL_FLOAT*/, unsigned storage)
     : m_width(width),
       m_height(height),
       m_depth(depth),
@@ -57,16 +58,16 @@ namespace mvt{
     glBindTexture(m_type,m_glHandle);
     //if(0){//(m_internalFormat == GL_LUMINANCE32F_ARB || m_internalFormat == GL_DEPTH_COMPONENT32){
     if(m_internalFormat == GL_LUMINANCE32F_ARB || m_internalFormat == GL_DEPTH_COMPONENT32){
-      glTexParameteri(m_type, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-      glTexParameteri(m_type, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+      glTexParametere(m_type, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+      glTexParametere(m_type, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     }
     else{
-      glTexParameteri(m_type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-      glTexParameteri(m_type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+      glTexParametere(m_type, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+      glTexParametere(m_type, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     }
-    glTexParameteri(m_type, GL_TEXTURE_WRAP_S, GL_CLAMP);
-    glTexParameteri(m_type, GL_TEXTURE_WRAP_T, GL_CLAMP);
-    glTexParameteri(m_type, GL_TEXTURE_WRAP_R, GL_CLAMP);
+    glTexParametere(m_type, GL_TEXTURE_WRAP_S, GL_CLAMP);
+    glTexParametere(m_type, GL_TEXTURE_WRAP_T, GL_CLAMP);
+    glTexParametere(m_type, GL_TEXTURE_WRAP_R, GL_CLAMP);
     if(m_storage){
       glCompressedTexImage3D(m_type, 0, /*GL_COMPRESSED_RGBA_S3TC_DXT1_EXT*/m_internalFormat, m_width, m_height, m_depth, 0, m_storage * m_depth /* ???? */, 0);
     }

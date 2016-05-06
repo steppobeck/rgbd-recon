@@ -20,6 +20,7 @@
 
 #include <DXTCompressor.h>
 
+#include <glbinding/gl/functions-patches.h>
 
 #include <boost/thread/thread.hpp>
 #include <boost/thread/mutex.hpp>
@@ -67,17 +68,17 @@ namespace kinect{
       depth_compression_ratio(100.0f)
   {
 
-    if(!s_glewInit){
-      // initialize GLEW
-      if (GLEW_OK != glewInit()){
-      	/// ... or die trying
-      	std::cout << "'glewInit()' failed." << std::endl;
-      	exit(0);
-      }
-      else{
-	       s_glewInit = true;
-      }
-    }
+    // if(!s_glewInit){
+    //   // initialize GLEW
+    //   if (GLEW_OK != glewInit()){
+    //   	/// ... or die trying
+    //   	std::cout << "'glewInit()' failed." << std::endl;
+    //   	exit(0);
+    //   }
+    //   else{
+	   //     s_glewInit = true;
+    //   }
+    // }
 
     init();
 
@@ -173,8 +174,8 @@ namespace kinect{
     m_qualityArray->getGLHandle();
     glActiveTexture(GL_TEXTURE0);
     m_qualityArray->bind();
-    glTexParameteri(GL_TEXTURE_2D_ARRAY_EXT, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D_ARRAY_EXT, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParametere(GL_TEXTURE_2D_ARRAY_EXT, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParametere(GL_TEXTURE_2D_ARRAY_EXT, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
     check_gl_errors("after m_qualityArray->getGLHandle()", false);
 
@@ -208,10 +209,10 @@ namespace kinect{
     }
 
     m_gaussID = texManager->createTexture("glsl/gauss.png");
-    texManager->getTextureWithoutRefcount(m_gaussID)->setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    texManager->getTextureWithoutRefcount(m_gaussID)->setTexParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    texManager->getTextureWithoutRefcount(m_gaussID)->setTexParameter(GL_TEXTURE_WRAP_S, GL_CLAMP);
-    texManager->getTextureWithoutRefcount(m_gaussID)->setTexParameter(GL_TEXTURE_WRAP_T, GL_CLAMP);
+    texManager->getTextureWithoutRefcount(m_gaussID)->setTexParameter(GL_TEXTURE_MIN_FILTER, GLint(GL_LINEAR));
+    texManager->getTextureWithoutRefcount(m_gaussID)->setTexParameter(GL_TEXTURE_MAG_FILTER, GLint(GL_LINEAR));
+    texManager->getTextureWithoutRefcount(m_gaussID)->setTexParameter(GL_TEXTURE_WRAP_S, GLint(GL_CLAMP));
+    texManager->getTextureWithoutRefcount(m_gaussID)->setTexParameter(GL_TEXTURE_WRAP_T, GLint(GL_CLAMP));
 
     m_uniforms_bf->set_sampler2D("gauss",m_gaussID);
 

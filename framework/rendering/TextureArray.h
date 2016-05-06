@@ -2,7 +2,8 @@
 #define MVT_TEXTUREARRAY_H
 
 
-#include <GL/glew.h>
+#include <glbinding/gl/gl.h>
+using namespace gl;
 
 #include <vector>
 
@@ -16,7 +17,7 @@ namespace mvt{
     /* opengl color: GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE*/
     /* opengl depth: GL_DEPTH_COMPONENT32, GL_DEPTH_COMPONENT, GL_FLOAT*/
     TextureArray(unsigned width, unsigned height, unsigned depth,
-		 GLint internalFormat/* = GL_RGBA*/, GLenum pixelFormat /* = GL_RGBA*/, GLenum pixelType /* = GL_FLOAT*/, unsigned storage = 0);
+		 GLenum internalFormat/* = GL_RGBA*/, GLenum pixelFormat /* = GL_RGBA*/, GLenum pixelType /* = GL_FLOAT*/, unsigned storage = 0);
     ~TextureArray();
   private:
     void init();
@@ -40,10 +41,10 @@ namespace mvt{
     unsigned m_width;
     unsigned m_height;
     unsigned m_depth;
-    unsigned m_type; /*GL_TEXTURE_2D_ARRAY_EXT*/
-    unsigned m_internalFormat;
-    unsigned m_pixelFormat;
-    unsigned m_pixelType;
+    GLenum m_type; /*GL_TEXTURE_2D_ARRAY_EXT*/
+    GLenum m_internalFormat;
+    GLenum m_pixelFormat;
+    GLenum m_pixelType;
     unsigned m_glHandle;
 
     // only used if m_pixelType == GL_FLOAT

@@ -4,7 +4,8 @@
 // #include <glbinding/gl/gl.h>
 // using namespace gl;
 
-#include <GL/glew.h>
+#include <glbinding/gl/gl.h>
+using namespace gl;
 #include <GL/glut.h>
 #include <stdlib.h>
 #include <math.h>

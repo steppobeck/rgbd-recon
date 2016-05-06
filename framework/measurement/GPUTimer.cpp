@@ -2,7 +2,8 @@
 
 
 
-#include <GL/glew.h>
+#include <glbinding/gl/gl.h>
+using namespace gl;
 
 #include <iostream>
 #include <cstdlib>

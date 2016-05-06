@@ -3,7 +3,8 @@
 
 // #include <glbinding/gl/gl.h>
 // using namespace gl;
-#include <GL/glew.h>
+#include <glbinding/gl/gl.h>
+using namespace gl;
 
 #include <Matrix.h>
 
