@@ -13,7 +13,6 @@ using namespace gl;
 
 #include <globjects/Buffer.h>
 #include <globjects/Program.h>
-#include <globjects/VertexArray.h>
 
 namespace boost{
   class thread;
@@ -22,11 +21,6 @@ namespace boost{
 
 namespace mvt{
   class TextureArray;
-}
-
-namespace gloost{
-  class Shader;
-  class UniformSet;
 }
 
 namespace kinect{
@@ -64,7 +58,8 @@ namespace kinect{
 
     void bilateralFilter();
 
-    void bindToTextureUnits(unsigned start_texture_unit);
+    void setStartTextureUnit(unsigned m_start_texture_unit);
+
     unsigned getStartTextureUnit() const;
 
     std::vector<KinectCalibrationFile*> const& getCalibs() const;
@@ -77,10 +72,13 @@ namespace kinect{
     mvt::TextureArray* getDepthArrayBack();
     mvt::TextureArray* getDepthArray();
 
+    void bindToTextureUnits() const;
   protected:
     void bindToFramebuffer(GLuint array_handle, GLuint layer);
 
-    void bindBackToTextureUnits(unsigned start_texture_unit);
+    void bindBackToTextureUnits() const;
+
+    void uploadTextureBindings();
 
     void readLoop();
     void readFromFiles();
@@ -98,10 +96,8 @@ namespace kinect{
     mvt::TextureArray*  m_colorArray_back;
     mvt::TextureArray*  m_depthArray_back;
 
-    globjects::VertexArray*              m_point_grid;
-    globjects::Buffer*                  m_point_buffer;
-
     globjects::Program*                  m_program_filter;
+    globjects::Buffer*                  m_buffer_texture;
 
     unsigned m_fboID;
 

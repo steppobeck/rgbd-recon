@@ -131,7 +131,7 @@ void init(std::vector<std::string> args){
   g_recons.emplace_back(new kinect::ReconPoints(*g_calib_files, g_cv.get(), g_bbox));
   
   // binds to unit 0 and 1
-  g_nka->bindToTextureUnits(1);
+  g_nka->setStartTextureUnit(1);
 
   // bind calubration volumes from 2 - 11
   g_cv->bindToTextureUnits(4);
@@ -219,7 +219,7 @@ void draw3d(void)
   }
   // update textures if bilateral was disabled
   else {
-    g_nka->bindToTextureUnits(1);
+    g_nka->bindToTextureUnits();
   }
   // draw active reconstruction
   g_recons.at(g_recon_mode)->draw();

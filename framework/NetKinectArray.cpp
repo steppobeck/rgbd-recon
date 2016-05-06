@@ -12,9 +12,6 @@
 #include <DXTCompressor.h>
 
 #include <gl_util.h>
-#include <Shader.h>
-#include <UniformSet.h>
-#include <TextureManager.h>
 #include <Viewport.h>
 #include <gloostHelper.h>
 
@@ -35,8 +32,6 @@
 #include <fstream>
 #include <sstream>
 
-
-
 namespace kinect{
 
   NetKinectArray::NetKinectArray(std::string const& serverport, CalibrationFiles const* calibs, CalibVolume const* vols, bool readfromfile)
@@ -50,6 +45,7 @@ namespace kinect{
       m_colorArray_back(0),
       m_depthArray_back(0),
       m_program_filter{new globjects::Program()},
+      m_buffer_texture{new globjects::Buffer()},
       m_fboID(0),
       m_colorsize(0),
       m_depthsize(0),
@@ -78,6 +74,8 @@ namespace kinect{
      globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/depth_filter.vs")
     ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/depth_filter.fs")
     );
+
+    m_buffer_texture->bindBase(GL_SHADER_STORAGE_BUFFER, 0);
   }
 
   bool
@@ -193,6 +191,7 @@ namespace kinect{
     return true;
   }
 
+
   NetKinectArray::~NetKinectArray(){
     delete m_colorArray;
     delete m_qualityArray;
@@ -242,8 +241,8 @@ namespace kinect{
 
     m_colorArray->fillLayersFromPBO(m_colorsCPU3.frontID);
     m_depthArray->fillLayersFromPBO(m_depthsCPU3.frontID);
-    bindToTextureUnits(m_start_texture_unit);
 
+    bindToTextureUnits();
   }
 void NetKinectArray::bindToFramebuffer(GLuint array_handle, GLuint layer) {
   //
@@ -375,28 +374,35 @@ void NetKinectArray::bindToFramebuffer(GLuint array_handle, GLuint layer) {
  
     glPopAttrib();
 
-    bindBackToTextureUnits(m_start_texture_unit);
+    bindBackToTextureUnits();
   }
 
-  void
-  NetKinectArray::bindToTextureUnits(unsigned start_texture_unit) {
-    glActiveTexture(GL_TEXTURE0 + start_texture_unit);
-    m_colorArray->bind();
-    glActiveTexture(GL_TEXTURE0 + start_texture_unit + 1);
-    m_depthArray->bind();
-    glActiveTexture(GL_TEXTURE0 + start_texture_unit + 2);
-    m_qualityArray->bind();
-    m_start_texture_unit = start_texture_unit;
-  }
+void NetKinectArray::setStartTextureUnit(unsigned start_texture_unit) {
+  m_start_texture_unit = start_texture_unit;
+}
 
-  void
-  NetKinectArray::bindBackToTextureUnits(unsigned start_texture_unit) {
-    glActiveTexture(GL_TEXTURE0 + start_texture_unit);
-    m_colorArray->bind();
-    glActiveTexture(GL_TEXTURE0 + start_texture_unit + 1);
-    m_depthArray_back->bind();
-    m_start_texture_unit = start_texture_unit;
-  }
+void NetKinectArray::uploadTextureBindings() {
+  std::vector<int> texture_bindings = {int(m_start_texture_unit), int(m_start_texture_unit) + 1};
+
+  m_buffer_texture->setStorage(texture_bindings, GL_MAP_WRITE_BIT);
+}
+
+void NetKinectArray::bindToTextureUnits() const {
+  glActiveTexture(GL_TEXTURE0 + m_start_texture_unit);
+  m_colorArray->bind();
+  glActiveTexture(GL_TEXTURE0 + m_start_texture_unit + 1);
+  m_depthArray->bind();
+  glActiveTexture(GL_TEXTURE0 + m_start_texture_unit + 2);
+  m_qualityArray->bind();
+}
+
+
+void NetKinectArray::bindBackToTextureUnits() const {
+  glActiveTexture(GL_TEXTURE0 + m_start_texture_unit);
+  m_colorArray->bind();
+  glActiveTexture(GL_TEXTURE0 + m_start_texture_unit + 1);
+  m_depthArray_back->bind();
+}
 
   unsigned NetKinectArray::getStartTextureUnit() const {
     return m_start_texture_unit;
