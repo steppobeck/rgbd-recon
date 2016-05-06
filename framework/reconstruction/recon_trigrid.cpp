@@ -3,9 +3,9 @@
 #include "calibration_files.hpp"
 #include <KinectCalibrationFile.h>
 #include <CalibVolume.h>
-#include <glm/gtc/type_precision.hpp>
 
 #include <Matrix.h>
+#include <glm/gtc/type_precision.hpp>
 #include <globjects/VertexAttributeBinding.h>
 #include <globjects/Shader.h>
 

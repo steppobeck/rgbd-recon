@@ -8,8 +8,6 @@
 #include <globjects/Program.h>
 #include <globjects/VertexArray.h>
 
-#include <memory>
-
 namespace kinect{
 
   class ReconTrigrid : public Reconstruction {

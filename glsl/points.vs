@@ -9,7 +9,7 @@ uniform sampler3D cv_uv;
 
 uniform float cv_min_d;
 uniform float cv_max_d;
-uniform int layer;
+uniform uint layer;
 
 flat out vec2 geo_texcoord;
 flat out vec3 geo_pos_es;

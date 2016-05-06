@@ -4,8 +4,9 @@
 #include "reconstruction.hpp"
 #include <ViewArray.h>
 
-#include <Shader.h>
-#include <UniformSet.h>
+#include <globjects/Buffer.h>
+#include <globjects/Program.h>
+#include <globjects/VertexArray.h>
 
 namespace kinect{
 
@@ -13,16 +14,17 @@ namespace kinect{
 
   public:
     ReconPoints(CalibrationFiles const& cfs, CalibVolume const* cv, gloost::BoundingBox const&  bbox);
+    ~ReconPoints();
 
     void draw() override;
 
     void reload() override;
 
   private:
-    gloost::Shader m_shader;
-    gloost::UniformSet m_uniforms;
+    globjects::VertexArray*              m_point_grid;
+    globjects::Buffer*                  m_point_buffer;
 
-    // mvt::ViewArray     m_va;
+    globjects::Program*                  m_program;
   };
 }
 

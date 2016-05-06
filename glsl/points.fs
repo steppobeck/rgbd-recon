@@ -14,7 +14,7 @@ flat in vec4  pass_glpos;
 // used by accumulation pass
 uniform sampler2DArray kinect_colors;
 uniform sampler2DArray kinect_qualities;
-uniform int layer;
+uniform uint layer;
 uniform mat4 gl_ProjectionMatrix;
 uniform mat4 gl_ModelViewMatrix;
 
