@@ -100,8 +100,6 @@ ReconPoints::draw(){
     m_program->setUniform("layer",  layer);
     m_program->setUniform("cv_xyz", int(m_cv->getStartTextureUnit() + layer * 2));
     m_program->setUniform("cv_uv", int(m_cv->getStartTextureUnit() + layer * 2 + 1));
-    m_program->setUniform("cv_min_d",m_cv->m_cv_min_ds[layer]);
-    m_program->setUniform("cv_max_d",m_cv->m_cv_max_ds[layer]);
 
     m_point_grid->drawArrays(GL_POINTS, 0, m_tex_width * m_tex_height);
   }

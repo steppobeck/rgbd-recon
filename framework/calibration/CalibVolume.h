@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#include <globjects/Buffer.h>
+
 namespace kinect{
   class CalibVolume{
 
@@ -31,8 +33,12 @@ namespace kinect{
     std::vector<xyz*> m_cv_xyzs;
     std::vector<uv*> m_cv_uvs;
 
+    globjects::Buffer*    m_buffer_minmax_d;
+
   protected:
     int m_start_texture_unit;
+
+    void uploadMinMadDepths() const;
 
   public:
     static std::string serverendpoint;

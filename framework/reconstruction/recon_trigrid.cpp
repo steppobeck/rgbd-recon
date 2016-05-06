@@ -114,8 +114,6 @@ void ReconTrigrid::draw(){
     m_program_accum->setUniform("layer",  layer);
     m_program_accum->setUniform("cv_xyz", int(m_cv->getStartTextureUnit() + layer * 2));
     m_program_accum->setUniform("cv_uv", int(m_cv->getStartTextureUnit() + layer * 2 + 1));
-    m_program_accum->setUniform("cv_min_d",m_cv->m_cv_min_ds[layer]);
-    m_program_accum->setUniform("cv_max_d",m_cv->m_cv_max_ds[layer]);
 
     m_tri_grid->drawArrays(GL_TRIANGLES, 0, m_tex_width * m_tex_height * 6);
   }
@@ -139,8 +137,6 @@ void ReconTrigrid::draw(){
     m_program_accum->setUniform("layer",  layer);
     m_program_accum->setUniform("cv_xyz", int(m_cv->getStartTextureUnit() + layer * 2));
     m_program_accum->setUniform("cv_uv", int(m_cv->getStartTextureUnit() + layer * 2 + 1));
-    m_program_accum->setUniform("cv_min_d",m_cv->m_cv_min_ds[layer]);
-    m_program_accum->setUniform("cv_max_d",m_cv->m_cv_max_ds[layer]);
 
     m_tri_grid->drawArrays(GL_TRIANGLES, 0, m_tex_width * m_tex_height * 6);
   }

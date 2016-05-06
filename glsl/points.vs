@@ -1,4 +1,4 @@
-#version 130
+#version 430
 #extension GL_EXT_texture_array : enable
 
 in vec2 in_position;
@@ -6,10 +6,16 @@ in vec2 in_position;
 uniform sampler2DArray kinect_depths;
 uniform sampler3D cv_xyz;
 uniform sampler3D cv_uv;
-
-uniform float cv_min_d;
-uniform float cv_max_d;
 uniform uint layer;
+
+layout (std430, binding = 0) buffer LimitBuffer
+{
+  float[5] cv_min_d;
+  float[5] cv_max_d;
+};
+
+uniform mat4 gl_ModelViewMatrix;
+uniform mat4 gl_ProjectionMatrix;
 
 flat out vec2 geo_texcoord;
 flat out vec3 geo_pos_es;
@@ -17,7 +23,7 @@ flat out vec3 geo_pos_cs;
 flat out float geo_depth;
 
 bool is_outside(float d){
-  return (d < cv_min_d) || (d > cv_max_d);
+  return (d < cv_min_d[layer]) || (d > cv_max_d[layer]);
 }
 
 void main() {
@@ -30,7 +36,7 @@ void main() {
   }
 
   // lookup from calibvolume
-  float d_idx = (depth - cv_min_d)/(cv_max_d - cv_min_d);
+  float d_idx = (depth - cv_min_d[layer])/(cv_max_d[layer] - cv_min_d[layer]);
 
   geo_pos_cs        = texture(cv_xyz, vec3(in_position, d_idx)).rgb;
   geo_pos_es        = (gl_ModelViewMatrix * vec4(geo_pos_cs, 1.0)).xyz;

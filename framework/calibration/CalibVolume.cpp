@@ -3,7 +3,6 @@
 #include <timevalue.h>
 
 #include <glbinding/gl/functions-patches.h>
-// #include <fstream>
 
 namespace kinect{
 
@@ -21,6 +20,7 @@ namespace kinect{
     m_cv_max_ds(),
     m_cv_xyzs(),
     m_cv_uvs(),
+    m_buffer_minmax_d{new globjects::Buffer()},
     m_start_texture_unit(-1)
   {
     for(auto const& calib_file : calib_volume_files){
@@ -31,6 +31,8 @@ namespace kinect{
     }
 
     reload();
+
+    m_buffer_minmax_d->bindBase(GL_SHADER_STORAGE_BUFFER, 0);
   }
 
   /*virtual*/
@@ -133,12 +135,21 @@ namespace kinect{
 
     std::cerr << "reload done" << std::endl;
 
-  if(m_start_texture_unit >= 0) {
-    bindToTextureUnits(m_start_texture_unit);
-  }
-
+    if(m_start_texture_unit >= 0) {
+      bindToTextureUnits(m_start_texture_unit);
+    }
+    uploadMinMadDepths();
+    
     return true;
   }
+
+void CalibVolume::uploadMinMadDepths() const {
+  auto buffer = m_cv_min_ds;
+  // 5 kinects max per pc
+  buffer.resize(5);
+  copy(m_cv_max_ds.begin(),m_cv_max_ds.end(),std::back_inserter(buffer));
+  m_buffer_minmax_d->setStorage(buffer,  GL_MAP_WRITE_BIT);
+}
 
   void
   CalibVolume::bindToTextureUnits(unsigned start_texture_unit) {

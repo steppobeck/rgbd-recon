@@ -11,7 +11,6 @@ using namespace gl;
 #include <atomic>
 #include "DataTypes.h"
 
-#include <globjects/Buffer.h>
 #include <globjects/Program.h>
 
 namespace boost{
@@ -78,8 +77,6 @@ namespace kinect{
 
     void bindBackToTextureUnits() const;
 
-    void uploadTextureBindings();
-
     void readLoop();
     void readFromFiles();
     bool init();
@@ -97,7 +94,6 @@ namespace kinect{
     mvt::TextureArray*  m_depthArray_back;
 
     globjects::Program*                  m_program_filter;
-    globjects::Buffer*                  m_buffer_texture;
 
     unsigned m_fboID;
 

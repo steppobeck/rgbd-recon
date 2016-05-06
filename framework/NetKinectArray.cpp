@@ -45,7 +45,6 @@ namespace kinect{
       m_colorArray_back(0),
       m_depthArray_back(0),
       m_program_filter{new globjects::Program()},
-      m_buffer_texture{new globjects::Buffer()},
       m_fboID(0),
       m_colorsize(0),
       m_depthsize(0),
@@ -74,8 +73,6 @@ namespace kinect{
      globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/depth_filter.vs")
     ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/depth_filter.fs")
     );
-
-    m_buffer_texture->bindBase(GL_SHADER_STORAGE_BUFFER, 0);
   }
 
   bool
@@ -379,12 +376,6 @@ void NetKinectArray::bindToFramebuffer(GLuint array_handle, GLuint layer) {
 
 void NetKinectArray::setStartTextureUnit(unsigned start_texture_unit) {
   m_start_texture_unit = start_texture_unit;
-}
-
-void NetKinectArray::uploadTextureBindings() {
-  std::vector<int> texture_bindings = {int(m_start_texture_unit), int(m_start_texture_unit) + 1};
-
-  m_buffer_texture->setStorage(texture_bindings, GL_MAP_WRITE_BIT);
 }
 
 void NetKinectArray::bindToTextureUnits() const {
