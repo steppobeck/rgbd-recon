@@ -1,13 +1,16 @@
 #include "NetKinectArray.h"
-#include "calibration_files.hpp"
-#include "squish/squish.h"
 
+#include "calibration_files.hpp"
+#include "screen_quad.hpp"
 #include <FileBuffer.h>
 #include <Timer.h>
 #include <TextureArray.h>
-
 #include <KinectCalibrationFile.h>
 #include <CalibVolume.h>
+#include <timevalue.h>
+#include <clock.h>
+#include <DXTCompressor.h>
+
 #include <gl_util.h>
 #include <Shader.h>
 #include <UniformSet.h>
@@ -15,25 +18,24 @@
 #include <Viewport.h>
 #include <gloostHelper.h>
 
-#include <timevalue.h>
-#include <clock.h>
-
-#include <DXTCompressor.h>
-
 #include <glbinding/gl/functions-patches.h>
+#include <globjects/Shader.h>
+
+#include "squish/squish.h"
+#include <zmq.hpp>
 
 #include <boost/thread/thread.hpp>
 #include <boost/thread/mutex.hpp>
 #include <boost/bind.hpp>
 #include <boost/interprocess/ipc/message_queue.hpp>
+
 #include <iostream>
 #include <vector>
 #include <string>
-
-#include <zmq.hpp>
-
 #include <fstream>
 #include <sstream>
+
+
 
 namespace kinect{
 
@@ -47,10 +49,8 @@ namespace kinect{
       m_depthArray(0),
       m_colorArray_back(0),
       m_depthArray_back(0),
-      m_shader_bf(0),
-      m_uniforms_bf(0),
+      m_program_filter{new globjects::Program()},
       m_fboID(0),
-      m_gaussID(0),
       m_colorsize(0),
       m_depthsize(0),
       m_colorsCPU3(),
@@ -73,6 +73,11 @@ namespace kinect{
     else{
       m_readThread = new boost::thread(boost::bind(&NetKinectArray::readLoop, this));
     }
+
+    m_program_filter->attach(
+     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/bf.vs")
+    ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/bf.fs")
+    );
   }
 
   bool
@@ -180,28 +185,10 @@ namespace kinect{
     m_depthArray_back->getGLHandle();
 
     glGenFramebuffersEXT(1, &m_fboID);
-    m_uniforms_bf = new gloost::UniformSet;
-    m_uniforms_bf->set_int("kinect_depths",40);
-    // m_uniforms_bf->set_int("kinect_colors",2);
-    m_uniforms_bf->set_vec2("texSizeInv", gloost::vec2(1.0f/m_width, 1.0f/m_height));
+    m_program_filter->setUniform("kinect_depths",40);
+    m_program_filter->setUniform("texSizeInv", glm::fvec2(1.0f/m_width, 1.0f/m_height));
 
-    reloadShader();
-
-    gloost::TextureManager* texManager = gloost::TextureManager::getInstance();
-    if(m_gaussID){
-      texManager->dropReference(m_gaussID);
-      texManager->cleanUp();
-    }
-
-    m_gaussID = texManager->createTexture("glsl/gauss.png");
-    texManager->getTextureWithoutRefcount(m_gaussID)->setTexParameter(GL_TEXTURE_MIN_FILTER, GLint(GL_LINEAR));
-    texManager->getTextureWithoutRefcount(m_gaussID)->setTexParameter(GL_TEXTURE_MAG_FILTER, GLint(GL_LINEAR));
-    texManager->getTextureWithoutRefcount(m_gaussID)->setTexParameter(GL_TEXTURE_WRAP_S, GLint(GL_CLAMP));
-    texManager->getTextureWithoutRefcount(m_gaussID)->setTexParameter(GL_TEXTURE_WRAP_T, GLint(GL_CLAMP));
-
-    m_uniforms_bf->set_sampler2D("gauss",m_gaussID);
-
-    std::cerr << "NetKinectArray::NetKinectArray: " << this << std::endl;
+    std::cout << "NetKinectArray::NetKinectArray: " << this << std::endl;
 
     return true;
   }
@@ -212,8 +199,6 @@ namespace kinect{
     delete m_depthArray;
     delete m_colorArray_back;
     delete m_depthArray_back;
-    delete m_shader_bf;
-    delete m_uniforms_bf;
     glDeleteFramebuffersEXT(1, &m_fboID);
 
     m_colorsCPU3.needSwap = false;
@@ -222,6 +207,8 @@ namespace kinect{
     m_readThread->join();
     delete m_readThread;
     delete m_mutex;
+
+    m_program_filter->destroy();
   }
 
   void
@@ -316,6 +303,7 @@ void NetKinectArray::bindToFramebuffer(GLuint array_handle, GLuint layer) {
 
   	glActiveTexture(GL_TEXTURE0 + 40);
   	m_depthArray->bind();
+    m_program_filter->use();
 
     for(unsigned i = 0; i < m_calib_files->num(); ++i){
       //
@@ -362,32 +350,22 @@ void NetKinectArray::bindToFramebuffer(GLuint array_handle, GLuint layer) {
           break;
       }
 
-      m_uniforms_bf->set_int("layer",i);
-      m_uniforms_bf->set_int("mode", 0);
-      m_uniforms_bf->set_float("cv_min_d",m_calib_vols->m_cv_min_ds[i]);
-      m_uniforms_bf->set_float("cv_max_d",m_calib_vols->m_cv_max_ds[i]);
-      m_uniforms_bf->set_bool("compress",m_calib_files->getCalibs()[i].isCompressedDepth());
+      m_program_filter->setUniform("layer",i);
+      m_program_filter->setUniform("mode", 0);
+      m_program_filter->setUniform("cv_min_d",m_calib_vols->m_cv_min_ds[i]);
+      m_program_filter->setUniform("cv_max_d",m_calib_vols->m_cv_max_ds[i]);
+      m_program_filter->setUniform("compress",m_calib_files->getCalibs()[i].isCompressedDepth());
       const float near = m_calib_files->getCalibs()[i].getNear();
       const float far  = m_calib_files->getCalibs()[i].getFar();
       const float scale = (far - near);
-      m_uniforms_bf->set_float("scale",scale);
-      m_uniforms_bf->set_float("near",near);
-      m_uniforms_bf->set_float("scaled_near",scale/255.0);
-      m_shader_bf->set();
-      m_uniforms_bf->applyToShader(m_shader_bf);
+      m_program_filter->setUniform("scale",scale);
+      m_program_filter->setUniform("near",near);
+      m_program_filter->setUniform("scaled_near",scale/255.0f);
 
-    	glBegin(GL_TRIANGLE_STRIP);
-    	{
-    	  glVertex2f(-1.0f, -1.0f);
-    	  glVertex2f(1.0f, -1.0f);
-    	  glVertex2f(-1.0f, 1.0f);
-        glVertex2f(1.0f, 1.0f);
-    	}
-    	glEnd();
-
+      ScreenQuad::draw();
     }
     
-    m_shader_bf->disable();
+    m_program_filter->release();
 
     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, current_fbo);
     glViewport ((GLsizei)old_vp_params[0],
@@ -484,16 +462,6 @@ void NetKinectArray::bindToFramebuffer(GLuint array_handle, GLuint layer) {
       	m_colorsCPU3.needSwap = true;
       }
     }
-  }
-
-
-
-  void
-  NetKinectArray::reloadShader(){
-    if(m_shader_bf){
-      delete m_shader_bf;
-    }
-    m_shader_bf = new gloost::Shader("glsl/bf.vs","glsl/bf.fs");
   }
 
   void

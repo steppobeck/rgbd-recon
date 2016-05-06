@@ -1,6 +1,7 @@
 #include "recon_trigrid.hpp"
 
 #include "calibration_files.hpp"
+#include "screen_quad.hpp"
 #include <KinectCalibrationFile.h>
 #include <CalibVolume.h>
 
@@ -29,13 +30,10 @@ ReconTrigrid::ReconTrigrid(CalibrationFiles const& cfs, CalibVolume const* cv, g
  ,m_program_normalize{new globjects::Program()}
 {
   m_program_accum->attach(
-     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/ksv3_vertex.vs")
-    ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/ksv3_fragment.fs")
-    ,globjects::Shader::fromFile(GL_GEOMETRY_SHADER, "glsl/ksv3_geometry.gs")
-    );
-  m_program_accum->setParameter(GL_GEOMETRY_INPUT_TYPE_EXT ,GLint(GL_TRIANGLES));
-  m_program_accum->setParameter(GL_GEOMETRY_OUTPUT_TYPE_EXT ,GLint(GL_TRIANGLE_STRIP));
-  m_program_accum->setParameter(GL_GEOMETRY_VERTICES_OUT_EXT ,3);
+   globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/ksv3_vertex.vs")
+  ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/ksv3_fragment.fs")
+  ,globjects::Shader::fromFile(GL_GEOMETRY_SHADER, "glsl/ksv3_geometry.gs")
+  );
 
   m_program_accum->setUniform("kinect_colors",1);
   m_program_accum->setUniform("kinect_depths",2);
@@ -161,14 +159,7 @@ void ReconTrigrid::draw(){
   m_va_pass_accum->bindToTextureUnitRGBA(15);
   m_va_pass_depth->bindToTextureUnitDepth(16);
   
-  glBegin(GL_TRIANGLE_STRIP);
-  {
-    glVertex2f(-1.0f, -1.0f);
-    glVertex2f(1.0f, -1.0f);
-    glVertex2f(-1.0f, 1.0f);
-    glVertex2f(1.0f, 1.0f);
-  }
-  glEnd();
+  ScreenQuad::draw();
 
   m_program_normalize->release();
 }

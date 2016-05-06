@@ -1,8 +1,6 @@
 #ifndef KINECT_NETKINECTARRAY_H
 #define KINECT_NETKINECTARRAY_H
 
-// #include <glbinding/gl/gl.h>
-// using namespace gl;
 #include <glbinding/gl/gl.h>
 using namespace gl;
 
@@ -12,6 +10,10 @@ using namespace gl;
 #include <vector>
 #include <atomic>
 #include "DataTypes.h"
+
+#include <globjects/Buffer.h>
+#include <globjects/Program.h>
+#include <globjects/VertexArray.h>
 
 namespace boost{
   class thread;
@@ -69,8 +71,6 @@ namespace kinect{
 
     std::vector<gloost::Matrix> current_poses;
 
-    void reloadShader();
-
     void writeCurrentTexture(std::string prefix);
     void writeBMP(std::string, std::vector<std::uint8_t> const&, unsigned int offset, unsigned int bytesPerPixel);
     
@@ -98,10 +98,12 @@ namespace kinect{
     mvt::TextureArray*  m_colorArray_back;
     mvt::TextureArray*  m_depthArray_back;
 
-    gloost::Shader*     m_shader_bf;
-    gloost::UniformSet* m_uniforms_bf;
+    globjects::VertexArray*              m_point_grid;
+    globjects::Buffer*                  m_point_buffer;
+
+    globjects::Program*                  m_program_filter;
+
     unsigned m_fboID;
-    unsigned m_gaussID;
 
     unsigned m_colorsize; // per frame
     unsigned m_depthsize; // per frame

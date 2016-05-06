@@ -9,7 +9,7 @@ uniform sampler2DArray kinect_depths;
 //uniform sampler2DArray kinect_colors;
 uniform vec2 texSizeInv;
 
-uniform int layer;
+uniform uint layer;
 uniform bool compress;
 uniform float scale;
 uniform float near;

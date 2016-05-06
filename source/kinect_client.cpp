@@ -338,7 +338,6 @@ void key(unsigned char key, int x, int y)
       for (auto& recon : g_recons) {
         recon->reload();
       }
-      g_nka->reloadShader();
       g_calib_files->reload();
       g_cv->reload();
       globjects::File::reloadAll();
