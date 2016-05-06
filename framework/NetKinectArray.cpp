@@ -37,8 +37,6 @@
 
 namespace kinect{
 
-  /*static*/ bool NetKinectArray::s_glewInit = false;
-
   NetKinectArray::NetKinectArray(std::string const& serverport, CalibrationFiles const* calibs, CalibVolume const* vols, bool readfromfile)
     : m_width(0),
       m_widthc(0),
@@ -67,19 +65,6 @@ namespace kinect{
       depth_compression_lex(false),
       depth_compression_ratio(100.0f)
   {
-
-    // if(!s_glewInit){
-    //   // initialize GLEW
-    //   if (GLEW_OK != glewInit()){
-    //   	/// ... or die trying
-    //   	std::cout << "'glewInit()' failed." << std::endl;
-    //   	exit(0);
-    //   }
-    //   else{
-	   //     s_glewInit = true;
-    //   }
-    // }
-
     init();
 
     if(readfromfile){

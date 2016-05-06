@@ -1,13 +1,9 @@
 #include <CMDParser.h>
 #include <screen_space_measurement_tool.hpp>
 
-/// c++ includes
-// #include <GL/glew.h>
-#include <glbinding/gl/gl.h>
-#include <glbinding/Binding.h>
+#include <globjects/globjects.h>
 using namespace gl;
 #include <GL/glut.h>
-// #include <globjects/globjects.h>
 
 #include <iostream>
 #include <cmath>
@@ -455,16 +451,9 @@ int main(int argc, char *argv[])
   glutSpecialFunc(specialKey);
   glutSetCursor(GLUT_CURSOR_CROSSHAIR);
 
-  // initialize GLEW
-  glbinding::Binding::initialize(); // only resolve functions that are actually used (lazy)
-  // if (GLEW_OK != glewInit()){
-  //   /// ... or die trying
-  //   std::cout << "'glewInit()' failed." << std::endl;
-  //   exit(0);
-  // }
-
+  // glbinding::Binding::initialize(); // only resolve functions that are actually used (lazy)
   // Initialize globjects (internally initializes glbinding, and registers the current context)
-  // globjects::init();
+  globjects::init();
 
   // set some gl states
   glEnable(GL_TEXTURE_2D);

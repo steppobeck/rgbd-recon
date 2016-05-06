@@ -162,7 +162,7 @@ generate_export_header(${target}
 )
 # hack to access generated files from top level libraries
 set(${target_upper}_EXPORT_DIRS ${CMAKE_CURRENT_BINARY_DIR}/include CACHE INTERNAL "")
-message("${target_upper}_EXPORT_DIRS is------- ${${target_upper}_EXPORT_DIRS}")
+
 # Create feature detection header
 if (WriterCompilerDetectionHeaderFound)
     write_compiler_detection_header(

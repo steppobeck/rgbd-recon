@@ -112,7 +112,6 @@ namespace kinect{
     boost::thread* m_readThread;
     bool m_running;
     std::string m_serverport;
-    static bool s_glewInit;
 
     unsigned m_start_texture_unit;
     CalibrationFiles const* m_calib_files;
