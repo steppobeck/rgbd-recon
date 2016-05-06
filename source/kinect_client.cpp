@@ -90,6 +90,8 @@ void init(std::vector<std::string> args){
   gloost::Point3 bbox_min{-1.0f ,0.0f, -1.0f};
   gloost::Point3 bbox_max{ 1.0f ,2.2f, 1.0f};
 
+  std::string resource_path = file_name.substr(0, file_name.find_last_of("/\\")) + '/';
+  std::cout << resource_path << std::endl;
   std::ifstream in(file_name);
   std::string token;
   while(in >> token){
@@ -98,7 +100,13 @@ void init(std::vector<std::string> args){
     } 
     else if (token == "kinect") {
       in >> token;
-      calib_filenames.push_back(token);
+      // detect absolute path
+      if (token[0] == '/' || token[1] == ':') {
+        calib_filenames.push_back(token);
+      }
+      else {
+        calib_filenames.push_back(resource_path + token);
+      }
     }
     else if (token == "bbx") {
       in >> bbox_min[0];

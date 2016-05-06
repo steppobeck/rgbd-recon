@@ -180,6 +180,7 @@ class vec3
 					case X: return rotX(angle_deg);
 					case Y: return rotY(angle_deg);
 					case Z: return rotZ(angle_deg);
+					default: throw std::exception{};
 				}
 				return *this;
 			}
@@ -210,6 +211,7 @@ class vec3
 				{
 					case PHI: return rotPhi(angle_deg);
 					case RHO: return rotRho(angle_deg);
+					default: throw std::exception{};
 				}
 				return *this;
 			}
