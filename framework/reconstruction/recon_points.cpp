@@ -36,6 +36,9 @@ ReconPoints::ReconPoints(CalibrationFiles const& cfs, CalibVolume const* cv, glo
   m_program->setUniform("kinect_qualities", 3);
   m_program->setUniform("bbox_min",m_bbox.getPMin());
   m_program->setUniform("bbox_max",m_bbox.getPMax());
+  m_program->setUniform("epsilon" , 0.075f);
+  m_program->setUniform("cv_xyz", m_cv->getXYZVolumeUnits());
+  m_program->setUniform("cv_uv", m_cv->getUVVolumeUnits());
 
   std::vector<glm::fvec2> data{};
   float stepX = 1.0f / m_tex_width;
@@ -85,7 +88,6 @@ ReconPoints::draw(){
   m_program->setUniform("viewportSizeInv", glm::fvec2(1.0f/width, 1.0f/height));
   m_program->setUniform("img_to_eye_curr", image_to_eye);
   m_program->setUniform("projection_inv", projection_matrix);
-  m_program->setUniform("epsilon" , 0.075f);
 
   gloost::Matrix modelview_matrix;
   gloost::Matrix modelview_inv;
@@ -98,8 +100,6 @@ ReconPoints::draw(){
 
   for(unsigned layer = 0; layer < m_num_kinects; ++layer) {
     m_program->setUniform("layer",  layer);
-    m_program->setUniform("cv_xyz", int(m_cv->getStartTextureUnit() + layer * 2));
-    m_program->setUniform("cv_uv", int(m_cv->getStartTextureUnit() + layer * 2 + 1));
 
     m_point_grid->drawArrays(GL_POINTS, 0, m_tex_width * m_tex_height);
   }

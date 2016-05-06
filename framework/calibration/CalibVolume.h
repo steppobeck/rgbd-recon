@@ -20,6 +20,11 @@ namespace kinect{
     void bindToTextureUnits(unsigned start_texture_unit);
     unsigned getStartTextureUnit() const;
 
+    std::vector<int> getXYZVolumeUnits() const;
+
+    std::vector<int> getUVVolumeUnits() const;
+
+
   public:
     std::vector<std::string> m_cv_xyz_filenames;
     std::vector<std::string> m_cv_uv_filenames;

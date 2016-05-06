@@ -126,16 +126,14 @@ void init(std::vector<std::string> args){
   g_calib_files = std::unique_ptr<kinect::CalibrationFiles>{new kinect::CalibrationFiles(calib_filenames)};
   g_cv = std::unique_ptr<kinect::CalibVolume>{new kinect::CalibVolume(g_calib_files->getFileNames())};
   g_nka = std::unique_ptr<kinect::NetKinectArray>{new kinect::NetKinectArray(serverport, g_calib_files.get(), g_cv.get())};
+  
+  // binds to unit 1 to 3
+  g_nka->setStartTextureUnit(1);
+  // bind calubration volumes from 4 - 13
+  g_cv->bindToTextureUnits(4);
 
   g_recons.emplace_back(new kinect::ReconTrigrid(*g_calib_files, g_cv.get(), g_bbox));
   g_recons.emplace_back(new kinect::ReconPoints(*g_calib_files, g_cv.get(), g_bbox));
-  
-  // binds to unit 0 and 1
-  g_nka->setStartTextureUnit(1);
-
-  // bind calubration volumes from 2 - 11
-  g_cv->bindToTextureUnits(4);
-
 
   // enable point scaling in vertex shader
   glEnable(GL_PROGRAM_POINT_SIZE);

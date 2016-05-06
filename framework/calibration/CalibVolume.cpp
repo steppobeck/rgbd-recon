@@ -151,19 +151,35 @@ void CalibVolume::uploadMinMadDepths() const {
   m_buffer_minmax_d->setStorage(buffer,  GL_MAP_WRITE_BIT);
 }
 
-  void
-  CalibVolume::bindToTextureUnits(unsigned start_texture_unit) {
-    for(unsigned layer = 0; layer < m_cv_xyzs.size(); ++layer){
-      glActiveTexture(GL_TEXTURE0 + start_texture_unit + layer * 2);
-      glBindTexture(GL_TEXTURE_3D, m_cv_xyz_ids[layer]);
-      glActiveTexture(GL_TEXTURE0 + start_texture_unit + layer * 2 + 1);
-      glBindTexture(GL_TEXTURE_3D, m_cv_uv_ids[layer]);
-    }
-    glActiveTexture(GL_TEXTURE0);
-    m_start_texture_unit = start_texture_unit;    
+std::vector<int> CalibVolume::getXYZVolumeUnits() const {
+  std::vector<int> units(5, 0);
+  for(int i = 0; i < int(m_cv_xyzs.size()); ++i) {
+    units[i] = m_start_texture_unit + i * 2;
   }
+  return units;
+}
+std::vector<int> CalibVolume::getUVVolumeUnits() const {
+  std::vector<int> units(5, 0);
+  for(int i = 0; i < int(m_cv_uvs.size()); ++i) {
+    units[i] = m_start_texture_unit + i * 2 + 1;
+  }
+  return units;
+}
 
-  unsigned CalibVolume::getStartTextureUnit() const {
-    return m_start_texture_unit;
+void
+CalibVolume::bindToTextureUnits(unsigned start_texture_unit) {
+  for(unsigned layer = 0; layer < m_cv_xyzs.size(); ++layer){
+    glActiveTexture(GL_TEXTURE0 + start_texture_unit + layer * 2);
+    glBindTexture(GL_TEXTURE_3D, m_cv_xyz_ids[layer]);
+    glActiveTexture(GL_TEXTURE0 + start_texture_unit + layer * 2 + 1);
+    glBindTexture(GL_TEXTURE_3D, m_cv_uv_ids[layer]);
   }
+  glActiveTexture(GL_TEXTURE0);
+  m_start_texture_unit = start_texture_unit;    
+}
+
+unsigned CalibVolume::getStartTextureUnit() const {
+  return m_start_texture_unit;
+}
+
 }

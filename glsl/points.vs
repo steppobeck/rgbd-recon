@@ -4,8 +4,8 @@
 in vec2 in_position;
 
 uniform sampler2DArray kinect_depths;
-uniform sampler3D cv_xyz;
-uniform sampler3D cv_uv;
+uniform sampler3D[5] cv_xyz;
+uniform sampler3D[5] cv_uv;
 uniform uint layer;
 
 layout (std430, binding = 0) buffer LimitBuffer
@@ -38,9 +38,9 @@ void main() {
   // lookup from calibvolume
   float d_idx = (depth - cv_min_d[layer])/(cv_max_d[layer] - cv_min_d[layer]);
 
-  geo_pos_cs        = texture(cv_xyz, vec3(in_position, d_idx)).rgb;
+  geo_pos_cs        = texture(cv_xyz[layer], vec3(in_position, d_idx)).rgb;
   geo_pos_es        = (gl_ModelViewMatrix * vec4(geo_pos_cs, 1.0)).xyz;
-  geo_texcoord      = texture(cv_uv,  vec3(in_position, d_idx)).rg;
+  geo_texcoord      = texture(cv_uv[layer],  vec3(in_position, d_idx)).rg;
   geo_depth         = depth;
 
   gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * vec4(geo_pos_cs, 1.0);

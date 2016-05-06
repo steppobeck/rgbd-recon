@@ -41,6 +41,10 @@ ReconTrigrid::ReconTrigrid(CalibrationFiles const& cfs, CalibVolume const* cv, g
   m_program_accum->setUniform("depth_map_curr",14);
   m_program_accum->setUniform("bbox_min",m_bbox.getPMin());
   m_program_accum->setUniform("bbox_max",m_bbox.getPMax());
+  m_program_accum->setUniform("epsilon"    , 0.075f);
+  m_program_accum->setUniform("min_length", m_min_length);
+  m_program_accum->setUniform("cv_xyz", m_cv->getXYZVolumeUnits());
+  m_program_accum->setUniform("cv_uv", m_cv->getUVVolumeUnits());
 
   m_program_normalize->attach(
      globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/trigrid_normalize.vs")
@@ -102,18 +106,15 @@ void ReconTrigrid::draw(){
   unsigned ox;
   unsigned oy;
   // cull in the geometry shader
-	glDisable(GL_CULL_FACE);
+  glDisable(GL_CULL_FACE);
 // pass 1 goes to depth buffer only
   m_va_pass_depth->enable(0, false, &ox, &oy, false);
 
   m_program_accum->use();
   m_program_accum->setUniform("stage", 0u);
-  m_program_accum->setUniform("min_length", m_min_length);
 
   for(unsigned layer = 0; layer < m_num_kinects; ++layer){
     m_program_accum->setUniform("layer",  layer);
-    m_program_accum->setUniform("cv_xyz", int(m_cv->getStartTextureUnit() + layer * 2));
-    m_program_accum->setUniform("cv_uv", int(m_cv->getStartTextureUnit() + layer * 2 + 1));
 
     m_tri_grid->drawArrays(GL_TRIANGLES, 0, m_tex_width * m_tex_height * 6);
   }
@@ -129,14 +130,11 @@ void ReconTrigrid::draw(){
   m_program_accum->setUniform("stage", 1u);
   m_program_accum->setUniform("viewportSizeInv", glm::fvec2(1.0f/m_va_pass_depth->getWidth(), 1.0f/m_va_pass_depth->getHeight()));
   m_program_accum->setUniform("img_to_eye_curr", image_to_eye);
-  m_program_accum->setUniform("epsilon"    , 0.075f);
   
   m_va_pass_depth->bindToTextureUnitDepth(14);
 
   for(unsigned layer = 0; layer < m_num_kinects; ++layer){
     m_program_accum->setUniform("layer",  layer);
-    m_program_accum->setUniform("cv_xyz", int(m_cv->getStartTextureUnit() + layer * 2));
-    m_program_accum->setUniform("cv_uv", int(m_cv->getStartTextureUnit() + layer * 2 + 1));
 
     m_tri_grid->drawArrays(GL_TRIANGLES, 0, m_tex_width * m_tex_height * 6);
   }

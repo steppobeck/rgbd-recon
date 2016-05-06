@@ -60,6 +60,8 @@ namespace kinect{
     void setStartTextureUnit(unsigned m_start_texture_unit);
 
     unsigned getStartTextureUnit() const;
+    std::vector<int> getColorTextureUnits() const;
+    std::vector<int> getDepthTextureUnits() const;
 
     std::vector<KinectCalibrationFile*> const& getCalibs() const;
 
