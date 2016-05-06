@@ -38,6 +38,9 @@
 namespace gloost
 {
 
+Vector2::operator glm::fvec2() const {
+  return glm::fvec2{_data[0], _data[1]};
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 

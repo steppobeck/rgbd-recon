@@ -41,9 +41,9 @@ namespace gloost
 
 /*static*/ Point3 Point3::origin = Point3(0.0,0.0,0.0);
 
-
-
-
+Point3::operator glm::fvec3() const {
+  return glm::fvec3{_data[0], _data[1], _data[2]};
+}
 ////////////////////////////////////////////////////////////////////////////////
 
 

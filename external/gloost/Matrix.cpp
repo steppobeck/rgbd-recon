@@ -39,6 +39,15 @@
 
 namespace gloost
 {
+Matrix::operator glm::fmat4() const {
+  glm::fmat4 mat{};
+  for (std::size_t column = 0; column < 4; ++column) {
+    for (std::size_t row = 0; row < 4; ++row) {
+      mat[column][row] = _data[column * 4 + row];
+    }
+  }
+  return mat;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 

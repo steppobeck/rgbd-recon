@@ -7,6 +7,7 @@
 
 #include <Matrix.h>
 #include <globjects/VertexAttributeBinding.h>
+#include <globjects/Shader.h>
 
 namespace kinect{
 
@@ -20,29 +21,35 @@ static getWidthHeight(unsigned& width, unsigned& height){
 
 ReconTrigrid::ReconTrigrid(CalibrationFiles const& cfs, CalibVolume const* cv, gloost::BoundingBox const&  bbox)
  :Reconstruction(cfs, cv, bbox)
- ,m_shader_pass_accum()
- ,m_shader_pass_normalize()
- ,m_uniforms_pass_accum()
- ,m_uniforms_pass_normalize()
  ,m_va_pass_depth()
  ,m_va_pass_accum()
- ,m_tri_grid{nullptr}
- ,m_tri_buffer{nullptr}
+ ,m_tri_grid{new globjects::VertexArray()}
+ ,m_tri_buffer{new globjects::Buffer()}
+ ,m_program_accum{new globjects::Program()}
+ ,m_program_normalize{new globjects::Program()}
 {
-  m_uniforms_pass_accum = std::unique_ptr<gloost::UniformSet>{new gloost::UniformSet};
-  m_uniforms_pass_accum->set_int("kinect_colors",1);
-  m_uniforms_pass_accum->set_int("kinect_depths",2);
-  m_uniforms_pass_accum->set_int("kinect_qualities",3);
-  m_uniforms_pass_accum->set_int("depth_map_curr",14);
-  m_uniforms_pass_accum->set_vec3("bbox_min",m_bbox.getPMin());
-  m_uniforms_pass_accum->set_vec3("bbox_max",m_bbox.getPMax());
+  m_program_accum->attach(
+     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/ksv3_vertex.vs")
+    ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/ksv3_fragment.fs")
+    ,globjects::Shader::fromFile(GL_GEOMETRY_SHADER, "glsl/ksv3_geometry.gs")
+    );
+  m_program_accum->setParameter(GL_GEOMETRY_INPUT_TYPE_EXT ,GLint(GL_TRIANGLES));
+  m_program_accum->setParameter(GL_GEOMETRY_OUTPUT_TYPE_EXT ,GLint(GL_TRIANGLE_STRIP));
+  m_program_accum->setParameter(GL_GEOMETRY_VERTICES_OUT_EXT ,3);
 
-  m_uniforms_pass_normalize = std::unique_ptr<gloost::UniformSet>{new gloost::UniformSet};
-  m_uniforms_pass_normalize->set_int("color_map",15);
-  m_uniforms_pass_normalize->set_int("depth_map",16);
+  m_program_accum->setUniform("kinect_colors",1);
+  m_program_accum->setUniform("kinect_depths",2);
+  m_program_accum->setUniform("kinect_qualities",3);
+  m_program_accum->setUniform("depth_map_curr",14);
+  m_program_accum->setUniform("bbox_min",m_bbox.getPMin());
+  m_program_accum->setUniform("bbox_max",m_bbox.getPMax());
 
-  m_tri_grid = new globjects::VertexArray();
-  m_tri_buffer = new globjects::Buffer();
+  m_program_normalize->attach(
+     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/pass_normalize.vs")
+    ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/pass_normalize.fs")
+    );
+  m_program_normalize->setUniform("color_map",15);
+  m_program_normalize->setUniform("depth_map",16);
 
   std::vector<glm::fvec2> data{};
   float stepX = 1.0f/m_tex_width;
@@ -74,6 +81,8 @@ ReconTrigrid::ReconTrigrid(CalibrationFiles const& cfs, CalibVolume const* cv, g
 ReconTrigrid::~ReconTrigrid() {
   m_tri_grid->destroy();
   m_tri_buffer->destroy();
+  m_program_accum->destroy();
+  m_program_normalize->destroy();
 }
 
 void ReconTrigrid::draw(){
@@ -98,22 +107,21 @@ void ReconTrigrid::draw(){
 	glDisable(GL_CULL_FACE);
 // pass 1 goes to depth buffer only
   m_va_pass_depth->enable(0, false, &ox, &oy, false);
-  m_shader_pass_accum->set();
-  m_uniforms_pass_accum->set_int("stage", 0);
-  m_uniforms_pass_accum->set_float("min_length", m_min_length);
+
+  m_program_accum->use();
+  m_program_accum->setUniform("stage", 0u);
+  m_program_accum->setUniform("min_length", m_min_length);
 
   for(unsigned layer = 0; layer < m_num_kinects; ++layer){
-    m_uniforms_pass_accum->set_int("layer",  layer);
-    m_uniforms_pass_accum->set_int("cv_xyz",m_cv->getStartTextureUnit() + layer * 2);
-    m_uniforms_pass_accum->set_int("cv_uv",m_cv->getStartTextureUnit() + layer * 2 + 1);
-    m_uniforms_pass_accum->set_float("cv_min_d",m_cv->m_cv_min_ds[layer]);
-    m_uniforms_pass_accum->set_float("cv_max_d",m_cv->m_cv_max_ds[layer]);
-	  m_uniforms_pass_accum->applyToShader(m_shader_pass_accum.get());
-	  
+    m_program_accum->setUniform("layer",  layer);
+    m_program_accum->setUniform("cv_xyz", int(m_cv->getStartTextureUnit() + layer * 2));
+    m_program_accum->setUniform("cv_uv", int(m_cv->getStartTextureUnit() + layer * 2 + 1));
+    m_program_accum->setUniform("cv_min_d",m_cv->m_cv_min_ds[layer]);
+    m_program_accum->setUniform("cv_max_d",m_cv->m_cv_max_ds[layer]);
+
     m_tri_grid->drawArrays(GL_TRIANGLES, 0, m_tex_width * m_tex_height * 6);
   }
 
-  m_shader_pass_accum->disable();
   m_va_pass_depth->disable(false);
 
 // pass 2 goes to accumulation buffer
@@ -122,37 +130,34 @@ void ReconTrigrid::draw(){
   glBlendFuncSeparateEXT(GL_ONE,GL_ONE,GL_ONE,GL_ONE);
   glBlendEquationSeparateEXT(GL_FUNC_ADD, GL_FUNC_ADD);
   m_va_pass_accum->enable(0, false, &ox, &oy);
-  m_uniforms_pass_accum->set_int("stage", 1);
-  m_uniforms_pass_accum->set_vec2("viewportSizeInv", gloost::vec2(1.0f/m_va_pass_depth->getWidth(), 1.0f/m_va_pass_depth->getHeight()));
-  m_uniforms_pass_accum->set_mat4("img_to_eye_curr", image_to_eye);
-  m_uniforms_pass_accum->set_float("epsilon"    , 0.075);
+  m_program_accum->setUniform("stage", 1u);
+  m_program_accum->setUniform("viewportSizeInv", glm::fvec2(1.0f/m_va_pass_depth->getWidth(), 1.0f/m_va_pass_depth->getHeight()));
+  m_program_accum->setUniform("img_to_eye_curr", image_to_eye);
+  m_program_accum->setUniform("epsilon"    , 0.075f);
   
   m_va_pass_depth->bindToTextureUnitDepth(14);
-  m_shader_pass_accum->set();
 
   for(unsigned layer = 0; layer < m_num_kinects; ++layer){
-    m_uniforms_pass_accum->set_int("layer",  layer);
-    m_uniforms_pass_accum->set_int("cv_xyz",m_cv->getStartTextureUnit() + layer * 2);
-    m_uniforms_pass_accum->set_int("cv_uv",m_cv->getStartTextureUnit() + layer * 2 + 1);
-    m_uniforms_pass_accum->set_float("cv_min_d",m_cv->m_cv_min_ds[layer]);
-    m_uniforms_pass_accum->set_float("cv_max_d",m_cv->m_cv_max_ds[layer]);
-    m_uniforms_pass_accum->applyToShader(m_shader_pass_accum.get());
-    
+    m_program_accum->setUniform("layer",  layer);
+    m_program_accum->setUniform("cv_xyz", int(m_cv->getStartTextureUnit() + layer * 2));
+    m_program_accum->setUniform("cv_uv", int(m_cv->getStartTextureUnit() + layer * 2 + 1));
+    m_program_accum->setUniform("cv_min_d",m_cv->m_cv_min_ds[layer]);
+    m_program_accum->setUniform("cv_max_d",m_cv->m_cv_max_ds[layer]);
+
     m_tri_grid->drawArrays(GL_TRIANGLES, 0, m_tex_width * m_tex_height * 6);
   }
 
-  m_shader_pass_accum->disable();
+  m_program_accum->release();
   m_va_pass_accum->disable(false);
   glDisable(GL_BLEND);
 
 // normalize pass outputs best quality color and depth to framebuffer of parent renderstage
   glEnable(GL_DEPTH_TEST);
-  m_shader_pass_normalize->set();
-  m_uniforms_pass_normalize->set_vec2("texSizeInv", gloost::vec2(1.0f/m_va_pass_depth->getWidth(), 1.0f/m_va_pass_depth->getHeight()));
-  m_uniforms_pass_normalize->set_vec2("offset"    , gloost::vec2(1.0f*ox,                          1.0f*oy));
-  
-  m_uniforms_pass_normalize->applyToShader(m_shader_pass_normalize.get());
 
+  m_program_normalize->use();
+  m_program_normalize->setUniform("texSizeInv", glm::fvec2(1.0f/m_va_pass_depth->getWidth(), 1.0f/m_va_pass_depth->getHeight()));
+  m_program_normalize->setUniform("offset"    , glm::fvec2(1.0f*ox,                          1.0f*oy));
+  
   m_va_pass_accum->bindToTextureUnitRGBA(15);
   m_va_pass_depth->bindToTextureUnitDepth(16);
   
@@ -165,21 +170,16 @@ void ReconTrigrid::draw(){
   }
   glEnd();
 
-  m_shader_pass_normalize->disable();
+  m_program_normalize->release();
 }
 
 void
 ReconTrigrid::reload(){
-  m_shader_pass_accum.reset(new gloost::Shader("glsl/ksv3_vertex.vs",
-				     "glsl/ksv3_fragment.fs",
-				     "glsl/ksv3_geometry.gs"));
-  
-  m_shader_pass_accum->setProgramParameter(GL_GEOMETRY_INPUT_TYPE_EXT ,GLint(GL_TRIANGLES));
-  m_shader_pass_accum->setProgramParameter(GL_GEOMETRY_OUTPUT_TYPE_EXT ,GLint(GL_TRIANGLE_STRIP));
-  m_shader_pass_accum->setProgramParameter(GL_GEOMETRY_VERTICES_OUT_EXT ,3);
-
-  m_shader_pass_normalize.reset(new gloost::Shader("glsl/pass_normalize.vs",
-					 "glsl/pass_normalize.fs"));
+  // for ( auto shader : m_program_accum->shaders()) {
+  //   shader->updateSource();
+  //   shader->compile();
+  // }
+  // m_program_accum->link();
 }
 
 void ReconTrigrid::resize(std::size_t width, std::size_t height) {

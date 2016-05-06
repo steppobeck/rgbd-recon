@@ -351,16 +351,16 @@ Shader::initInContext(unsigned int contextId)
 #ifndef GLOOST_SYSTEM_DISABLE_OUTPUT_MESSAGES
   if (vsCompiled == GL_TRUE && fsCompiled == GL_TRUE && gsCompiled == GL_TRUE)
   {
-    std::cout << std::endl;
-    std::cout << std::endl << "Message from Shader::compileToProgram() on SharedResource " << getSharedResourceId() << ":";
-    std::cout << std::endl << "             Successfully compiled and linked.";
-    std::cout << std::endl << "               \"" << _vertexShaderFileName << "\", ";
-    std::cout << std::endl << "               \"" << _fragmentShaderFileName << "\"";
-    if (gs)
-    {
-      std::cout << ", "<< std::endl << "             \"" << _geometryShaderFileName << "\"";
-    }
-    std::cout << std::endl;
+    // std::cout << std::endl;
+    // std::cout << std::endl << "Message from Shader::compileToProgram() on SharedResource " << getSharedResourceId() << ":";
+    // std::cout << std::endl << "             Successfully compiled and linked.";
+    // std::cout << std::endl << "               \"" << _vertexShaderFileName << "\", ";
+    // std::cout << std::endl << "               \"" << _fragmentShaderFileName << "\"";
+    // if (gs)
+    // {
+    //   std::cout << ", "<< std::endl << "             \"" << _geometryShaderFileName << "\"";
+    // }
+    // std::cout << std::endl;
     return true;
   }
 #endif
