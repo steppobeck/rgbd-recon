@@ -28,7 +28,7 @@
 #include <glErrorUtil.h>
 #include <gloostConfig.h>
 
-
+#include <glbinding/gl/functions-patches.h>
 // cpp includes
 #include <string>
 
@@ -184,9 +184,9 @@ Shader::initInContext(unsigned int contextId)
   GLuint gs = 0;
 
   // return values for the compile process
-  GLint vsCompiled = 0;
-  GLint fsCompiled = 0;
-  GLint gsCompiled = 0;
+  GLboolean vsCompiled = GL_FALSE;
+  GLboolean fsCompiled = GL_FALSE;
+  GLboolean gsCompiled = GL_FALSE;
 
   // iterator for program parameter
   std::map<GLenum,int>::iterator params;
@@ -225,7 +225,7 @@ Shader::initInContext(unsigned int contextId)
 
   // vertex shader
   glCompileShader(vs);
-  glGetShaderiv(vs, GL_COMPILE_STATUS, &vsCompiled);
+  glGetShaderbv(vs, GL_COMPILE_STATUS, &vsCompiled);
 
   if (vsCompiled == GL_FALSE)
   {
@@ -246,7 +246,7 @@ Shader::initInContext(unsigned int contextId)
 
   // fragment shader
   glCompileShader( fs );
-  glGetShaderiv(fs, GL_COMPILE_STATUS, &fsCompiled);
+  glGetShaderbv(fs, GL_COMPILE_STATUS, &fsCompiled);
 
 
   if (fsCompiled == GL_FALSE)
@@ -269,7 +269,7 @@ Shader::initInContext(unsigned int contextId)
   if (gs)
   {
     glCompileShader( gs );
-    glGetShaderiv(gs, GL_COMPILE_STATUS, &gsCompiled);
+    glGetShaderbv(gs, GL_COMPILE_STATUS, &gsCompiled);
 
     if (gsCompiled == GL_FALSE)
     {

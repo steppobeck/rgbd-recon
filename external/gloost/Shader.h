@@ -51,7 +51,8 @@
 
 
 #ifndef __GLEW_H__
-#include <GL/glew.h>
+#include <glbinding/gl/gl.h>
+using namespace gl;
 #endif
 
 #ifdef __APPLE__

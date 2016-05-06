@@ -48,7 +48,7 @@ namespace gloost
 Texture::Texture(unsigned int width,
 		            unsigned int height,
 		            GLenum target,
-		            GLint internalFormat,
+		            GLenum internalFormat,
 		            GLenum pixelFormat,
 		            GLenum pixelType):
     MultiGlContext(1),
@@ -60,7 +60,7 @@ Texture::Texture(unsigned int width,
     _pixelFormat(pixelFormat),
     _pixelType(pixelType),
     _dirty(true),
-    _textureUnitIdsForContexts(GLOOST_SYSTEM_NUM_RENDER_CONTEXTS, 0),
+    _textureUnitIdsForContexts(GLOOST_SYSTEM_NUM_RENDER_CONTEXTS, GL_NONE),
     _mipmapsEnabled(false),
     //_surface(0),
     _pixelData(0),
@@ -72,10 +72,10 @@ Texture::Texture(unsigned int width,
 
 {
   // Set some default texParameter so you will see something
-  setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  setTexParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  setTexParameter(GL_TEXTURE_WRAP_S, GL_REPEAT);
-  setTexParameter(GL_TEXTURE_WRAP_T, GL_REPEAT);
+  setTexParameter(GL_TEXTURE_MIN_FILTER, float(GL_LINEAR));
+  setTexParameter(GL_TEXTURE_MAG_FILTER, float(GL_LINEAR));
+  setTexParameter(GL_TEXTURE_WRAP_S, float(GL_REPEAT));
+  setTexParameter(GL_TEXTURE_WRAP_T, float(GL_REPEAT));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -93,7 +93,7 @@ Texture::Texture(const std::string& fileName):
     _pixelFormat(GL_RGB),
     _pixelType(GL_UNSIGNED_BYTE),
     _dirty(GLOOST_BITMASK_ALL_SET),
-    _textureUnitIdsForContexts(GLOOST_SYSTEM_NUM_RENDER_CONTEXTS, 0),
+    _textureUnitIdsForContexts(GLOOST_SYSTEM_NUM_RENDER_CONTEXTS, GL_NONE),
     _mipmapsEnabled(false),
     //_surface(0),
     _pixelData(0),
@@ -105,10 +105,10 @@ Texture::Texture(const std::string& fileName):
 {
 
 	// Set some default texParameter so you will see something
-  setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  setTexParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  setTexParameter(GL_TEXTURE_WRAP_S, GL_REPEAT);
-  setTexParameter(GL_TEXTURE_WRAP_T, GL_REPEAT);
+  setTexParameter(GL_TEXTURE_MIN_FILTER, float(GL_LINEAR));
+  setTexParameter(GL_TEXTURE_MAG_FILTER, float(GL_LINEAR));
+  setTexParameter(GL_TEXTURE_WRAP_S, float(GL_REPEAT));
+  setTexParameter(GL_TEXTURE_WRAP_T, float(GL_REPEAT));
 
 	//_surface = IMG_Load(fileName.c_str());
 
@@ -182,7 +182,7 @@ Texture::Texture(unsigned int width,
                  unsigned int depth,
                  void*        pixeldata,
                  GLenum target,
-                 GLint internalFormat,
+                 GLenum internalFormat,
                  GLenum pixelFormat,
                  GLenum pixelType):
     MultiGlContext(1),
@@ -194,7 +194,7 @@ Texture::Texture(unsigned int width,
     _pixelFormat(pixelFormat),
     _pixelType(pixelType),
     _dirty(true),
-    _textureUnitIdsForContexts(32, 0),
+    _textureUnitIdsForContexts(32, GL_NONE),
     _mipmapsEnabled(false),
     //_surface(0),
     _pixelData(pixeldata),
@@ -207,11 +207,11 @@ Texture::Texture(unsigned int width,
 {
 
 	// Set some default texParameter so you will see something
-  setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-  setTexParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-  setTexParameter(GL_TEXTURE_WRAP_S, GL_REPEAT);
-  setTexParameter(GL_TEXTURE_WRAP_T, GL_REPEAT);
-  setTexParameter(GL_TEXTURE_WRAP_R, GL_REPEAT);
+  setTexParameter(GL_TEXTURE_MIN_FILTER, float(GL_LINEAR));
+  setTexParameter(GL_TEXTURE_MAG_FILTER, float(GL_LINEAR));
+  setTexParameter(GL_TEXTURE_WRAP_S, float(GL_REPEAT));
+  setTexParameter(GL_TEXTURE_WRAP_T, float(GL_REPEAT));
+  setTexParameter(GL_TEXTURE_WRAP_R, float(GL_REPEAT));
 
 }
 
@@ -388,7 +388,7 @@ Texture::getTarget()
 
   /// get gl's internal format for this texture
 
-GLint
+GLenum
 Texture::getInternalFormat()
 {
   return _internalFormat;
@@ -577,7 +577,7 @@ Texture::generate( unsigned int width,
                    unsigned int height,
                    unsigned int depth,
                    GLenum target,
-                   GLint internalFormat,
+                   GLenum internalFormat,
                    GLenum pixelFormat,
                    GLenum pixelType,
                    unsigned int contextId)
@@ -757,7 +757,7 @@ Texture::ungenerate(unsigned int contextId)
   /// binds the Texture to GL state
 
 void
-Texture::bind(unsigned int texUnitId, unsigned int contextId)
+Texture::bind(GLenum texUnitId, unsigned int contextId)
 {
   /// set internal id needed for unbind
   _textureUnitIdsForContexts[contextId] = texUnitId;
@@ -957,13 +957,13 @@ Texture::enableMipmaps(bool trueOrFalse)
 
   if(_mipmapsEnabled)
   {
-    setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    setTexParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    setTexParameter(GL_TEXTURE_MIN_FILTER, float(GL_LINEAR_MIPMAP_LINEAR));
+    setTexParameter(GL_TEXTURE_MAG_FILTER, float(GL_LINEAR_MIPMAP_LINEAR));
   }
   else
   {
-    setTexParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    setTexParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    setTexParameter(GL_TEXTURE_MIN_FILTER, float(GL_LINEAR));
+    setTexParameter(GL_TEXTURE_MAG_FILTER, float(GL_LINEAR));
   }
 
   setDirty();
@@ -1035,7 +1035,7 @@ Texture::updatePixels(unsigned char* pixelbuffer,
   // system for managing texture units is nessesary
   // TODO: SYSTEM FOR MANAGING TEXTURE UNITS:
   glActiveTexture(GL_TEXTURE7);
-  bind(contextId);
+  bind(GL_TEXTURE0,contextId);
 
   glTexSubImage2D(_target,
                   0,
