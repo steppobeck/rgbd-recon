@@ -71,6 +71,7 @@ set(GLB_DIRECTORY "glbinding-2.0.0")
 set(glbinding_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/${GLB_DIRECTORY}")
 add_subdirectory(${glbinding_DIR})
 include_directories(SYSTEM ${glbinding_DIR}/source/glbinding/include)
+include_directories(SYSTEM ${GLBINDING_EXPORT_DIRS})
 ################################
 # globjects
 set(GLOW_DIRECTORY "globjects-0.5.0")
