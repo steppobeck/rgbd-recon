@@ -10,7 +10,7 @@ add_library(framework STATIC
   ${FRAMEWORK_HEADER})
 
 # self built libraries
-target_link_libraries(framework ${SVG_LIBRARIES} ${GLOOST_LIBRARIES} ${FASTDXT_LIBRARIES} ${SQUISH_LIBRARIES})
+target_link_libraries(framework ${SVG_LIBRARIES} ${GLOOST_LIBRARIES} ${FASTDXT_LIBRARIES} ${SQUISH_LIBRARIES} globjects glbinding)
 # global libraries
 target_link_libraries(framework GLU ${ZMQ_LIBRARIES} ${CGAL_LIBRARIES} ${BOOST_LIBRARIES} ${GMP_LIBRARIES} ${MPFR_LIBRARIES})
 

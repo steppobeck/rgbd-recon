@@ -58,11 +58,24 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/external/${GLFW_DIRECTORY}/inclu
 ################################
 # glm
 set(GLM_DIRECTORY glm-0.9.5.3)
+set(GLM_INCLUDE_DIR /external/${GLM_DIRECTORY})
 include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/external/${GLM_DIRECTORY})
 ################################
 # squish
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/squish)
 include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/external)
+################################
+set(OPTION_BUILD_TESTS OFF CACHE STRING "" FORCE)
+# glbinding
+set(GLB_DIRECTORY "glbinding-2.0.0")
+set(glbinding_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/${GLB_DIRECTORY}")
+add_subdirectory(${glbinding_DIR})
+include_directories(SYSTEM ${glbinding_DIR}/source/glbinding/include)
+################################
+# globjects
+set(GLOW_DIRECTORY "globjects-0.5.0")
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/${GLOW_DIRECTORY})
+include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/external/${GLOW_DIRECTORY}/source/globjects/include)
 ################################
 # FastDXT
 add_sublibrary(fastdxt ${CMAKE_CURRENT_SOURCE_DIR}/external/fastdxt "-O3 -funroll-loops -fomit-frame-pointer -fPIC -msse2 -DDXT_INTR -w")
