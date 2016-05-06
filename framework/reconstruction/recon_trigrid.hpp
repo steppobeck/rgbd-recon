@@ -18,8 +18,6 @@ namespace kinect{
     
     void draw() override;
 
-    void reload() override;
-
     void resize(std::size_t width, std::size_t height) override;
 
   private:

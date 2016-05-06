@@ -112,9 +112,4 @@ ReconPoints::draw(){
   m_program->release();
 }
 
-void
-ReconPoints::reload(){
-
-}
-
 }

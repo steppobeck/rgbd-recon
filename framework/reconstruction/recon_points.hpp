@@ -18,8 +18,6 @@ namespace kinect{
 
     void draw() override;
 
-    void reload() override;
-
   private:
     globjects::VertexArray*              m_point_grid;
     globjects::Buffer*                  m_point_buffer;

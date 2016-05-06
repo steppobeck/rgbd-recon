@@ -2,6 +2,7 @@
 #include <screen_space_measurement_tool.hpp>
 
 #include <globjects/globjects.h>
+#include <globjects/base/File.h>
 using namespace gl;
 #include <GL/glut.h>
 
@@ -340,6 +341,7 @@ void key(unsigned char key, int x, int y)
       g_nka->reloadShader();
       g_calib_files->reload();
       g_cv->reload();
+      globjects::File::reloadAll();
     break;
   case 'm':
     g_picking = !g_picking;

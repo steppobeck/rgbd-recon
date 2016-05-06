@@ -14,6 +14,10 @@ Reconstruction::Reconstruction(CalibrationFiles const& cfs, CalibVolume const* c
  ,m_bbox{bbox}
 {}
 
+void Reconstruction::reload() {
+
+}
+
 void  Reconstruction::resize(std::size_t width, std::size_t height) {
 }
 

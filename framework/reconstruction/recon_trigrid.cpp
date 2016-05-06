@@ -173,15 +173,6 @@ void ReconTrigrid::draw(){
   m_program_normalize->release();
 }
 
-void
-ReconTrigrid::reload(){
-  // for ( auto shader : m_program_accum->shaders()) {
-  //   shader->updateSource();
-  //   shader->compile();
-  // }
-  // m_program_accum->link();
-}
-
 void ReconTrigrid::resize(std::size_t width, std::size_t height) {
   m_va_pass_depth = std::unique_ptr<mvt::ViewArray>{new mvt::ViewArray(width, height, 1)};
   m_va_pass_depth->init();

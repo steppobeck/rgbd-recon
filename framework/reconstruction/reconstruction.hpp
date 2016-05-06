@@ -15,7 +15,7 @@ namespace kinect{
 
     virtual void draw() = 0;
 
-    virtual void reload() = 0;
+    virtual void reload();
     // mustnt be implemented by children without fbos
     virtual void resize(std::size_t width, std::size_t height);
 
