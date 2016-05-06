@@ -1,6 +1,9 @@
 #ifndef PMD_CAMERANAVIGATOR_H
 #define PMD_CAMERANAVIGATOR_H
 
+// #include <glbinding/gl/gl.h>
+// using namespace gl;
+
 #include <GL/glew.h>
 #include <GL/glut.h>
 #include <stdlib.h>

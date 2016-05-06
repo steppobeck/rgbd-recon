@@ -11,7 +11,6 @@
 #include <cmath>
 
 #include <GL/glew.h>
-#include <GL/gl.h>
 
 namespace mvt{
 

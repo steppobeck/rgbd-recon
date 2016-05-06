@@ -32,7 +32,7 @@
 
 
 /// cpp includes
-#include <GL/gl.h>
+#include <GL/glew.h>
 
 
 namespace gloost

@@ -21,7 +21,6 @@ namespace kinect{
 
   private:
     gloost::Shader m_shader;
-
     gloost::UniformSet m_uniforms;
 
     // mvt::ViewArray     m_va;

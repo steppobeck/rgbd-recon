@@ -1,8 +1,9 @@
 #ifndef KINECT_NETKINECTARRAY_H
 #define KINECT_NETKINECTARRAY_H
 
+// #include <glbinding/gl/gl.h>
+// using namespace gl;
 #include <GL/glew.h>
-#include <GL/gl.h>
 
 #include <Matrix.h>
 

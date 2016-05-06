@@ -2,7 +2,6 @@
 #include "Plane3.h"
 
 #include <GL/glew.h>
-#include <GL/gl.h>
 
 #include <Matrix.h>
 #include <gloostMath.h>

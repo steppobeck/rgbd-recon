@@ -1,7 +1,7 @@
 #ifndef GL_UTIL_H
 #define GL_UTIL_H
 
-#include <GL/gl.h>
+#include <GL/glew.h>
 #include <stdexcept>
 #include <iostream>
 
