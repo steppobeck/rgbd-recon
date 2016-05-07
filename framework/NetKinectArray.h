@@ -29,32 +29,34 @@ namespace kinect{
   struct double_pbo{
     double_pbo()
      :size{0}
+     ,ptr{nullptr}
      ,front{nullptr}
-     ,backb{nullptr}
+     ,back{nullptr}
      ,needSwap{false}
     {}
 
     double_pbo(std::size_t s)
      :size{s}
+     ,ptr{nullptr}
      ,front{new globjects::Buffer()}
-     ,backb{new globjects::Buffer()}
+     ,back{new globjects::Buffer()}
      ,needSwap{false}
     {
       front->setData(size, nullptr, GL_DYNAMIC_DRAW);
       front->bind(GL_PIXEL_PACK_BUFFER);
-      backb->setData(size, nullptr, GL_DYNAMIC_DRAW);
-      backb->bind(GL_PIXEL_PACK_BUFFER);
+      back->setData(size, nullptr, GL_DYNAMIC_DRAW);
+      back->bind(GL_PIXEL_PACK_BUFFER);
 
       map();
     }
 
-    void map() {
-      back = (byte*)backb->mapRange(0, size, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+    byte* pointer() {
+      return ptr;
     }
 
     ~double_pbo() {
       front->destroy();
-      backb->destroy();
+      back->destroy();
     }
 
     double_pbo& operator =(double_pbo&& pbo) {
@@ -62,32 +64,28 @@ namespace kinect{
       return * this;
     }
 
-    unsigned frontID;
-    unsigned backID;
-    byte* back;
-    unsigned size;
+    std::size_t size;
+    byte* ptr;
     globjects::Buffer* front;
-    globjects::Buffer* backb;
+    globjects::Buffer* back;
     std::atomic<bool> needSwap;
 
     void swapBuffers(){
-      // backb->unmap();
-      std::swap(frontID, backID);
-      std::swap(front, backb);
+      unmap();
+      
+      std::swap(front, back);
 
-      // map();
+      map();
 
-      // needSwap = false;
+      needSwap = false;
     }
 
     void swap(double_pbo& b) {
-      std::swap(frontID, b.frontID);
-      std::swap(backID, b.backID);
-      std::swap(back, b.back);
       std::swap(size, b.size);
+      std::swap(ptr, b.ptr);
       std::swap(front, b.front);
-      std::swap(backb, b.backb);
-      // std::swap(needSwap, b.needSwap);
+      std::swap(back, b.back);
+
       bool a_swap = needSwap;
       if(b.needSwap) {
         needSwap = true;
@@ -96,6 +94,14 @@ namespace kinect{
         needSwap = false;
       }
       b.needSwap = a_swap;
+    }
+  private:
+    void unmap() {
+      back->unmap();
+      ptr = nullptr;
+    }
+    void map() {
+      ptr = (byte*)back->mapRange(0, size, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
     }
   };
 
@@ -161,8 +167,8 @@ inline void swap(double_pbo& a, double_pbo& b) {
 
     unsigned m_colorsize; // per frame
     unsigned m_depthsize; // per frame
-    double_pbo m_colorsCPU3;
-    double_pbo m_depthsCPU3;
+    double_pbo m_pbo_colors;
+    double_pbo m_pbo_depths;
 
     boost::mutex* m_mutex;
     boost::thread* m_readThread;

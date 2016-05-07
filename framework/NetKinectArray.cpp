@@ -49,8 +49,8 @@ namespace kinect{
       m_fboID(0),
       m_colorsize(0),
       m_depthsize(0),
-      m_colorsCPU3(),
-      m_depthsCPU3(),
+      m_pbo_colors(),
+      m_pbo_depths(),
       m_mutex(new boost::mutex),
       m_readThread(0),
       m_running(true),
@@ -97,18 +97,18 @@ namespace kinect{
       m_colorsize = m_widthc * m_heightc * 3 * sizeof(byte);
     }
 
-    m_colorsCPU3 = double_pbo{m_colorsize * m_numLayers};
+    m_pbo_colors = double_pbo{m_colorsize * m_numLayers};
 
     if(m_calib_files->isCompressedDepth()){
-      m_depthsCPU3.size = m_width * m_height * m_numLayers * sizeof(byte);
+      m_pbo_depths.size = m_width * m_height * m_numLayers * sizeof(byte);
       m_depthsize =  m_width * m_height * sizeof(byte);
     }
     else{
-      m_depthsCPU3.size = m_width * m_height * m_numLayers * sizeof(float);
+      m_pbo_depths.size = m_width * m_height * m_numLayers * sizeof(float);
       m_depthsize =  m_width * m_height * sizeof(float);
     }
 
-    m_depthsCPU3 = double_pbo{m_depthsize * m_numLayers};
+    m_pbo_depths = double_pbo{m_depthsize * m_numLayers};
 
     /* kinect color: GL_RGB32F, GL_RGB, GL_FLOAT*/
     /* kinect depth: GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT*/
@@ -161,8 +161,6 @@ namespace kinect{
     delete m_depthArray_back;
     glDeleteFramebuffersEXT(1, &m_fboID);
 
-    m_colorsCPU3.needSwap = false;
-    m_depthsCPU3.needSwap = false;
     m_running = false;
     m_readThread->join();
     delete m_readThread;
@@ -176,25 +174,17 @@ namespace kinect{
   NetKinectArray::update() {
     boost::mutex::scoped_lock lock(*m_mutex);
     // skip if no new frame was received
-    if(!m_colorsCPU3.needSwap) return;
+    if(!m_pbo_colors.needSwap || !m_pbo_depths.needSwap) return;
 
-    m_colorsCPU3.backb->unmap();
-    m_depthsCPU3.backb->unmap();
+  	m_pbo_colors.swapBuffers();
+  	m_pbo_depths.swapBuffers();
 
-  	m_colorsCPU3.swapBuffers();
-  	m_depthsCPU3.swapBuffers();
-
-    m_colorsCPU3.map();
-    m_depthsCPU3.map();
-  	
-    m_colorsCPU3.needSwap = false;
-    m_depthsCPU3.needSwap = false;
-
-    m_colorArray->fillLayersFromPBO(m_colorsCPU3.front->id());
-    m_depthArray->fillLayersFromPBO(m_depthsCPU3.front->id());
+    m_colorArray->fillLayersFromPBO(m_pbo_colors.front->id());
+    m_depthArray->fillLayersFromPBO(m_pbo_depths.front->id());
 
     bindToTextureUnits();
   }
+  
 void NetKinectArray::bindToFramebuffer(GLuint array_handle, GLuint layer) {
   //
   //std::cerr << current_fbo << std::endl;
@@ -389,7 +379,7 @@ void NetKinectArray::bindBackToTextureUnits() const {
       socket.recv(&zmqm); // blocking
       
       if(!drop){
-      	while(m_colorsCPU3.needSwap){
+      	while(m_pbo_colors.needSwap || m_pbo_depths.needSwap){
       	  ;
       	}
 
@@ -398,9 +388,9 @@ void NetKinectArray::bindBackToTextureUnits() const {
         const unsigned number_of_kinects = m_calib_files->num(); // is 5 in the current example
         // this loop goes over each kinect like K1_frame_1 K2_frame_1 K3_frame_1 
       	for(unsigned i = 0; i < number_of_kinects; ++i){
-      	  memcpy((byte*) m_colorsCPU3.back + i*colorsize , (byte*) zmqm.data() + offset, colorsize);
+      	  memcpy((byte*) m_pbo_colors.pointer() + i*colorsize , (byte*) zmqm.data() + offset, colorsize);
       	  offset += colorsize;
-      	  memcpy((byte*) m_depthsCPU3.back + i*depthsize , (byte*) zmqm.data() + offset, depthsize);
+      	  memcpy((byte*) m_pbo_depths.pointer() + i*depthsize , (byte*) zmqm.data() + offset, depthsize);
 
       	  offset += depthsize;
       	}
@@ -408,7 +398,8 @@ void NetKinectArray::bindBackToTextureUnits() const {
 
       if(!drop){ // swap
       	boost::mutex::scoped_lock lock(*m_mutex);
-      	m_colorsCPU3.needSwap = true;
+        m_pbo_colors.needSwap = true;
+      	m_pbo_depths.needSwap = true;
       }
     }
   }
@@ -612,27 +603,27 @@ void NetKinectArray::bindBackToTextureUnits() const {
     const unsigned colorsize = m_colorsize;
     const unsigned depthsize = m_depthsize;
 
-    while(m_colorsCPU3.needSwap && m_depthsCPU3.needSwap){
+    while(m_pbo_colors.needSwap || m_pbo_depths.needSwap){
       ;
     }
 
     unsigned offset = 0;
     // receive data
     for(unsigned i = 0; i < m_calib_files->num(); ++i){
-      //memcpy((byte*) m_colorsCPU3.back + i*colorsize , (byte*) zmqm.data() + offset, colorsize);
-      fbs[i]->read((byte*) m_colorsCPU3.back + i*colorsize, colorsize);
+      //memcpy((byte*) m_pbo_colors.pointer() + i*colorsize , (byte*) zmqm.data() + offset, colorsize);
+      fbs[i]->read((byte*) m_pbo_colors.pointer() + i*colorsize, colorsize);
       offset += colorsize;
 
-      //memcpy((byte*) m_depthsCPU3.back + i*depthsize , (byte*) zmqm.data() + offset, depthsize);
-      fbs[i]->read((byte*) m_depthsCPU3.back + i*depthsize, depthsize);
+      //memcpy((byte*) m_pbo_depths.pointer() + i*depthsize , (byte*) zmqm.data() + offset, depthsize);
+      fbs[i]->read((byte*) m_pbo_depths.pointer() + i*depthsize, depthsize);
       
       offset += depthsize;
     }
 
     { // swap
       boost::mutex::scoped_lock lock(*m_mutex);
-      m_colorsCPU3.needSwap = true;
-      m_depthsCPU3.needSwap = true;
+      m_pbo_colors.needSwap = true;
+      m_pbo_depths.needSwap = true;
     }
  
   }
