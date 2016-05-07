@@ -77,9 +77,8 @@ namespace mvt{
     
     //glDisable(m_type);
 
-    std::cerr << "TextureArray::init() " << this << std::endl;
-
-
+    // std::cerr << "TextureArray::init() " << this << std::endl;
+    
     if(GL_FLOAT == m_pixelType){
       for(unsigned i = 0; i < (m_accumbufferSize + 1); ++i){
 	m_accumbuffer.push_back(new float [m_width * m_height * m_depth]);

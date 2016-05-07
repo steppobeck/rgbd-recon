@@ -148,10 +148,7 @@ KinectCalibrationFile::KinectCalibrationFile(const std::string& filePath)
 bool
 KinectCalibrationFile::parse()
 {
-  std::cerr << std::endl << "Message from KinectCalibrationFile::parse(): ";
-  std::cerr << std::endl << "             parsing " << _filePath;
-  std::cerr << std::endl;
-  std::cerr << std::endl;
+  std::cout << "parsing " << _filePath << std::endl;
 
   _iscompresseddepth = s_compress;
 
@@ -324,15 +321,15 @@ KinectCalibrationFile::parse()
       _height = getNextFloat(infile);
     }
     else if(token == "near_far:"){
-      std::cerr << std::endl << "near_far:";
+      // std::cerr << std::endl << "near_far:";
       advanceToNextToken("[", infile);
       _near = getNextTokenAsFloat(infile);
       _far  = getNextFloat(infile);
     }
     else if(token == "compress_rgb:"){
-      std::cerr << std::endl << "compress_rgb:";
       advanceToNextToken("[", infile);
       _iscompressedrgb = (unsigned) getNextTokenAsFloat(infile);
+      std::cout << "compress_rgb: " << _iscompressedrgb << std::endl;;
       getNextFloat(infile);
 
       // maybe override value
@@ -342,15 +339,15 @@ KinectCalibrationFile::parse()
 
     }
     else if(token == "min_length:"){
-      std::cerr << std::endl << "min_length:";
+      // std::cerr << std::endl << "min_length:";
       advanceToNextToken("[", infile);
       min_length = getNextTokenAsFloat(infile);
       getNextFloat(infile);
     }
     else if(token == "compress_depth:"){
-      std::cerr << std::endl << "compress_depth:";
       advanceToNextToken("[", infile);
       _iscompresseddepth = (bool) ((unsigned) getNextTokenAsFloat(infile));
+      std::cout << "compress_depth: " << _iscompresseddepth << std::endl;;
       getNextFloat(infile);
       
     }
@@ -804,7 +801,7 @@ KinectCalibrationFile::loadLocalTransform(){
     infile.open( filepath.c_str());
     if(infile){
       infile >> _serial;
-      std::cerr << "using serial: " << _serial << std::endl;
+      // std::cerr << "using serial: " << _serial << std::endl;
     }
     infile.close();
   }

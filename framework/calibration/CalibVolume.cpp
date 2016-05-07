@@ -54,6 +54,8 @@ void CalibVolume::reload(){
   m_cv_depths.clear();
   m_cv_min_ds.clear();
   m_cv_max_ds.clear();
+  m_volumes_xyz.clear();
+  m_volumes_uv.clear();
 
   for(unsigned i = 0; i < m_cv_xyz_filenames.size(); ++i){
     addVolume(m_cv_xyz_filenames[i], m_cv_uv_filenames[i]);
@@ -66,49 +68,56 @@ void CalibVolume::reload(){
 }
 
 void CalibVolume::addVolume(std::string const& filename_xyz, std::string filename_uv) {
-  unsigned cv_width;
-  unsigned cv_height;
-  unsigned cv_depth;
-  float    cv_min_d;
-  float    cv_max_d;
+  unsigned width_xyz = 0;
+  unsigned height_xyz = 0;
+  unsigned depth_xyz = 0;
+
+  unsigned width_uv = 0;
+  unsigned height_uv = 0;
+  unsigned depth_uv = 0;
+
+  float min_d_xyz = 0.0f;
+  float max_d_xyz = 0.0f;
+  float min_d_uv = 0.0f;
+  float max_d_uv = 0.0f;
 
   std::cerr << "loading " << filename_xyz << std::endl;
   FILE* file_xyz = fopen( filename_xyz.c_str(), "rb");
-  fread(&cv_width, sizeof(unsigned), 1, file_xyz);
-  fread(&cv_height, sizeof(unsigned), 1, file_xyz);
-  fread(&cv_depth, sizeof(unsigned), 1, file_xyz);
-  fread(&cv_min_d, sizeof(float), 1, file_xyz);
-  fread(&cv_max_d, sizeof(float), 1, file_xyz);
-
-  std::vector<xyz> storage_xyz(cv_width * cv_height * cv_depth);
-  fread(storage_xyz.data(), sizeof(xyz), cv_width * cv_height * cv_depth, file_xyz);
+  fread(&width_xyz, sizeof(unsigned), 1, file_xyz);
+  fread(&height_xyz, sizeof(unsigned), 1, file_xyz);
+  fread(&depth_xyz, sizeof(unsigned), 1, file_xyz);
+  fread(&min_d_xyz, sizeof(float), 1, file_xyz);
+  fread(&max_d_xyz, sizeof(float), 1, file_xyz);
+  std::cout << "dimensions xyz - " << width_xyz << ", " << height_xyz << ", " << depth_xyz << " minmax d - " << min_d_xyz << ", " << max_d_xyz << std::endl;
+  std::vector<xyz> storage_xyz(width_xyz * height_xyz * depth_xyz);
+  fread(storage_xyz.data(), sizeof(xyz), width_xyz * height_xyz * depth_xyz, file_xyz);
   fclose(file_xyz);
 
   std::cerr << "loading " << filename_uv << std::endl;
   FILE* file_uv = fopen( filename_uv.c_str(), "rb");
-  fread(&cv_width, sizeof(unsigned), 1, file_uv);
-  fread(&cv_height, sizeof(unsigned), 1, file_uv);
-  fread(&cv_depth, sizeof(unsigned), 1, file_uv);
-  fread(&cv_min_d, sizeof(float), 1, file_uv);
-  fread(&cv_max_d, sizeof(float), 1, file_uv);
-
-  std::vector<uv> storage_uv(cv_width * cv_height * cv_depth);
-  fread(storage_uv.data(), sizeof(uv), cv_width * cv_height * cv_depth, file_uv);
+  fread(&width_uv, sizeof(unsigned), 1, file_uv);
+  fread(&height_uv, sizeof(unsigned), 1, file_uv);
+  fread(&depth_uv, sizeof(unsigned), 1, file_uv);
+  fread(&min_d_uv, sizeof(float), 1, file_uv);
+  fread(&max_d_uv, sizeof(float), 1, file_uv);
+  std::cout << "dimensions uv - " << width_uv << ", " << height_uv << ", " << depth_uv << " minmax d - " << min_d_uv << ", " << max_d_uv << std::endl;
+  std::vector<uv> storage_uv(width_uv * height_uv * depth_uv);
+  fread(storage_uv.data(), sizeof(uv), width_uv * height_uv * depth_uv, file_uv);
   fclose(file_uv);
   
   auto volume_xyz = globjects::Texture::createDefault(GL_TEXTURE_3D);
-  volume_xyz->image3D(0, GL_RGB32F, cv_width, cv_height, cv_depth, 0, GL_RGB, GL_FLOAT, storage_xyz.data());
+  volume_xyz->image3D(0, GL_RGB32F, width_xyz, height_xyz, depth_xyz, 0, GL_RGB, GL_FLOAT, storage_xyz.data());
   auto volume_uv = globjects::Texture::createDefault(GL_TEXTURE_3D);
-  volume_uv->image3D(0, GL_RG32F, cv_width, cv_height, cv_depth, 0, GL_RG, GL_FLOAT, storage_uv.data());
+  volume_uv->image3D(0, GL_RG32F, width_uv, height_uv, depth_uv, 0, GL_RG, GL_FLOAT, storage_uv.data());
 
   m_volumes_xyz.push_back(volume_xyz);
   m_volumes_uv.push_back(volume_uv);
 
-  m_cv_widths.push_back(cv_width);
-  m_cv_heights.push_back(cv_height);
-  m_cv_depths.push_back(cv_depth);
-  m_cv_min_ds.push_back(cv_min_d);
-  m_cv_max_ds.push_back(cv_max_d);
+  m_cv_widths.push_back(width_xyz);
+  m_cv_heights.push_back(height_xyz);
+  m_cv_depths.push_back(depth_xyz);
+  m_cv_min_ds.push_back(min_d_xyz);
+  m_cv_max_ds.push_back(max_d_xyz);
 }
 
 void CalibVolume::uploadMinMadDepths() const {
@@ -136,7 +145,7 @@ std::vector<int> CalibVolume::getUVVolumeUnits() const {
 
 void
 CalibVolume::bindToTextureUnits(unsigned start_texture_unit) {
-  for(unsigned layer = 0; layer < m_cv_xyz_filenames.size(); ++layer){
+  for(unsigned layer = 0; layer < m_volumes_xyz.size(); ++layer){
     m_volumes_xyz[layer]->bindActive(GL_TEXTURE0 + start_texture_unit + layer * 2);
     m_volumes_uv[layer]->bindActive(GL_TEXTURE0 + start_texture_unit + layer * 2 + 1);
   }
