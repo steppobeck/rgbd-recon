@@ -145,8 +145,11 @@ void init(std::vector<std::string> args){
   g_recons.emplace_back(new kinect::ReconTrigrid(*g_calib_files, g_cv.get(), g_bbox));
   g_recons.emplace_back(new kinect::ReconPoints(*g_calib_files, g_cv.get(), g_bbox));
   // g_recons.emplace_back(new kinect::ReconCalibs(*g_calib_files, g_cv.get(), g_bbox));
+  std::cout << "starting calibvis" << std::endl;
   g_calibvis = std::unique_ptr<kinect::ReconCalibs>(new kinect::ReconCalibs(*g_calib_files, g_cv.get(), g_bbox));
-
+  std::cout << "processing calibvis" << std::endl;
+  g_calibvis->process();
+  std::cout << "finish calibvis" << std::endl;
   // enable point scaling in vertex shader
   glEnable(GL_PROGRAM_POINT_SIZE);
   glEnable(GL_POINT_SPRITE);
@@ -351,8 +354,8 @@ void key(unsigned char key, int x, int y)
       for (auto& recon : g_recons) {
         recon->reload();
       }
-      g_calib_files->reload();
-      g_cv->reload();
+      // g_calib_files->reload();
+      // g_cv->reload();
       globjects::File::reloadAll();
     break;
   case 'm':
@@ -529,7 +532,7 @@ void watch_gl_errors(bool activate) {
           }
           // error
           std::cerr  << " - " << glbinding::Meta::getString(error) << std::endl;
-
+          throw std::exception{};
           exit(EXIT_FAILURE);
         }
       }
