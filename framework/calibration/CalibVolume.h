@@ -16,15 +16,13 @@ namespace kinect{
     CalibVolume(std::vector<std::string> const& calib_volume_files);
     virtual ~CalibVolume();
 
-    bool reload();
+    void reload();
     
     void bindToTextureUnits(unsigned start_texture_unit);
     unsigned getStartTextureUnit() const;
 
     std::vector<int> getXYZVolumeUnits() const;
-
     std::vector<int> getUVVolumeUnits() const;
-
 
   public:
     std::vector<std::string> m_cv_xyz_filenames;
@@ -38,14 +36,13 @@ namespace kinect{
     std::vector<unsigned> m_cv_depths;
     std::vector<float> m_cv_min_ds;
     std::vector<float> m_cv_max_ds;
-    std::vector<xyz*> m_cv_xyzs;
-    std::vector<uv*> m_cv_uvs;
 
     globjects::Buffer*    m_buffer_minmax_d;
 
   protected:
     int m_start_texture_unit;
 
+    void addVolume(std::string const& filename_xyz, std::string filename_uv);
     void uploadMinMadDepths() const;
 
   public:
