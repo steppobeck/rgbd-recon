@@ -11,8 +11,8 @@ namespace kinect{
   CalibVolume::CalibVolume(std::vector<std::string> const& calib_volume_files):
     m_cv_xyz_filenames(),
     m_cv_uv_filenames(),
-    m_cv_xyz_ids(),
-    m_cv_uv_ids(),
+    m_volumes_xyz{},
+    m_volumes_uv{},
     m_cv_widths(),
     m_cv_heights(),
     m_cv_depths(),
@@ -40,8 +40,9 @@ namespace kinect{
     for(unsigned i = 0; i < m_cv_xyz_filenames.size(); ++i){
       delete [] m_cv_xyzs[i];
       delete [] m_cv_uvs[i];
-      glDeleteTextures(1, &(m_cv_xyz_ids[i]));
-      glDeleteTextures(1, &(m_cv_uv_ids[i]));
+
+      m_volumes_xyz[i]->destroy();
+      m_volumes_uv[i]->destroy();
     }
   }
 
@@ -52,12 +53,10 @@ namespace kinect{
       if(0 != m_cv_xyzs[i]){
       	delete [] m_cv_xyzs[i];
       	delete [] m_cv_uvs[i];
-      	glDeleteTextures(1, &(m_cv_xyz_ids[i]));
-      	glDeleteTextures(1, &(m_cv_uv_ids[i]));
+        m_volumes_xyz[i]->destroy();
+        m_volumes_uv[i]->destroy();
       }
     }
-    m_cv_xyz_ids.clear();
-    m_cv_uv_ids.clear();
     m_cv_widths.clear();
     m_cv_heights.clear();
     m_cv_depths.clear();
@@ -73,8 +72,6 @@ namespace kinect{
       unsigned cv_depth;
       float    cv_min_d;
       float    cv_max_d;
-      unsigned cv_xyz_id;
-      unsigned cv_uv_id;
 
       std::cerr << "loading " << m_cv_xyz_filenames[i] << std::endl;
       FILE* f_xyz = fopen( m_cv_xyz_filenames[i].c_str(), "rb");
@@ -99,31 +96,16 @@ namespace kinect{
       fclose(f);
       
       std::cerr << "generating textures" << std::endl;
-      glGenTextures(1, &cv_xyz_id);
-      
-      glBindTexture(GL_TEXTURE_3D, cv_xyz_id);
-      glTexParametere(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-      glTexParametere(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-      glTexParametere(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-      glTexParametere(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-      glTexParametere(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP);
-      glTexImage3D(GL_TEXTURE_3D, 0, GL_RGB32F, cv_width, cv_height, cv_depth, 0, GL_RGB, GL_FLOAT, (byte*) cv_xyz);
-
-
-      glGenTextures(1, &cv_uv_id);
-      glBindTexture(GL_TEXTURE_3D, cv_uv_id);
-      glTexParametere(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-      glTexParametere(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-      glTexParametere(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-      glTexParametere(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-      glTexParametere(GL_TEXTURE_3D, GL_TEXTURE_WRAP_R, GL_CLAMP);
-      glTexImage3D(GL_TEXTURE_3D, 0, GL_RG32F, cv_width, cv_height, cv_depth, 0, GL_RG, GL_FLOAT, (byte*) cv_uv);
+      auto volume_xyz = globjects::Texture::createDefault(GL_TEXTURE_3D);
+      volume_xyz->image3D(0, GL_RGB32F, cv_width, cv_height, cv_depth, 0, GL_RGB, GL_FLOAT, (byte*)cv_xyz);
+      auto volume_uv = globjects::Texture::createDefault(GL_TEXTURE_3D);
+      volume_uv->image3D(0, GL_RG32F, cv_width, cv_height, cv_depth, 0, GL_RG, GL_FLOAT, (byte*)cv_uv);
 
       std::cerr << "done generating textures" << std::endl;
 
+      m_volumes_xyz.push_back(volume_xyz);
+      m_volumes_uv.push_back(volume_uv);
 
-      m_cv_xyz_ids.push_back(cv_xyz_id);
-      m_cv_uv_ids.push_back(cv_uv_id);
       m_cv_widths.push_back(cv_width);
       m_cv_heights.push_back(cv_height);
       m_cv_depths.push_back(cv_depth);
@@ -169,10 +151,8 @@ std::vector<int> CalibVolume::getUVVolumeUnits() const {
 void
 CalibVolume::bindToTextureUnits(unsigned start_texture_unit) {
   for(unsigned layer = 0; layer < m_cv_xyzs.size(); ++layer){
-    glActiveTexture(GL_TEXTURE0 + start_texture_unit + layer * 2);
-    glBindTexture(GL_TEXTURE_3D, m_cv_xyz_ids[layer]);
-    glActiveTexture(GL_TEXTURE0 + start_texture_unit + layer * 2 + 1);
-    glBindTexture(GL_TEXTURE_3D, m_cv_uv_ids[layer]);
+    m_volumes_xyz[layer]->bindActive(GL_TEXTURE0 + start_texture_unit + layer * 2);
+    m_volumes_uv[layer]->bindActive(GL_TEXTURE0 + start_texture_unit + layer * 2 + 1);
   }
   glActiveTexture(GL_TEXTURE0);
   m_start_texture_unit = start_texture_unit;    

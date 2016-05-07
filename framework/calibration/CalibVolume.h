@@ -7,6 +7,7 @@
 #include <vector>
 
 #include <globjects/Buffer.h>
+#include <globjects/Texture.h>
 
 namespace kinect{
   class CalibVolume{
@@ -28,8 +29,10 @@ namespace kinect{
   public:
     std::vector<std::string> m_cv_xyz_filenames;
     std::vector<std::string> m_cv_uv_filenames;
-    std::vector<unsigned> m_cv_xyz_ids;
-    std::vector<unsigned> m_cv_uv_ids;
+
+    std::vector<globjects::Texture*> m_volumes_xyz;
+    std::vector<globjects::Texture*> m_volumes_uv;
+
     std::vector<unsigned> m_cv_widths;
     std::vector<unsigned> m_cv_heights;
     std::vector<unsigned> m_cv_depths;
