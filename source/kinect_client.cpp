@@ -24,9 +24,10 @@ using namespace gl;
 #include <Statistics.h>
 #include <GlPrimitives.h>
 
-#include <reconstruction.hpp>
-#include <recon_trigrid.hpp>
-#include <recon_points.hpp>
+#include "reconstruction.hpp"
+#include "recon_trigrid.hpp"
+#include "recon_points.hpp"
+#include "recon_calibs.hpp"
 
 /// general setup
 unsigned g_screenWidth  = 1280;
@@ -42,6 +43,7 @@ bool     g_animate      = false;
 bool     g_wire         = false;
 unsigned g_recon_mode   = 1;
 bool     g_bilateral    = true;
+bool     g_draw_calibvis= true;
 gloost::BoundingBox     g_bbox{};
 
 gloost::PerspectiveCamera g_camera{50.0, g_aspect, 0.1, 200.0};
@@ -64,6 +66,7 @@ void idle(void);
 
 std::unique_ptr<kinect::ReconTrigrid> g_ksV3;// 4
 std::vector<std::unique_ptr<kinect::Reconstruction>> g_recons;// 4
+std::unique_ptr<kinect::ReconCalibs> g_calibvis;// 4
 
 bool g_picking = false;
 
@@ -134,6 +137,8 @@ void init(std::vector<std::string> args){
 
   g_recons.emplace_back(new kinect::ReconTrigrid(*g_calib_files, g_cv.get(), g_bbox));
   g_recons.emplace_back(new kinect::ReconPoints(*g_calib_files, g_cv.get(), g_bbox));
+  // g_recons.emplace_back(new kinect::ReconCalibs(*g_calib_files, g_cv.get(), g_bbox));
+  g_calibvis = std::unique_ptr<kinect::ReconCalibs>(new kinect::ReconCalibs(*g_calib_files, g_cv.get(), g_bbox));
 
   // enable point scaling in vertex shader
   glEnable(GL_PROGRAM_POINT_SIZE);
@@ -240,6 +245,9 @@ void draw3d(void)
     mvt::GlPrimitives::get()->drawCoords();
     glPopAttrib();
   }   
+  if (g_draw_calibvis) {
+    g_calibvis->draw();
+  }
 
   if(g_draw_frustums) {
     for(unsigned idx = 0; idx  < g_calib_files->num(); ++idx){
@@ -317,7 +325,7 @@ void key(unsigned char key, int x, int y)
   case 'r':
     g_draw_axes = !g_draw_axes;
     break;
-  case 'c':
+  case 'f':
     g_draw_frustums = !g_draw_frustums;
     break;
   case 'b':
@@ -345,6 +353,14 @@ void key(unsigned char key, int x, int y)
     break;
   case 'p':
     g_play = !g_play;
+    break;
+  case 'v':
+    g_draw_calibvis = !g_draw_calibvis;
+    break;
+  case 'c':
+    static unsigned num_kinect = 1; 
+    num_kinect = (num_kinect+ 1) % g_calib_files->num();
+    g_calibvis->setActiveKinect(num_kinect);
     break;
   case '#':
     for(unsigned i = 0; i < g_calib_files->num(); ++i){
