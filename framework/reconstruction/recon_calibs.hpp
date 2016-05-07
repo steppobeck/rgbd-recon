@@ -8,6 +8,7 @@
 #include <globjects/Buffer.h>
 #include <globjects/Program.h>
 #include <globjects/VertexArray.h>
+#include <globjects/Texture.h>
 
 namespace kinect{
 
@@ -18,6 +19,7 @@ namespace kinect{
     ~ReconCalibs();
 
     void draw() override;
+    void process();
 
     void setActiveKinect(unsigned num_kinect);
 
@@ -25,6 +27,8 @@ namespace kinect{
     globjects::Program* m_program;
     VolumeSampler       m_sampler;
     unsigned            m_num_kinect;
+    std::vector<globjects::Texture*> m_volumes_xyz;
+    std::vector<globjects::Texture*> m_volumes_uv;
   };
 }
 

@@ -43,7 +43,7 @@ namespace kinect{
     int m_start_texture_unit;
 
     void addVolume(std::string const& filename_xyz, std::string filename_uv);
-    void uploadMinMadDepths() const;
+    void uploadMinMaXDepths() const;
 
   public:
     static std::string serverendpoint;

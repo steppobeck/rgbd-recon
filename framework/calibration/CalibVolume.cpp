@@ -28,9 +28,8 @@ CalibVolume::CalibVolume(std::vector<std::string> const& calib_volume_files):
   	m_cv_uv_filenames.push_back(basefile + "cv_uv");
   }
 
-  reload();
-
   m_buffer_minmax_d->bindBase(GL_SHADER_STORAGE_BUFFER, 0);
+  reload();
 }
 
 /*virtual*/
@@ -64,7 +63,7 @@ void CalibVolume::reload(){
   if(m_start_texture_unit >= 0) {
     bindToTextureUnits(m_start_texture_unit);
   }
-  uploadMinMadDepths();
+  uploadMinMaXDepths();
 }
 
 void CalibVolume::addVolume(std::string const& filename_xyz, std::string filename_uv) {
@@ -120,12 +119,12 @@ void CalibVolume::addVolume(std::string const& filename_xyz, std::string filenam
   m_cv_max_ds.push_back(max_d_xyz);
 }
 
-void CalibVolume::uploadMinMadDepths() const {
+void CalibVolume::uploadMinMaXDepths() const {
   auto buffer = m_cv_min_ds;
   // 5 kinects max per pc
   buffer.resize(5);
   copy(m_cv_max_ds.begin(),m_cv_max_ds.end(),std::back_inserter(buffer));
-  m_buffer_minmax_d->setStorage(buffer,  GL_MAP_WRITE_BIT);
+  m_buffer_minmax_d->setStorage(buffer, GL_MAP_WRITE_BIT);
 }
 
 std::vector<int> CalibVolume::getXYZVolumeUnits() const {

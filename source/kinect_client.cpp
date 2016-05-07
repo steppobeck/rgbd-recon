@@ -3,6 +3,12 @@
 
 #include <globjects/globjects.h>
 #include <globjects/base/File.h>
+// load glbinding function type
+#include <glbinding/Function.h>
+#// load meta info extension
+#include <glbinding/Meta.h>
+// load callback support
+#include <glbinding/callbacks.h>
 using namespace gl;
 #include <GL/glut.h>
 
@@ -43,7 +49,7 @@ bool     g_animate      = false;
 bool     g_wire         = false;
 unsigned g_recon_mode   = 1;
 bool     g_bilateral    = true;
-bool     g_draw_calibvis= true;
+bool     g_draw_calibvis= false;
 gloost::BoundingBox     g_bbox{};
 
 gloost::PerspectiveCamera g_camera{50.0, g_aspect, 0.1, 200.0};
@@ -63,6 +69,7 @@ void key(unsigned char key, int x, int y);
 void motionFunc(int mouse_h, int mouse_v);
 void mouseFunc(int button, int state, int mouse_h, int mouse_v);
 void idle(void);
+void watch_gl_errors(bool activate);
 
 std::unique_ptr<kinect::ReconTrigrid> g_ksV3;// 4
 std::vector<std::unique_ptr<kinect::Reconstruction>> g_recons;// 4
@@ -478,6 +485,8 @@ int main(int argc, char *argv[])
   // Initialize globjects (internally initializes glbinding, and registers the current context)
   globjects::init();
 
+  watch_gl_errors(true);
+
   // set some gl states
   glEnable(GL_TEXTURE_2D);
   glEnable(GL_DEPTH_TEST);
@@ -494,4 +503,39 @@ int main(int argc, char *argv[])
   globjects::detachAllObjects();
 
   return EXIT_SUCCESS;
+}
+
+void watch_gl_errors(bool activate) {
+  if(activate) {
+    // add callback after each function call
+    glbinding::setCallbackMaskExcept(glbinding::CallbackMask::After | glbinding::CallbackMask::ParametersAndReturnValue, {"glGetError", "glVertex3f", "glVertex2f", "glBegin"});
+    glbinding::setAfterCallback(
+      [](glbinding::FunctionCall const& call) {
+        GLenum error = glGetError();
+        if (error != GL_NO_ERROR) {
+          // print name
+          std::cerr <<  "OpenGL Error: " << call.function->name() << "(";
+          // parameters
+          for (unsigned i = 0; i < call.parameters.size(); ++i)
+          {
+            std::cerr << call.parameters[i]->asString();
+            if (i < call.parameters.size() - 1)
+              std::cerr << ", ";
+          }
+          std::cerr << ")";
+          // return value
+          if(call.returnValue) {
+            std::cerr << " -> " << call.returnValue->asString();
+          }
+          // error
+          std::cerr  << " - " << glbinding::Meta::getString(error) << std::endl;
+
+          exit(EXIT_FAILURE);
+        }
+      }
+    );
+  }
+  else {
+    glbinding::setCallbackMask(glbinding::CallbackMask::None);
+  }
 }
