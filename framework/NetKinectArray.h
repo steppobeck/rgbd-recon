@@ -12,6 +12,8 @@ using namespace gl;
 #include "DataTypes.h"
 
 #include <globjects/Program.h>
+#include <globjects/Texture.h>
+#include <globjects/Buffer.h>
 
 namespace boost{
   class thread;
@@ -25,20 +27,81 @@ namespace mvt{
 namespace kinect{
 
   struct double_pbo{
-    unsigned size;
-    byte* back;
-    std::atomic<bool> needSwap;
-    unsigned frontID;
-    unsigned backID;
-    std::vector<gloost::Matrix> current_poses;
+    double_pbo()
+     :size{0}
+     ,front{nullptr}
+     ,backb{nullptr}
+     ,needSwap{false}
+    {}
 
-    void swap(){
-      unsigned tmp = frontID;
-      frontID = backID;
-      backID = tmp;
+    double_pbo(std::size_t s)
+     :size{s}
+     ,front{new globjects::Buffer()}
+     ,backb{new globjects::Buffer()}
+     ,needSwap{false}
+    {
+      front->setData(size, nullptr, GL_DYNAMIC_DRAW);
+      front->bind(GL_PIXEL_PACK_BUFFER);
+      backb->setData(size, nullptr, GL_DYNAMIC_DRAW);
+      backb->bind(GL_PIXEL_PACK_BUFFER);
+
+      map();
     }
 
+    void map() {
+      back = (byte*)backb->mapRange(0, size, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+    }
+
+    ~double_pbo() {
+      front->destroy();
+      backb->destroy();
+    }
+
+    double_pbo& operator =(double_pbo&& pbo) {
+      swap(pbo);
+      return * this;
+    }
+
+    unsigned frontID;
+    unsigned backID;
+    byte* back;
+    unsigned size;
+    globjects::Buffer* front;
+    globjects::Buffer* backb;
+    std::atomic<bool> needSwap;
+
+    void swapBuffers(){
+      // backb->unmap();
+      std::swap(frontID, backID);
+      std::swap(front, backb);
+
+      // map();
+
+      // needSwap = false;
+    }
+
+    void swap(double_pbo& b) {
+      std::swap(frontID, b.frontID);
+      std::swap(backID, b.backID);
+      std::swap(back, b.back);
+      std::swap(size, b.size);
+      std::swap(front, b.front);
+      std::swap(backb, b.backb);
+      // std::swap(needSwap, b.needSwap);
+      bool a_swap = needSwap;
+      if(b.needSwap) {
+        needSwap = true;
+      }
+      else {
+        needSwap = false;
+      }
+      b.needSwap = a_swap;
+    }
   };
+
+inline void swap(double_pbo& a, double_pbo& b) {
+  a.swap(b);
+}
 
   class KinectCalibrationFile;
   class CalibrationFiles;
@@ -65,8 +128,6 @@ namespace kinect{
 
     std::vector<KinectCalibrationFile*> const& getCalibs() const;
 
-    std::vector<gloost::Matrix> current_poses;
-
     void writeCurrentTexture(std::string prefix);
     void writeBMP(std::string, std::vector<std::uint8_t> const&, unsigned int offset, unsigned int bytesPerPixel);
     
@@ -90,8 +151,7 @@ namespace kinect{
     unsigned m_numLayers;
     mvt::TextureArray* m_colorArray;
     mvt::TextureArray* m_depthArray;
-    mvt::TextureArray*  m_qualityArray;
-
+    globjects::Texture* m_textures_quality;
     mvt::TextureArray*  m_colorArray_back;
     mvt::TextureArray*  m_depthArray_back;
 

@@ -42,6 +42,7 @@ namespace kinect{
       m_numLayers(0),
       m_colorArray(0),
       m_depthArray(0),
+      m_textures_quality{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
       m_colorArray_back(0),
       m_depthArray_back(0),
       m_program_filter{new globjects::Program()},
@@ -96,19 +97,7 @@ namespace kinect{
       m_colorsize = m_widthc * m_heightc * 3 * sizeof(byte);
     }
 
-    m_colorsCPU3.size = m_colorsize * m_numLayers;
-    m_colorsCPU3.needSwap = false;
-
-    glGenBuffers(1,&m_colorsCPU3.frontID);
-    glBindBuffer(GL_PIXEL_PACK_BUFFER,m_colorsCPU3.frontID);
-    glBufferData(GL_PIXEL_PACK_BUFFER, m_colorsCPU3.size, 0, GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_PIXEL_PACK_BUFFER,0);
-
-    glGenBuffers(1,&m_colorsCPU3.backID);
-    glBindBuffer(GL_PIXEL_PACK_BUFFER,m_colorsCPU3.backID);
-    glBufferData(GL_PIXEL_PACK_BUFFER, m_colorsCPU3.size, 0, GL_DYNAMIC_DRAW);
-    m_colorsCPU3.back = (byte*) glMapBufferRange(GL_PIXEL_PACK_BUFFER,0 /*offset*/, m_colorsCPU3.size /*length*/, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
-    glBindBuffer(GL_PIXEL_PACK_BUFFER,0);
+    m_colorsCPU3 = double_pbo{m_colorsize * m_numLayers};
 
     if(m_calib_files->isCompressedDepth()){
       m_depthsCPU3.size = m_width * m_height * m_numLayers * sizeof(byte);
@@ -118,24 +107,8 @@ namespace kinect{
       m_depthsCPU3.size = m_width * m_height * m_numLayers * sizeof(float);
       m_depthsize =  m_width * m_height * sizeof(float);
     }
-    
-    m_depthsCPU3.needSwap = false;
 
-    for(unsigned i = 0; i < m_numLayers; ++i){
-      m_depthsCPU3.current_poses.push_back(gloost::Matrix());
-    }
-    current_poses = m_depthsCPU3.current_poses;
-
-    glGenBuffers(1,&m_depthsCPU3.frontID);
-    glBindBuffer(GL_PIXEL_PACK_BUFFER,m_depthsCPU3.frontID);
-    glBufferData(GL_PIXEL_PACK_BUFFER, m_depthsCPU3.size, 0, GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_PIXEL_PACK_BUFFER,0);
-
-    glGenBuffers(1,&m_depthsCPU3.backID);
-    glBindBuffer(GL_PIXEL_PACK_BUFFER,m_depthsCPU3.backID);
-    glBufferData(GL_PIXEL_PACK_BUFFER, m_depthsCPU3.size, 0, GL_DYNAMIC_DRAW);
-    m_depthsCPU3.back = (byte*) glMapBufferRange(GL_PIXEL_PACK_BUFFER,0 /*offset*/, m_depthsCPU3.size /*length*/, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
-    glBindBuffer(GL_PIXEL_PACK_BUFFER,0);
+    m_depthsCPU3 = double_pbo{m_depthsize * m_numLayers};
 
     /* kinect color: GL_RGB32F, GL_RGB, GL_FLOAT*/
     /* kinect depth: GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT*/
@@ -155,14 +128,7 @@ namespace kinect{
     m_colorArray->getGLHandle();
     check_gl_errors("after m_colorArray->getGLHandle()", false);
 
-    m_qualityArray = new mvt::TextureArray(m_width, m_height, m_numLayers, GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT);
-    m_qualityArray->getGLHandle();
-    glActiveTexture(GL_TEXTURE0);
-    m_qualityArray->bind();
-    glTexParametere(GL_TEXTURE_2D_ARRAY_EXT, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParametere(GL_TEXTURE_2D_ARRAY_EXT, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-
-    check_gl_errors("after m_qualityArray->getGLHandle()", false);
+    m_textures_quality->image3D(0, GL_R32F, m_width, m_height, m_numLayers, 0, GL_RED, GL_FLOAT, (void*)nullptr);
 
     m_depthArray = new mvt::TextureArray(m_width, m_height, m_numLayers, GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT);
 
@@ -188,10 +154,8 @@ namespace kinect{
     return true;
   }
 
-
   NetKinectArray::~NetKinectArray(){
     delete m_colorArray;
-    delete m_qualityArray;
     delete m_depthArray;
     delete m_colorArray_back;
     delete m_depthArray_back;
@@ -204,6 +168,7 @@ namespace kinect{
     delete m_readThread;
     delete m_mutex;
 
+    m_textures_quality->destroy();
     m_program_filter->destroy();
   }
 
@@ -213,31 +178,20 @@ namespace kinect{
     // skip if no new frame was received
     if(!m_colorsCPU3.needSwap) return;
 
-  	glBindBuffer(GL_PIXEL_PACK_BUFFER,m_colorsCPU3.backID);
-  	glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
-  	glBindBuffer(GL_PIXEL_PACK_BUFFER,0);
+    m_colorsCPU3.backb->unmap();
+    m_depthsCPU3.backb->unmap();
 
-  	glBindBuffer(GL_PIXEL_PACK_BUFFER,m_depthsCPU3.backID);
-  	glUnmapBuffer(GL_PIXEL_PACK_BUFFER);
-  	glBindBuffer(GL_PIXEL_PACK_BUFFER,0);
+  	m_colorsCPU3.swapBuffers();
+  	m_depthsCPU3.swapBuffers();
 
-  	m_colorsCPU3.swap();
-  	m_depthsCPU3.swap();
-
-  	glBindBuffer(GL_PIXEL_PACK_BUFFER,m_colorsCPU3.backID);
-  	m_colorsCPU3.back = (byte*) glMapBufferRange(GL_PIXEL_PACK_BUFFER,0 /*offset*/, m_colorsCPU3.size /*length*/, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
-  	glBindBuffer(GL_PIXEL_PACK_BUFFER,0);
-
-  	glBindBuffer(GL_PIXEL_PACK_BUFFER,m_depthsCPU3.backID);
-  	m_depthsCPU3.back = (byte*) glMapBufferRange(GL_PIXEL_PACK_BUFFER,0 /*offset*/, m_depthsCPU3.size /*length*/, GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
-  	glBindBuffer(GL_PIXEL_PACK_BUFFER,0);
-  	
-  	current_poses = m_depthsCPU3.current_poses;
+    m_colorsCPU3.map();
+    m_depthsCPU3.map();
   	
     m_colorsCPU3.needSwap = false;
+    m_depthsCPU3.needSwap = false;
 
-    m_colorArray->fillLayersFromPBO(m_colorsCPU3.frontID);
-    m_depthArray->fillLayersFromPBO(m_depthsCPU3.frontID);
+    m_colorArray->fillLayersFromPBO(m_colorsCPU3.front->id());
+    m_depthArray->fillLayersFromPBO(m_depthsCPU3.front->id());
 
     bindToTextureUnits();
   }
@@ -249,7 +203,6 @@ void NetKinectArray::bindToFramebuffer(GLuint array_handle, GLuint layer) {
   GLenum buffers[] = {GL_COLOR_ATTACHMENT0_EXT};
   glDrawBuffers(1, buffers);
   glFramebufferTextureLayerEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, array_handle, 0, layer);
-  // glFramebufferTextureLayerEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT1_EXT, m_qualityArray->getGLHandle(), 0, i);
   //glFramebufferTextureLayerEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT,  m_ogldepthArray->getGLHandle(), 0, i);
 
   GLenum status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
@@ -309,8 +262,7 @@ void NetKinectArray::bindToFramebuffer(GLuint array_handle, GLuint layer) {
       GLenum buffers[] = {GL_COLOR_ATTACHMENT0_EXT, GL_COLOR_ATTACHMENT1_EXT };
       glDrawBuffers(2, buffers);
       glFramebufferTextureLayerEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, m_depthArray_back->getGLHandle(), 0, i);
-      glFramebufferTextureLayerEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT1_EXT, m_qualityArray->getGLHandle(), 0, i);
-      //glFramebufferTextureLayerEXT(GL_FRAMEBUFFER_EXT, GL_DEPTH_ATTACHMENT_EXT,  m_ogldepthArray->getGLHandle(), 0, i);
+      glFramebufferTextureLayerEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT1_EXT, m_textures_quality->id(), 0, i);
 
       GLenum status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
       switch(status){
@@ -384,7 +336,7 @@ void NetKinectArray::bindToTextureUnits() const {
   glActiveTexture(GL_TEXTURE0 + m_start_texture_unit + 1);
   m_depthArray->bind();
   glActiveTexture(GL_TEXTURE0 + m_start_texture_unit + 2);
-  m_qualityArray->bind();
+  m_textures_quality->bind();
 }
 
 
