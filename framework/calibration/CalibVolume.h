@@ -37,13 +37,10 @@ namespace kinect{
     std::vector<float> m_cv_min_ds;
     std::vector<float> m_cv_max_ds;
 
-    globjects::Buffer*    m_buffer_minmax_d;
-
-  protected:
+   protected:
     int m_start_texture_unit;
 
     void addVolume(std::string const& filename_xyz, std::string filename_uv);
-    void uploadMinMaXDepths() const;
 
   public:
     static std::string serverendpoint;

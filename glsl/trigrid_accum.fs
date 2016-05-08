@@ -40,7 +40,6 @@ bool clip(vec3 p){
   return false;
 }
 
-
 ///////////////////////////////////////////////////////////////////////////////
 // main
 ///////////////////////////////////////////////////////////////////////////////
@@ -69,7 +68,7 @@ void main() {
      normal = -normal;
    }
 #endif
-   float quality = pass_lateral_quality/pass_depth;
+   float quality = pass_lateral_quality/(pass_depth);
 
    if(stage > 0u){ // accumulation pass write color and quality if within epsilon
      vec3  coords = vec3(gl_FragCoord.xy * viewportSizeInv, 0.0 /*here layer is always 0*/);

@@ -126,7 +126,7 @@ inline void swap(double_pbo& a, double_pbo& b) {
 
     virtual void update();
 
-    void bilateralFilter();
+    void processTextures();
 
     void setStartTextureUnit(unsigned m_start_texture_unit);
 
@@ -142,11 +142,13 @@ inline void swap(double_pbo& a, double_pbo& b) {
     mvt::TextureArray* getDepthArrayBack();
     mvt::TextureArray* getDepthArray();
 
+    void filterTextures(bool filter);
+
     void bindToTextureUnits() const;
+    void bindBackToTextureUnits() const;
   protected:
     void bindToFramebuffer(GLuint array_handle, GLuint layer);
 
-    void bindBackToTextureUnits() const;
 
     void readLoop();
     void readFromFiles();
@@ -175,6 +177,7 @@ inline void swap(double_pbo& a, double_pbo& b) {
     boost::mutex* m_mutex;
     boost::thread* m_readThread;
     bool m_running;
+    bool m_filter_textures;
     std::string m_serverport;
 
     unsigned m_start_texture_unit;

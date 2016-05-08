@@ -54,6 +54,7 @@ namespace kinect{
       m_mutex(new boost::mutex),
       m_readThread(0),
       m_running(true),
+      m_filter_textures(true),
       m_serverport(serverport),
       m_start_texture_unit(0),
       m_calib_files{calibs},
@@ -183,6 +184,10 @@ namespace kinect{
     m_depthArray->fillLayersFromPBO(m_pbo_depths.front->id());
 
     bindToTextureUnits();
+    // bindToTextureUnits();
+    if(m_filter_textures) {
+      processTextures();
+    }
   }
   
 void NetKinectArray::bindToFramebuffer(GLuint array_handle, GLuint layer) {
@@ -230,7 +235,7 @@ void NetKinectArray::bindToFramebuffer(GLuint array_handle, GLuint layer) {
   }
 }
   void
-  NetKinectArray::bilateralFilter(){
+  NetKinectArray::processTextures(){
 
     glPushAttrib(GL_ALL_ATTRIB_BITS);
 
@@ -244,6 +249,8 @@ void NetKinectArray::bindToFramebuffer(GLuint array_handle, GLuint layer) {
   	m_depthArray->bind();
     m_program_filter->use();
 
+    m_program_filter->setUniform("cv_min_ds",m_calib_vols->m_cv_min_ds);
+    m_program_filter->setUniform("cv_max_ds",m_calib_vols->m_cv_max_ds);
     for(unsigned i = 0; i < m_calib_files->num(); ++i){
       //
       //std::cerr << current_fbo << std::endl;
@@ -254,6 +261,7 @@ void NetKinectArray::bindToFramebuffer(GLuint array_handle, GLuint layer) {
       glFramebufferTextureLayerEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, m_depthArray_back->getGLHandle(), 0, i);
       glFramebufferTextureLayerEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT1_EXT, m_textures_quality->id(), 0, i);
 
+      m_program_filter->setUniform("filter_textures", m_filter_textures);
       GLenum status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
       switch(status){
         case GL_FRAMEBUFFER_UNSUPPORTED_EXT:
@@ -289,9 +297,6 @@ void NetKinectArray::bindToFramebuffer(GLuint array_handle, GLuint layer) {
       }
 
       m_program_filter->setUniform("layer",i);
-      m_program_filter->setUniform("mode", 0);
-      m_program_filter->setUniform("cv_min_d",m_calib_vols->m_cv_min_ds[i]);
-      m_program_filter->setUniform("cv_max_d",m_calib_vols->m_cv_max_ds[i]);
       m_program_filter->setUniform("compress",m_calib_files->getCalibs()[i].isCompressedDepth());
       const float near = m_calib_files->getCalibs()[i].getNear();
       const float far  = m_calib_files->getCalibs()[i].getFar();
@@ -337,20 +342,25 @@ void NetKinectArray::bindBackToTextureUnits() const {
   m_depthArray_back->bind();
 }
 
-  unsigned NetKinectArray::getStartTextureUnit() const {
-    return m_start_texture_unit;
-  }
+unsigned NetKinectArray::getStartTextureUnit() const {
+  return m_start_texture_unit;
+}
 
-  mvt::TextureArray*
-  NetKinectArray::getDepthArrayBack(){
-    return m_depthArray_back;
-  }
+void NetKinectArray::filterTextures(bool filter) {
+  m_filter_textures = filter;
+  // processwith new settings
+  processTextures();
+}
 
-  mvt::TextureArray*
-  NetKinectArray::getDepthArray(){
-    return m_depthArray;
-  }
+mvt::TextureArray*
+NetKinectArray::getDepthArrayBack(){
+  return m_depthArray_back;
+}
 
+mvt::TextureArray*
+NetKinectArray::getDepthArray(){
+  return m_depthArray;
+}
 
   void
   NetKinectArray::readLoop(){
@@ -627,4 +637,5 @@ void NetKinectArray::bindBackToTextureUnits() const {
     }
  
   }
+
 }

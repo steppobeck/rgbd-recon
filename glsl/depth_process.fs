@@ -8,6 +8,7 @@ uniform sampler2D gauss;
 uniform sampler2DArray kinect_depths;
 //uniform sampler2DArray kinect_colors;
 uniform vec2 texSizeInv;
+uniform bool filter_textures;
 
 uniform uint layer;
 uniform bool compress;
@@ -15,8 +16,8 @@ uniform float scale;
 uniform float near;
 uniform float scaled_near;
 
-uniform float cv_min_d;
-uniform float cv_max_d;
+uniform float[5] cv_min_ds;
+uniform float[5] cv_max_ds;
 uniform int mode;
 
 int kernel_size = 6; // in pixel
@@ -61,36 +62,39 @@ float sample(vec3 coords) {
 }
 
 bool is_outside(float d){
-  return (d < cv_min_d) || (d > cv_max_d);
+  return (d < cv_min_ds[layer]) || (d > cv_max_ds[layer]);
 }
 
+float normalize(float depth) {
+  return (depth - cv_min_ds[layer])/(cv_max_ds[layer] - cv_min_ds[layer]);
+}
 vec2 bilateral_filter(vec3 coords){
 
   float depth = sample(coords);
   if(is_outside(depth)){
-    return vec2(0.0,0.0);
+    return vec2(-1.0,0.0);
   }
   // the valid range scales with depth
-  float max_depth = 4.5; // Kinect V2
-  float d_dmax = depth/max_depth;
-  dist_range_max = 0.35 * d_dmax; // threshold around 
-  dist_range_max_inv = 1.0/dist_range_max;
+  float max_depth = 4.5f; // Kinect V2
+  float d_dmax = depth / max_depth;
+  dist_range_max = 0.35f * d_dmax; // threshold around 
+  dist_range_max_inv = 1.0f / dist_range_max;
 
-  float depth_bf = 0.0;
+  float depth_bf = 0.0f;
 
-  float w = 0.0;
-  float w_range = 0.0;
-  float border_samples = 0.0;
-  float num_samples = 0.0;
+  float w = 0.0f;
+  float w_range = 0.0f;
+  float border_samples = 0.0f;
+  float num_samples = 0.0f;
   for(int y = -kernel_size; y < kernel_end; ++y){
     for(int x = -kernel_size; x < kernel_end; ++x){
-      num_samples += 1.0;
+      num_samples += 1.0f;
       vec3 coords_s = vec3(coords.s + float(x) * texSizeInv.x, coords.t + float(y) * texSizeInv.y, float(layer));
       
       float depth_s = sample(coords_s);
       float depth_range = abs(depth_s - depth);
       if(is_outside(depth_s) || (depth_range > dist_range_max)){
-        border_samples += 1.0;
+        border_samples += 1.0f;
         continue;
       }
       float gauss_space = computeGaussSpace(length(vec2(x,y)));
@@ -102,16 +106,16 @@ vec2 bilateral_filter(vec3 coords){
     }
   }
 
-  float lateral_quality  = 1.0 - border_samples/num_samples;
-  float filtered_depth = 0.0;
+  float lateral_quality  = 1.0f - border_samples/num_samples;
+  float filtered_depth = 0.0f;
   if(w > 0.0)
     filtered_depth = depth_bf/w;
   else
-    filtered_depth = 0.0;
+    filtered_depth = -1.0f;
 
 #if 1
   if(w_range < (num_samples * 0.65)){
-    filtered_depth = 0.0;
+    filtered_depth = -1.0f;
   }
 #endif
 
@@ -123,6 +127,10 @@ void main( void )
 
   vec3 coords = vec3(pass_TexCoord, layer);
   vec2 res = bilateral_filter(coords);
-  gl_FragData[0].r = res.x;
+  if(!filter_textures) {
+    res.x = sample(coords);
+  }
+
+  gl_FragData[0].r = normalize(res.x);
   gl_FragData[1].r = res.y;
 }

@@ -339,7 +339,7 @@ KinectCalibrationFile::parse()
 
     }
     else if(token == "min_length:"){
-      // std::cerr << std::endl << "min_length:";
+      std::cerr << std::endl << "min_length:";
       advanceToNextToken("[", infile);
       min_length = getNextTokenAsFloat(infile);
       getNextFloat(infile);

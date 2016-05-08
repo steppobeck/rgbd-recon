@@ -3,7 +3,6 @@
 #extension GL_EXT_texture_array : enable
 
 ///////////////////////////////////////////////////////////////////////////////
-// layout(pixel_center_integer) in vec4 gl_FragCoord;
 flat in vec2  pass_texcoord;
 flat in vec3  pass_pos_es;
 flat in vec3  pass_pos_cs;
@@ -36,17 +35,7 @@ void main() {
       discard;
   }
 
-  highp vec4 ndcPos;
-  ndcPos.xy = ((2.0 * gl_FragCoord.xy)) / (viewportSizeInv) - 1.0f;
-  // ndcPos.xy = ((2.0 * gl_FragCoord.xy) - (2.0 * viewport.xy)) / (viewport.zw) - 1;
-  ndcPos.z = (2.0 * gl_FragCoord.z - gl_DepthRange.near - gl_DepthRange.far) /
-      (gl_DepthRange.far - gl_DepthRange.near);
-  ndcPos.w = 1.0;
-
-  highp vec4 clipPos = ndcPos / gl_FragCoord.w;
-  highp vec4 eyePos = inverse(gl_ProjectionMatrix) * clipPos;
-  // eyePos /= eyePos.w;
-  highp vec4 worldPos =  inverse(gl_ModelViewMatrix) * eyePos;
+  highp float quality = pass_lateral_quality/pass_depth;
 // manual
   highp vec3 view =   (gl_ModelViewMatrix * vec4(pass_pos_cs, 1.0f)).xyz;
   highp vec4 clipped = gl_ProjectionMatrix * vec4(pass_pos_es, 1.0f);
@@ -55,15 +44,13 @@ void main() {
   highp vec3 frag = vec3(tex.xy / viewportSizeInv, tex.z);
   highp uvec2 fragi = ivec2(frag.xy);
 
-  highp uvec2 pos_frag = ivec2(gl_FragCoord.xy);
-
-  highp float quality = pass_lateral_quality/pass_depth;
 // reverse
   // pointcoord origin is upper left
   highp vec2 pos_win = gl_FragCoord.xy - vec2(gl_PointCoord.x - 0.5f, -gl_PointCoord.y + 0.5f);
   highp vec3 pos_tex = vec3(pos_win * viewportSizeInv, gl_FragCoord.z);
   highp vec3 pos_ndc = pos_tex * 2.0f - 1.0f;
-  highp vec4 pos_clip = vec4(pos_ndc / gl_FragCoord.w, 1.0f / gl_FragCoord.w);
+  // restoring the original w component is important
+  highp vec4 pos_clip = vec4(pos_ndc, 1.0f) / gl_FragCoord.w;
   highp vec4 pos_div = projection_inv * vec4(pos_clip);
   highp vec3 pos_view = pos_div.xyz / pos_div.w;
   highp vec3 pos_world = (modelview_inv * vec4(pos_div.xyz, 1.0f)).xyz;

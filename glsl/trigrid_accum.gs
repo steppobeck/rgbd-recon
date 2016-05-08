@@ -26,19 +26,15 @@ out vec3  pass_normal_es;
 bool validSurface(vec3 a, vec3 b, vec3 c,
                   float depth_a, float depth_b, float depth_c)
 {
-  float avg_depth = (depth_a + depth_b + depth_c)/3.0;
-  float baselength = 0.005;
-  float l = min_length * avg_depth + baselength;	
-
-  if((length(a) > l) || (length(b) > l) || (length(c) > l)) {
+  // discard if invalid depth is contained
+  if(depth_a < 0.0f || depth_b < 0.0f || depth_c < 0.0f) {
     return false;
   }
-
-  if(depth_a < 0.1 || depth_b < 0.1 || depth_c < 0.1) {
-    return false;
-  }
-
-  return true;
+  // float avg_depth = (depth_a + depth_b + depth_c)/3.0;
+  // float l = min_length * avg_depth;  
+  float l = min_length * 1.5f;  
+  // all position differences must be smaller than l
+  return (length(a) < l) && (length(b) < l) && (length(c) < l);
 }
 ///////////////////////////////////////////////////////////////////////////////
 // main
