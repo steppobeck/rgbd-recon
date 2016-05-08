@@ -46,6 +46,8 @@ namespace kinect{
       front->bind(GL_PIXEL_PACK_BUFFER);
       back->setData(size, nullptr, GL_DYNAMIC_DRAW);
       back->bind(GL_PIXEL_PACK_BUFFER);
+      // unbind to prevent interference with downloads
+      globjects::Buffer::unbind(GL_PIXEL_PACK_BUFFER);
 
       map();
     }

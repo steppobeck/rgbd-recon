@@ -95,17 +95,6 @@ void ReconCalibs::process(){
   glDisable(GL_RASTERIZER_DISCARD);
   m_program_sample->release();
 
-  glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
-  std::vector<float> xyz_data(volume_res.x * volume_res.y * volume_res.z * 4);
-  m_volumes_xyz[0]->getImage(0, GL_RGBA, GL_FLOAT, xyz_data.data());
-  for(unsigned i = 0; i < xyz_data.size(); i+=4) {
-    if(xyz_data[i] > 1.0f || xyz_data[i + 1] > 1.0f || xyz_data[i + 2] > 1.0f) {
-    // || xyz_data[i] < -0.01f || xyz_data[i + 1] < -0.01f || xyz_data[i + 2] < -0.01f) {
-      std::cout << "value " << xyz_data[i] << ", " << xyz_data[i + 1] << ", "<< xyz_data[i + 2] << " at " << i << std::endl;
-      throw std::exception{};
-    } 
-  }
-
   bindToTextureUnits();
 }
 
