@@ -59,22 +59,23 @@ void main() {
 
   highp float quality = pass_lateral_quality/pass_depth;
 // reverse
-  // ndc coords are correct
-  highp vec3  pos_tex = vec3(gl_FragCoord.xy * viewportSizeInv, gl_FragCoord.z);
-  highp vec3  pos_ndc = pos_tex * 2.0f - 1.0f;
-  highp vec3  pos_clip = pos_ndc / gl_FragCoord.q;
-  highp vec4  pos_div = projection_inv * vec4(pos_clip, 1.0);
-  highp vec3  pos_div2 = pos_div.xyz / pos_div.w;
-  highp vec4  pos_world = inverse(gl_ModelViewMatrix) * vec4(pos_div.xyz, 1.0f);
-
-  highp vec4  position_curr = img_to_eye_curr * vec4(gl_FragCoord.xy + vec2(0.5,0.5), 0.0f, 1.0);
-  highp vec3  position_curr_es = (position_curr / position_curr.w).xyz;
+  // pointcoord origin is upper left
+  highp vec2 pos_win = gl_FragCoord.xy - vec2(gl_PointCoord.x - 0.5f, -gl_PointCoord.y + 0.5f);
+  highp vec3 pos_tex = vec3(pos_win * viewportSizeInv, gl_FragCoord.z);
+  highp vec3 pos_ndc = pos_tex * 2.0f - 1.0f;
+  highp vec4 pos_clip = vec4(pos_ndc / gl_FragCoord.w, 1.0f / gl_FragCoord.w);
+  highp vec4 pos_div = projection_inv * vec4(pos_clip);
+  highp vec3 pos_view = pos_div.xyz / pos_div.w;
+  highp vec3 pos_world = (modelview_inv * vec4(pos_div.xyz, 1.0f)).xyz;
+ 
+  highp vec4 position_curr = img_to_eye_curr * vec4(gl_FragCoord.xy + vec2(0.5,0.5), 0.0f, 1.0);
+  highp vec3 position_curr_es = (position_curr / position_curr.w).xyz;
 
   highp vec4 color = texture2DArray(kinect_colors, vec3(pass_texcoord, float(layer)));
   gl_FragColor = vec4(color.rgb, quality);
-  gl_FragColor = vec4(gl_PointCoord, 0.0f, 1.0f);
+  // gl_FragColor = vec4(gl_PointCoord, 0.0f, 1.0f);
   //ndc
-  // gl_FragColor = vec4(ndc.xyz, 1.0f);s
+  gl_FragColor = vec4(ndc.xyz, 1.0f);
   // gl_FragColor = vec4(pos_ndc.xyz, 1.0f);
   //clip space
   // gl_FragColor = vec4(pos_clip.xyz, 1.0f);
@@ -95,7 +96,8 @@ void main() {
   highp vec4 p2 = gl_ModelViewMatrix * p;
   // vec4 p3 = modelview_inv * p2;
   highp vec4 p3 = inverse(gl_ModelViewMatrix) * p2;
-  if(length(pass_pos_es.xyz - pos_div.xyz) < 6) {
+  if(distance(pass_pos_es, pos_view) < 0.0001) {
+  // if(distance(vec4(pass_pos_es, 1.0f), pos_div2) < 0.0001) {
   }
   else {
     discard;
@@ -107,4 +109,13 @@ void main() {
 // manual vs reverse view pos:        6    pass_pos_es.xyz - pos_div.xyz
 // manual vs reverse clip pos:        0.005    clipped.xyz - pos_clip
 // manual vs reverse ndc pos:        0.0009    ndc - pos_ndc
-// manual vs reverse frag pos:       0.8        frag.xy - gl_Fragcoord.xy
+// manual vs reverse frag pos:       0.8        frag.xy - gl_FragCoord.xy
+
+// with correcrt pointcoord
+//                                   0.0001   pass_pos_es, pos_world
+//                                   0.000001  pos_view.w, 1.0f
+//                                   0.00001   pos_div.w, 1.0f
+// manual vs reverse view pos:       0.0001    pass_pos_es.xyz, pos_view
+// manual vs reverse clip pos:       0.0001    clipped, pos_clip
+// manual vs reverse ndc pos:        0.00001    ndc, pos_ndc
+// manual vs reverse frag pos:       0.01        frag.xy, pos_win
