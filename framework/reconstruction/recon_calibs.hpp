@@ -33,7 +33,7 @@ namespace kinect{
     globjects::Program* m_program;
     globjects::Program* m_program_sample;
     VolumeSampler       m_sampler;
-    unsigned            m_num_kinect;
+    unsigned            m_active_kinect;
     std::vector<globjects::Texture*> m_volumes_xyz;
     std::vector<globjects::Texture*> m_volumes_uv;
 

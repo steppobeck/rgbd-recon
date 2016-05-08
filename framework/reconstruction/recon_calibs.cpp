@@ -19,7 +19,7 @@ ReconCalibs::ReconCalibs(CalibrationFiles const& cfs, CalibVolume const* cv, glo
  ,m_program{new globjects::Program()}
  ,m_program_sample{new globjects::Program()}
  ,m_sampler{glm::uvec3{m_cv->m_cv_widths[0], m_cv->m_cv_heights[0], m_cv->m_cv_depths[0]}}
- ,m_num_kinect{0}
+ ,m_active_kinect{0}
  ,m_volumes_xyz{}
  ,m_volumes_uv{}
  ,m_start_texture_unit{30}
@@ -43,11 +43,10 @@ ReconCalibs::ReconCalibs(CalibrationFiles const& cfs, CalibVolume const* cv, glo
   m_program_sample->setUniform("volume_uv", start_image_unit + 1);
 
   std::vector<float> empty_xyz(volume_res.x * volume_res.y * volume_res.z * 4, -0.01f);
-  std::vector<uv> empty_uv(volume_res.x * volume_res.y * volume_res.z, {-1.0f, -1.0f});
+  std::vector<uv> empty_uv(volume_res.x * volume_res.y * volume_res.z, {0.0f, 1.0f});
   for (unsigned i = 0; i < cfs.num(); ++i) {
     auto volume_xyz = globjects::Texture::createDefault(GL_TEXTURE_3D);
     volume_xyz->image3D(0, GL_RGBA32F, volume_res.x, volume_res.y, volume_res.z, 0, GL_RGBA, GL_FLOAT, empty_xyz.data());
-    // volume_xyz->image3D(0, GL_RG32F, volume_res.x, volume_res.y, volume_res.z, 0, GL_RG, GL_FLOAT, empty_xyz.data());
     m_volumes_xyz.emplace_back(volume_xyz);
 
     auto volume_uv = globjects::Texture::createDefault(GL_TEXTURE_3D);
@@ -58,7 +57,7 @@ ReconCalibs::ReconCalibs(CalibrationFiles const& cfs, CalibVolume const* cv, glo
 
 ReconCalibs::~ReconCalibs() {
   m_program->destroy();
-  for (std::size_t i = 0; i < m_volumes_xyz.size(); ++i) {
+  for (std::size_t i = 0; i < m_num_kinects; ++i) {
     m_volumes_xyz[i]->destroy();
     m_volumes_uv[i]->destroy();
   }
@@ -66,7 +65,7 @@ ReconCalibs::~ReconCalibs() {
 
 void ReconCalibs::draw(){
   m_program->use();
-  m_program->setUniform("layer", m_num_kinect);
+  m_program->setUniform("layer", m_active_kinect);
 static VolumeSampler calib_sampler{volume_res};
 
   // for(unsigned i = 0; i < m_num_kinects; ++i) {
@@ -87,9 +86,10 @@ void ReconCalibs::process(){
   auto world_to_vol(glm::inverse(vol_to_world));
   std::cout << world_to_vol << std::endl;
   m_program_sample->setUniform("world_to_vol", world_to_vol);
-
+  std::cout << m_num_kinects << "-----------------" << std::endl;
   glEnable(GL_RASTERIZER_DISCARD);
   for(unsigned i = 0; i < m_num_kinects; ++i) {
+    std::cout << "num " << i << std::endl;
     m_program_sample->setUniform("layer", i);
     m_volumes_xyz[i]->bindImageTexture(start_image_unit, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA32F);
     m_volumes_uv[i]->bindImageTexture(start_image_unit + 1, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RG32F);
@@ -104,8 +104,8 @@ void ReconCalibs::process(){
   std::vector<float> xyz_data(volume_res.x * volume_res.y * volume_res.z * 4);
   m_volumes_xyz[0]->getImage(0, GL_RGBA, GL_FLOAT, xyz_data.data());
   for(unsigned i = 0; i < xyz_data.size(); i+=4) {
-    if(xyz_data[i] > 1.0f || xyz_data[i + 1] > 1.0f || xyz_data[i + 2] > 1.0f
-    || xyz_data[i] < -0.01f || xyz_data[i + 1] < -0.01f || xyz_data[i + 2] < -0.01f) {
+    if(xyz_data[i] > 1.0f || xyz_data[i + 1] > 1.0f || xyz_data[i + 2] > 1.0f) {
+    // || xyz_data[i] < -0.01f || xyz_data[i + 1] < -0.01f || xyz_data[i + 2] < -0.01f) {
       std::cout << "value " << xyz_data[i] << ", " << xyz_data[i + 1] << ", "<< xyz_data[i + 2] << " at " << i << std::endl;
       throw std::exception{};
     } 
@@ -116,31 +116,30 @@ void ReconCalibs::process(){
 
 std::vector<int> ReconCalibs::getXYZVolumeUnits() const {
   std::vector<int> units(5, 0);
-  for(int i = 0; i < int(m_volumes_xyz.size()); ++i) {
+  for(int i = 0; i < int(m_num_kinects); ++i) {
     units[i] = m_start_texture_unit + i * 2;
   }
   return units;
 }
 std::vector<int> ReconCalibs::getUVVolumeUnits() const {
   std::vector<int> units(5, 0);
-  for(int i = 0; i < int(m_volumes_xyz.size()); ++i) {
+  for(int i = 0; i < int(m_num_kinects); ++i) {
     units[i] = m_start_texture_unit + i * 2 + 1;
   }
   return units;
 }
 
 void ReconCalibs::bindToTextureUnits() {
-  for(unsigned layer = 0; layer < m_volumes_xyz.size(); ++layer){
+  for(unsigned layer = 0; layer < m_num_kinects; ++layer){
     m_volumes_xyz[layer]->bindActive(GL_TEXTURE0 + m_start_texture_unit + layer * 2);
     m_volumes_uv[layer]->bindActive(GL_TEXTURE0 + m_start_texture_unit + layer * 2 + 1);
   }
   glActiveTexture(GL_TEXTURE0);
-  // m_start_texture_unit = start_texture_unit;    
 }
 
 
 void ReconCalibs::setActiveKinect(unsigned num_kinect) {
-  m_num_kinect = num_kinect;
+  m_active_kinect = num_kinect;
 }
 
 }
