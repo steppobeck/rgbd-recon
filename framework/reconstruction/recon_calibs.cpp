@@ -28,8 +28,8 @@ ReconCalibs::ReconCalibs(CalibrationFiles const& cfs, CalibVolume const* cv, glo
     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/calib_vis.vs"),
     globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/calib_vis.fs")
   );
-  m_program->setUniform("cv_xyz2", getXYZVolumeUnits());
-  m_program->setUniform("cv_uv2", getUVVolumeUnits());
+  m_program->setUniform("cv_xyz_inv", getXYZVolumeUnits());
+  m_program->setUniform("cv_uv_inv", getUVVolumeUnits());
   m_program->setUniform("cv_xyz", m_cv->getXYZVolumeUnits());
   m_program->setUniform("cv_uv", m_cv->getUVVolumeUnits());
 
@@ -41,6 +41,14 @@ ReconCalibs::ReconCalibs(CalibrationFiles const& cfs, CalibVolume const* cv, glo
   m_program_sample->setUniform("cv_uv", m_cv->getUVVolumeUnits());
   m_program_sample->setUniform("volume_xyz", start_image_unit);
   m_program_sample->setUniform("volume_uv", start_image_unit + 1);
+  m_program_sample->setUniform("volume_res", volume_res);
+  auto vol_to_world(glm::scale(glm::fmat4{1.0f}, glm::fvec3{m_bbox.getPMax()[0] - m_bbox.getPMin()[0],
+                                                            m_bbox.getPMax()[1] - m_bbox.getPMin()[1],
+                                                            m_bbox.getPMax()[2] - m_bbox.getPMin()[2]}));
+
+  vol_to_world = glm::translate(glm::fmat4{1.0f}, glm::fvec3{m_bbox.getPMin()[0], m_bbox.getPMin()[1], m_bbox.getPMin()[2]}) * vol_to_world;
+  auto world_to_vol(glm::inverse(vol_to_world));
+  m_program_sample->setUniform("world_to_vol", world_to_vol);
 
   std::vector<float> empty_xyz(volume_res.x * volume_res.y * volume_res.z * 4, -0.01f);
   std::vector<uv> empty_uv(volume_res.x * volume_res.y * volume_res.z, {0.0f, 1.0f});
@@ -66,30 +74,17 @@ ReconCalibs::~ReconCalibs() {
 void ReconCalibs::draw(){
   m_program->use();
   m_program->setUniform("layer", m_active_kinect);
-static VolumeSampler calib_sampler{volume_res};
+  static VolumeSampler calib_sampler{volume_res};
 
-  // for(unsigned i = 0; i < m_num_kinects; ++i) {
-  //   m_program->setUniform("layer", i);
-    calib_sampler.sample();
-  // }
+  calib_sampler.sample();
 
   m_program->release();
 }
 void ReconCalibs::process(){
   m_program_sample->use();
-  m_program_sample->setUniform("volume_res", volume_res);
-  auto vol_to_world(glm::scale(glm::fmat4{1.0f}, glm::fvec3{m_bbox.getPMax()[0] - m_bbox.getPMin()[0],
-                                                            m_bbox.getPMax()[1] - m_bbox.getPMin()[1],
-                                                            m_bbox.getPMax()[2] - m_bbox.getPMin()[2]}));
-
-  vol_to_world = glm::translate(glm::fmat4{1.0f}, glm::fvec3{m_bbox.getPMin()[0], m_bbox.getPMin()[1], m_bbox.getPMin()[2]}) * vol_to_world;
-  auto world_to_vol(glm::inverse(vol_to_world));
-  std::cout << world_to_vol << std::endl;
-  m_program_sample->setUniform("world_to_vol", world_to_vol);
-  std::cout << m_num_kinects << "-----------------" << std::endl;
   glEnable(GL_RASTERIZER_DISCARD);
+
   for(unsigned i = 0; i < m_num_kinects; ++i) {
-    std::cout << "num " << i << std::endl;
     m_program_sample->setUniform("layer", i);
     m_volumes_xyz[i]->bindImageTexture(start_image_unit, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA32F);
     m_volumes_uv[i]->bindImageTexture(start_image_unit + 1, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RG32F);
