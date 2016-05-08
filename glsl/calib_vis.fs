@@ -9,5 +9,6 @@ flat in vec2 geo_texcoord;
 out vec4 gl_FragColor;
 
 void main() {
-   gl_FragColor = vec4(geo_pos_volume, 1.0f);
+   gl_FragColor = vec4(geo_texcoord, 0.0f, 1.0f);
+   // gl_FragColor = vec4(geo_pos_volume, 1.0f);
 }

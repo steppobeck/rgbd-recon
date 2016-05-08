@@ -20,11 +20,11 @@ flat out vec2 geo_texcoord;
 void main() {
   geo_pos_volume = in_Position;
   vec3 pos_calib  = texture(cv_xyz2[layer], geo_pos_volume).rgb;
+  // pos_calib = geo_pos_volume;
   geo_pos_world  = texture(cv_xyz[layer], pos_calib).rgb;
-  // geo_pos_world  = texture(cv_xyz[layer], geo_pos_volume).rgb;
-  // geo_pos_world = pos_calib;
+
   geo_pos_view   = (gl_ModelViewMatrix * vec4(geo_pos_world, 1.0)).xyz;
-  geo_texcoord   = texture(cv_uv[layer],  geo_pos_volume).rg;
-  geo_texcoord   = texture(cv_uv2[layer],  pos_calib).rg;
+  // geo_texcoord   = texture(cv_uv[layer], pos_calib).xy;
+  geo_texcoord   = texture(cv_uv2[layer], geo_pos_volume).xy;
   gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * vec4(geo_pos_world, 1.0);
 }

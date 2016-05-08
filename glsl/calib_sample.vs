@@ -30,5 +30,5 @@ void main() {
   ivec3 ipos_vol = ivec3(round(pos_vol * volume_res));
 
   imageStore(volume_xyz, ipos_vol, vec4(geo_pos_volume, 0.0f));
-  imageStore(volume_uv, ipos_vol, vec4(1.0f, 0.0f, 0.0f, 0.0f));
+  imageStore(volume_uv, ipos_vol, vec4(geo_texcoord, 0.0f, 0.0f));
 }
