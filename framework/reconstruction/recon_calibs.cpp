@@ -13,6 +13,7 @@ namespace kinect{
 
 static glm::uvec3 volume_res{128,256,128};
 static int start_image_unit = 1;
+
 ReconCalibs::ReconCalibs(CalibrationFiles const& cfs, CalibVolume const* cv, gloost::BoundingBox const&  bbox)
  :Reconstruction(cfs, cv, bbox)
  ,m_program{new globjects::Program()}
@@ -66,10 +67,11 @@ ReconCalibs::~ReconCalibs() {
 void ReconCalibs::draw(){
   m_program->use();
   m_program->setUniform("layer", m_num_kinect);
+static VolumeSampler calib_sampler{volume_res};
 
   // for(unsigned i = 0; i < m_num_kinects; ++i) {
   //   m_program->setUniform("layer", i);
-    m_sampler.sample();
+    calib_sampler.sample();
   // }
 
   m_program->release();
@@ -86,15 +88,13 @@ void ReconCalibs::process(){
   std::cout << world_to_vol << std::endl;
   m_program_sample->setUniform("world_to_vol", world_to_vol);
 
- VolumeSampler calib_sampler{volume_res};
-
   glEnable(GL_RASTERIZER_DISCARD);
   for(unsigned i = 0; i < m_num_kinects; ++i) {
     m_program_sample->setUniform("layer", i);
     m_volumes_xyz[i]->bindImageTexture(start_image_unit, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA32F);
     m_volumes_uv[i]->bindImageTexture(start_image_unit + 1, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RG32F);
     
-    calib_sampler.sample();
+    m_sampler.sample();
   }
 
   glDisable(GL_RASTERIZER_DISCARD);
