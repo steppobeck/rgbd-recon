@@ -39,7 +39,6 @@ bool clip(vec3 p){
   }
   return false;
 }
-
 ///////////////////////////////////////////////////////////////////////////////
 // main
 ///////////////////////////////////////////////////////////////////////////////
@@ -68,7 +67,8 @@ void main() {
      normal = -normal;
    }
 #endif
-   float quality = pass_lateral_quality/(pass_depth);
+    // non-normalized depth was between 0.5 and 4.5
+   float quality = pass_lateral_quality/(pass_depth * 4.0f+ 0.5f);
 
    if(stage > 0u){ // accumulation pass write color and quality if within epsilon
      vec3  coords = vec3(gl_FragCoord.xy * viewportSizeInv, 0.0 /*here layer is always 0*/);

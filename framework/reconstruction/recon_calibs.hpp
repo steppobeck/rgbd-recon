@@ -19,25 +19,13 @@ namespace kinect{
     ~ReconCalibs();
 
     void draw() override;
-    void process();
 
     void setActiveKinect(unsigned num_kinect);
-
-    std::vector<int> getXYZVolumeUnits() const;
-    std::vector<int> getUVVolumeUnits() const;
+    
   private:
-    void bindToTextureUnits();
-    // unsigned getStartTextureUnit() const;
-
-
     globjects::Program* m_program;
-    globjects::Program* m_program_sample;
     VolumeSampler       m_sampler;
     unsigned            m_active_kinect;
-    std::vector<globjects::Texture*> m_volumes_xyz;
-    std::vector<globjects::Texture*> m_volumes_uv;
-
-    unsigned m_start_texture_unit;
   };
 }
 

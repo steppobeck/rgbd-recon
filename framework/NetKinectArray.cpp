@@ -184,10 +184,8 @@ namespace kinect{
     m_depthArray->fillLayersFromPBO(m_pbo_depths.front->id());
 
     bindToTextureUnits();
-    // bindToTextureUnits();
-    if(m_filter_textures) {
-      processTextures();
-    }
+
+    processTextures();
   }
   
 void NetKinectArray::bindToFramebuffer(GLuint array_handle, GLuint layer) {

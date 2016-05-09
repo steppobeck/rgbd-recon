@@ -134,13 +134,15 @@ void init(std::vector<std::string> args){
   g_bbox.setPMax(bbox_max);
 
   g_calib_files = std::unique_ptr<kinect::CalibrationFiles>{new kinect::CalibrationFiles(calib_filenames)};
-  g_cv = std::unique_ptr<kinect::CalibVolume>{new kinect::CalibVolume(g_calib_files->getFileNames())};
+  g_cv = std::unique_ptr<kinect::CalibVolume>{new kinect::CalibVolume(g_calib_files->getFileNames(), g_bbox)};
   g_nka = std::unique_ptr<kinect::NetKinectArray>{new kinect::NetKinectArray(serverport, g_calib_files.get(), g_cv.get())};
   
   // binds to unit 1 to 3
   g_nka->setStartTextureUnit(1);
   // bind calubration volumes from 4 - 13
-  g_cv->bindToTextureUnits(4);
+  g_cv->setStartTextureUnit(4);
+  g_cv->setStartTextureUnitInv(30);
+  g_cv->process();
 
   g_recons.emplace_back(new kinect::ReconTrigrid(*g_calib_files, g_cv.get(), g_bbox));
   g_recons.emplace_back(new kinect::ReconPoints(*g_calib_files, g_cv.get(), g_bbox));
@@ -148,7 +150,7 @@ void init(std::vector<std::string> args){
   std::cout << "starting calibvis" << std::endl;
   g_calibvis = std::unique_ptr<kinect::ReconCalibs>(new kinect::ReconCalibs(*g_calib_files, g_cv.get(), g_bbox));
   std::cout << "processing calibvis" << std::endl;
-  g_calibvis->process();
+  // g_calibvis->process();
   std::cout << "finish calibvis" << std::endl;
   // enable point scaling in vertex shader
   glEnable(GL_PROGRAM_POINT_SIZE);
@@ -225,14 +227,6 @@ void draw3d(void)
   g_stats->startGPU();
   if (g_play) {
     g_nka->update();
-  }
-
-  if (g_bilateral) {
-    g_nka->bilateralFilter();
-  }
-  // update textures if bilateral was disabled
-  else {
-    g_nka->bindToTextureUnits();
   }
   // draw active reconstruction
   g_recons.at(g_recon_mode)->draw();
@@ -340,6 +334,7 @@ void key(unsigned char key, int x, int y)
     break;
   case 'b':
     g_bilateral = !g_bilateral;
+    g_nka->filterTextures(g_bilateral);
     break;
   case 'g':
     g_draw_grid = !g_draw_grid;
@@ -354,9 +349,8 @@ void key(unsigned char key, int x, int y)
       for (auto& recon : g_recons) {
         recon->reload();
       }
-      // g_calib_files->reload();
-      // g_cv->reload();
       globjects::File::reloadAll();
+      g_nka->processTextures(); 
     break;
   case 'm':
     g_picking = !g_picking;
@@ -438,16 +432,11 @@ void idle(void){
 
 
 ////////////////////////////////////////////////////////////////////////////////
-int main(int argc, char *argv[])
-{
-
-  std::string serverendpoint("tcp://141.54.147.32:7000");
-
+int main(int argc, char *argv[]) {
   CMDParser p("kinect_surface ...");
 
   p.addOpt("r",2,"resolution", "set screen resolution");
   p.addOpt("i",-1,"info", "draw info");
-  p.addOpt("s",1,"serverendpoint", "set the server endpoint for calibvolume based calibration");
   p.init(argc,argv);
 
   if(p.isOptSet("r")){
@@ -457,10 +446,6 @@ int main(int argc, char *argv[])
 
   if(p.isOptSet("i")){
     g_info = true;
-  }
-
-  if(p.isOptSet("s")){
-    kinect::CalibVolume::serverendpoint = std::string("tcp://") + p.getOptsString("s")[0];
   }
 
   glutInit(&argc, argv);

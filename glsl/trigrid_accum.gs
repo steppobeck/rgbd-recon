@@ -30,9 +30,8 @@ bool validSurface(vec3 a, vec3 b, vec3 c,
   if(depth_a < 0.0f || depth_b < 0.0f || depth_c < 0.0f) {
     return false;
   }
-  // float avg_depth = (depth_a + depth_b + depth_c)/3.0;
-  // float l = min_length * avg_depth;  
-  float l = min_length * 1.5f;  
+  float avg_depth = (depth_a + depth_b + depth_c)/3.0;
+  float l = min_length * avg_depth * 4.0f;  
   // all position differences must be smaller than l
   return (length(a) < l) && (length(b) < l) && (length(c) < l);
 }
