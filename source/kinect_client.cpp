@@ -142,16 +142,13 @@ void init(std::vector<std::string> args){
   // bind calubration volumes from 4 - 13
   g_cv->setStartTextureUnit(4);
   g_cv->setStartTextureUnitInv(30);
-  g_cv->process();
+  g_cv->calculateInverseVolumes();
 
   g_recons.emplace_back(new kinect::ReconTrigrid(*g_calib_files, g_cv.get(), g_bbox));
   g_recons.emplace_back(new kinect::ReconPoints(*g_calib_files, g_cv.get(), g_bbox));
-  // g_recons.emplace_back(new kinect::ReconCalibs(*g_calib_files, g_cv.get(), g_bbox));
-  std::cout << "starting calibvis" << std::endl;
+
   g_calibvis = std::unique_ptr<kinect::ReconCalibs>(new kinect::ReconCalibs(*g_calib_files, g_cv.get(), g_bbox));
-  std::cout << "processing calibvis" << std::endl;
-  // g_calibvis->process();
-  std::cout << "finish calibvis" << std::endl;
+
   // enable point scaling in vertex shader
   glEnable(GL_PROGRAM_POINT_SIZE);
   glEnable(GL_POINT_SPRITE);

@@ -21,6 +21,7 @@ namespace kinect{
 
   protected:
     CalibVolume const* m_cv;
+    CalibrationFiles const* m_cf;
 
     unsigned m_tex_width;
     unsigned m_tex_height;
