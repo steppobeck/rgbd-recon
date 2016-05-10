@@ -11,7 +11,6 @@ uniform mat4 vol_to_world;
 out vec3 pass_Position;
 
 void main() {
-  // gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * vol_to_world * TextureMatrix * vec4(in_Position, 1.0f);
-  gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * TextureMatrix * vec4(in_Position, 1.0f);
+  gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * vol_to_world * vec4(in_Position, 1.0f);
   pass_Position = in_Position;
 }

@@ -66,7 +66,7 @@ void main() {
 
       float final_density = sample(sample_pos);
       vec3 view_normal = normalize((NormalMatrix * vec4(get_gradient(sample_pos), 0.0f)).xyz);
-      vec3 view_pos = (gl_ModelViewMatrix * vec4(sample_pos, 1.0f)).xyz;
+      vec3 view_pos = (gl_ModelViewMatrix * vol_to_world * vec4(sample_pos, 1.0f)).xyz;
 
       vec2 diffSpec = phongDiffSpec(view_pos, view_normal, n, LightPosition);
 
@@ -74,6 +74,7 @@ void main() {
       out_Color = vec4(LightAmbient * diffuseColor 
                       + LightDiffuse * diffuseColor * diffSpec.x
                       + LightSpecular * ks * diffSpec.y, 1.0f);
+      // out_Color.rgb = view_pos;
       // apply projection matrix on z component of view-space position
       gl_FragDepth = (gl_ProjectionMatrix[2].z *view_pos.z + gl_ProjectionMatrix[3].z) / -view_pos.z * 0.5f + 0.5f;
       return;

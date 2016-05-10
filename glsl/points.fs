@@ -70,7 +70,7 @@ void main() {
   // gl_FragColor = vec4(clipPos.xyz, 1.0f);
   // view space
   // gl_FragColor = vec4(pass_pos_es.xyz, 1.0f);
-  // gl_FragColor = vec4(eyePos.xyz, 1.0f);
+  gl_FragColor = vec4(pos_view.xyz, 1.0f);
   // gl_FragColor = vec4(pos_div.xyz, 1.0f);
   // gl_FragColor = vec4(position_curr_es.xyz, 1.0f);
   // gl_FragColor = vec4(view, 1.0f);
