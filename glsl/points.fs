@@ -62,7 +62,7 @@ void main() {
   gl_FragColor = vec4(color.rgb, quality);
   // gl_FragColor = vec4(gl_PointCoord, 0.0f, 1.0f);
   //ndc
-  gl_FragColor = vec4(ndc.xyz, 1.0f);
+  // gl_FragColor = vec4(ndc.xyz, 1.0f);
   // gl_FragColor = vec4(pos_ndc.xyz, 1.0f);
   //clip space
   // gl_FragColor = vec4(pos_clip.xyz, 1.0f);
@@ -70,7 +70,7 @@ void main() {
   // gl_FragColor = vec4(clipPos.xyz, 1.0f);
   // view space
   // gl_FragColor = vec4(pass_pos_es.xyz, 1.0f);
-  gl_FragColor = vec4(pos_view.xyz, 1.0f);
+  // gl_FragColor = vec4(pos_view.xyz, 1.0f);
   // gl_FragColor = vec4(pos_div.xyz, 1.0f);
   // gl_FragColor = vec4(position_curr_es.xyz, 1.0f);
   // gl_FragColor = vec4(view, 1.0f);
@@ -79,16 +79,12 @@ void main() {
   // gl_FragColor = vec4(worldPos.xyz, 1.0f);
   // gl_FragColor = vec4(pos_world.xyz, 1.0f);
   // gl_FragColor = vec4((inverse(gl_ModelViewMatrix)* vec4(pass_pos_es, 1.0f)).xyz, 1.0f);
-  highp vec4 p = vec4(0.5f, 0.25f, -0.15f, 1.0f);
-  highp vec4 p2 = gl_ModelViewMatrix * p;
-  // vec4 p3 = modelview_inv * p2;
-  highp vec4 p3 = inverse(gl_ModelViewMatrix) * p2;
-  if(distance(pass_pos_es, pos_view) < 0.0001) {
+  // if(distance(pass_pos_es, pos_view) < 0.0001) {
   // if(distance(vec4(pass_pos_es, 1.0f), pos_div2) < 0.0001) {
-  }
-  else {
-    discard;
-  }
+  // }
+  // else {
+    // discard;
+  // }
 }
 // distances
 // automatic vs manual clip space pos: 0.000001  clipped - pass_glpos
