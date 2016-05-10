@@ -19,15 +19,12 @@ namespace kinect{
     ~ReconCalibs();
 
     void draw() override;
-    void integrate();
 
     void setActiveKinect(unsigned num_kinect);
 
   private:
     globjects::Program* m_program;
-    globjects::Program* m_program_integration;
     VolumeSampler       m_sampler;
-    globjects::Texture* m_volume_tsdf;
 
     unsigned            m_active_kinect;
   };

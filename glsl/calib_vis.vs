@@ -22,7 +22,7 @@ flat out vec2 geo_texcoord;
 
 void main() {
   geo_pos_volume = in_Position;
-  vec3 pos_calib  = texture(cv_xyz_inv[layer], geo_pos_volume).rgb;
+  // vec3 pos_calib  = texture(cv_xyz_inv[layer], geo_pos_volume).rgb;
   // pos_calib = geo_pos_volume;
   geo_pos_world  = (vol_to_world * vec4(geo_pos_volume, 1.0)).xyz;
 

@@ -10,6 +10,7 @@
 namespace kinect{
 
 static glm::uvec3 volume_res{128,256,128};
+// static glm::uvec3 volume_res{32,64,32};
 static int start_image_unit = 1;
 
 CalibVolume::CalibVolume(std::vector<std::string> const& calib_volume_files, gloost::BoundingBox const& bbox)
