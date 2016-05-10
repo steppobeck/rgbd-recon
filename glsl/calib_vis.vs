@@ -33,4 +33,5 @@ void main() {
   float val = texture(volume_tsdf, geo_pos_volume).r;
   geo_texcoord = vec2(val, val);
   gl_Position = gl_ProjectionMatrix * vec4(geo_pos_view, 1.0);
+  gl_PointSize = 3.0f;
 }

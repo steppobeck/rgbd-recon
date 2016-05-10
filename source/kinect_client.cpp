@@ -197,7 +197,7 @@ void update_view_matrix() {
   gloost::Matrix camview(g_navi.get(speed));
   camview.invert();
 
-  gloostMultMatrix(camview.data());
+  glMultMatrixf(camview.data());
 
   gloost::Matrix modelview;
   glGetFloatv(GL_MODELVIEW_MATRIX, modelview.data());

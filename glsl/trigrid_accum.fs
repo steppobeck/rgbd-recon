@@ -60,7 +60,7 @@ void main() {
 #if 1
 // backface culling
    if ( dot ( normal, -normalize(pass_pos_es) ) > 0.0 ) {
-     discard;
+     // discard;
    }
 #else
    if ( dot ( normal, -normalize(pass_pos_es) ) < 0.0 ) {

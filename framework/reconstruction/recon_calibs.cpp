@@ -1,10 +1,12 @@
 #include "recon_calibs.hpp"
 
 #include "calibration_files.hpp"
+#include "unit_cube.hpp"
 #include <KinectCalibrationFile.h>
 #include <CalibVolume.h>
 
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtx/io.hpp>
 #include <globjects/Shader.h>
 #include <globjects/globjects.h>
@@ -22,9 +24,13 @@ ReconCalibs::ReconCalibs(CalibrationFiles const& cfs, CalibVolume const* cv, glo
  ,m_volume_tsdf{}
  ,m_active_kinect{0}
 {
+  // m_program->attach(
+  //   globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/calib_vis.vs"),
+  //   globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/calib_vis.fs")
+  // );
   m_program->attach(
-    globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/calib_vis.vs"),
-    globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/calib_vis.fs")
+    globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/tsdf_raymarch.vs"),
+    globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/tsdf_raymarch.fs")
   );
   m_program_integration->attach(
     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/tsdf_integration.vs"),
@@ -32,16 +38,23 @@ ReconCalibs::ReconCalibs(CalibrationFiles const& cfs, CalibVolume const* cv, glo
   );
   m_program_integration->setUniform("cv_xyz_inv", m_cv->getXYZVolumeUnitsInv());
   m_program_integration->setUniform("cv_uv_inv", m_cv->getUVVolumeUnitsInv());
-  // m_program->setUniform("cv_xyz", m_cv->getXYZVolumeUnits());
-  // m_program->setUniform("cv_uv", m_cv->getUVVolumeUnits());
   m_program->setUniform("volume_tsdf", 29);
-  auto vol_to_world(glm::scale(glm::fmat4{1.0f}, glm::fvec3{m_bbox.getPMax()[0] - m_bbox.getPMin()[0],
-                                                            m_bbox.getPMax()[1] - m_bbox.getPMin()[1],
-                                                            m_bbox.getPMax()[2] - m_bbox.getPMin()[2]}));
 
-  vol_to_world = glm::translate(glm::fmat4{1.0f}, glm::fvec3{m_bbox.getPMin()[0], m_bbox.getPMin()[1], m_bbox.getPMin()[2]}) * vol_to_world;
+  auto volume_res = cv->getVolumeRes();
+  glm::fvec3 bbox_dimensions = glm::fvec3{m_bbox.getPMax()[0] - m_bbox.getPMin()[0],
+                                                            m_bbox.getPMax()[1] - m_bbox.getPMin()[1],
+                                                            m_bbox.getPMax()[2] - m_bbox.getPMin()[2]};
+  glm::fvec3 bbox_translation = glm::fvec3{m_bbox.getPMin()[0], m_bbox.getPMin()[1], m_bbox.getPMin()[2]};
+
+  auto vol_to_world(glm::scale(glm::fmat4{1.0f}, bbox_dimensions));
+  vol_to_world = glm::translate(glm::fmat4{1.0f}, bbox_translation) * vol_to_world;
   // auto world_to_vol(glm::inverse(vol_to_world));
+  glm::vec3 scale = bbox_dimensions / std::max(std::max(bbox_dimensions.x, bbox_dimensions.y), bbox_dimensions.z);
+  m_program->setUniform("VolumeDimensions", glm::fvec3{volume_res});
+  glm::mat4 texture_matrix = glm::scale(glm::mat4{1.0f}, scale);
+  m_program->setUniform("TextureMatrix", texture_matrix);
   m_program->setUniform("vol_to_world", vol_to_world);
+
 
   m_program_integration->setUniform("volume_tsdf", start_image_unit);
   m_program_integration->setUniform("kinect_colors",1);
@@ -50,13 +63,12 @@ ReconCalibs::ReconCalibs(CalibrationFiles const& cfs, CalibVolume const* cv, glo
 
   m_program_integration->setUniform("num_kinects", m_num_kinects);
   m_program_integration->setUniform("res_depth", glm::uvec2{m_cf->getWidth(), m_cf->getHeight()});
-  auto volume_res = cv->getVolumeRes();
   m_program_integration->setUniform("res_tsdf", volume_res);
   m_program_integration->setUniform("limit", limit);
   m_program->setUniform("limit", limit);
 
   m_volume_tsdf = globjects::Texture::createDefault(GL_TEXTURE_3D);
-  std::vector<float> empty_tsdf(volume_res.x * volume_res.y * volume_res.z, -10.0f);
+  std::vector<float> empty_tsdf(volume_res.x * volume_res.y * volume_res.z, -limit);
   m_volume_tsdf->image3D(0, GL_R32F, volume_res.x, volume_res.y, volume_res.z, 0, GL_RED, GL_FLOAT, empty_tsdf.data());
   m_volume_tsdf->bindActive(GL_TEXTURE0 + 29);
 }
@@ -71,12 +83,36 @@ void ReconCalibs::draw(){
 
   m_program->use();
 
-  m_sampler.sample();
+  glm::fvec3 bbox_dimensions = glm::fvec3{m_bbox.getPMax()[0] - m_bbox.getPMin()[0],
+                                          m_bbox.getPMax()[1] - m_bbox.getPMin()[1],
+                                          m_bbox.getPMax()[2] - m_bbox.getPMin()[2]};
+  glm::fvec3 bbox_translation = glm::fvec3{m_bbox.getPMin()[0], m_bbox.getPMin()[1], m_bbox.getPMin()[2]};
+
+  auto vol_to_world(glm::scale(glm::fmat4{1.0f}, bbox_dimensions));
+  vol_to_world = glm::translate(glm::fmat4{1.0f}, bbox_translation) * vol_to_world;
+
+  glm::vec3 scale = bbox_dimensions / std::max(std::max(bbox_dimensions.x, bbox_dimensions.y), bbox_dimensions.z);
+
+  glm::mat4 texture_matrix = glm::scale(glm::mat4{1.0f}, scale);
+  gloost::Matrix modelview;
+  glGetFloatv(GL_MODELVIEW_MATRIX, modelview.data());
+  glm::fmat4 model_view{modelview};
+  glm::fmat4 normal_matrix = glm::inverseTranspose(model_view * texture_matrix);
+  m_program->setUniform("NormalMatrix", normal_matrix);
+  // upload camera pos in volume space for correct raycasting dir 
+  glm::fvec4 camera_world{glm::inverse(model_view) * glm::fvec4{0.0f, 0.0f, 0.0f, 1.0f}};
+  glm::vec3 camera_texturespace{glm::inverse(texture_matrix) * camera_world};
+  // glm::vec3 camera_texturespace{glm::inverse(vol_to_world * texture_matrix) * camera_world};
+
+  m_program->setUniform("CameraPos", camera_texturespace);
+  // m_sampler.sample();
+  UnitCube::draw();
 
   m_program->release();  
 }
 
 void ReconCalibs::integrate() {
+  
   glEnable(GL_RASTERIZER_DISCARD);
   m_program_integration->use();
 

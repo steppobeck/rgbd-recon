@@ -51,6 +51,7 @@ void main() {
     float sdist = depth - pos_calib.z;
     if (sdist <= -limit) {
       // weighted_tsd = -limit;
+      // break;
     }
     else if (sdist >= limit) {
       // do nothing
