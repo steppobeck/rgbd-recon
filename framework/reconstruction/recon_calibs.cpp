@@ -12,7 +12,7 @@
 namespace kinect{
 
 static int start_image_unit = 3;
-static float limit = 0.1f;
+static float limit = 0.01f;
 
 ReconCalibs::ReconCalibs(CalibrationFiles const& cfs, CalibVolume const* cv, gloost::BoundingBox const&  bbox)
  :Reconstruction(cfs, cv, bbox)

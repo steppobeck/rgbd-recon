@@ -37,25 +37,34 @@ void main() {
   float weighted_tsd = limit;
   float weight = 0;
   for (uint i = 0u; i < num_kinects; ++i) {
-    // uint i = 0;
     vec3 pos_calib = texture(cv_xyz_inv[i], geo_pos_volume).xyz;
     float depth = texture2DArray(kinect_depths, vec3(pos_calib.xy, float(i))).r;
-    // float lateral_quality = texture2DArray(kinect_qualities, vec3(pos_calib.xy * res_depth, float(i))).r;
-    // float quality = lateral_quality/(pos_calib.z * 4.0f+ 0.5f);
-
-    float sdist = depth - pos_calib.z;
-    float tsd = clamp(sdist, -limit, limit);
     if (is_outside(depth)) {
-      // weight = 1.0f;
-      // weighted_tsd = limit;
-      // weighted_tsd = 10.0f;
-      tsd = 10.0f;
+      // no write yet -> voxel outside of surface
+      if (weighted_tsd >= limit) {
+        weighted_tsd = -limit;
+        continue;
+      }
+      // tsd = 10.0f;
       // break;
     }
-    if(pos_calib.x < 0.0f) tsd = 10.0f;
-    // weighted_tsd += quality * tsd;
-    // weight += quality;
-    if(abs(tsd) < abs(weighted_tsd)) weighted_tsd = tsd;
+    float sdist = depth - pos_calib.z;
+    if (sdist <= -limit) {
+      // weighted_tsd = -limit;
+    }
+    else if (sdist >= limit) {
+      // do nothing
+    }
+    else {
+      float tsd = clamp(sdist, -limit, limit);
+    // float lateral_quality = texture2DArray(kinect_qualities, vec3(pos_calib.xy * res_depth, float(i))).r;
+    // float quality = lateral_quality/(pos_calib.z * 4.0f+ 0.5f);
+    float quality = 1.0f;
+      // if(pos_calib.x < 0.0f) tsd = 10.0f;
+    // if(abs(tsd) < abs(weighted_tsd)) weighted_tsd = tsd;
+      weighted_tsd = (weighted_tsd * weight + quality * tsd) / (weight + quality);
+      weight += quality;
+    }
     // weighted_tsd = tsd;
   }
     // weighted_tsd = pos_calib.x;
@@ -70,6 +79,7 @@ void main() {
   gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * vec4(geo_pos_world, 1.0);
 
   // vec3 pos_vol = (world_to_vol * vec4(geo_pos_world, 1.0f)).xyz; 
-  ivec3 ipos_vol = ivec3(round(in_Position * res_tsdf));
+  // coordinates must be even pixels
+  ivec3 ipos_vol = ivec3(round(in_Position * res_tsdf - vec3(0.5f)));
   imageStore(volume_tsdf, ipos_vol, vec4(weighted_tsd, 0.0f, 0.0f, 0.0f));
 }
