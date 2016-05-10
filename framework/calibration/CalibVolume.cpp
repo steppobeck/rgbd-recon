@@ -6,6 +6,10 @@
 #include <globjects/Shader.h>
 
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtx/string_cast.hpp>
+#include <glm/gtx/norm.hpp>
+
+#include <stdexcept>
 
 namespace kinect{
 
@@ -125,6 +129,59 @@ void CalibVolume::calculateInverseVolumes(){
   if(m_start_texture_unit_inv >= 0) {
     bindToTextureUnitsInv();
   }
+
+  calculateInverseVolumes2();
+}
+
+void CalibVolume::calculateInverseVolumes2() {
+  glm::fvec3 bbox_dimensions = glm::fvec3{m_bbox.getPMax()[0] - m_bbox.getPMin()[0],
+                                          m_bbox.getPMax()[1] - m_bbox.getPMin()[1],
+                                          m_bbox.getPMax()[2] - m_bbox.getPMin()[2]};
+  glm::fvec3 bbox_translation = glm::fvec3{m_bbox.getPMin()[0], m_bbox.getPMin()[1], m_bbox.getPMin()[2]};
+
+  glm::fvec3 volume_step{glm::fvec3{1.0f} / glm::fvec3{volume_res}};
+  glm::fvec3 sample_step{bbox_dimensions * sample_step};
+  glm::fvec3 sample_start = bbox_translation + sample_step * 0.5f;
+  glm::fvec3 sample_pos = sample_start;
+
+  auto get_pixel = [&](glm::fvec3 const& pos, unsigned index){
+    glm::uvec3 fit{0};
+    float dist = 99999999999999999999999999999999.0f;
+    for(unsigned x = 0; x < m_cv_widths[index]; ++x) {
+      for(unsigned y = 0; y < m_cv_heights[index]; ++y) {
+        for(unsigned z = 0; z < m_cv_depths[index]; ++z) {
+          auto const& val = m_data_volumes_xyz[index][z * m_cv_widths[index] * m_cv_heights[index] + y * m_cv_widths[index] + x];
+          float curr_dist = glm::length2(pos - glm::fvec3{val.x, val.y, val.z});
+          if(curr_dist < dist) {
+            fit = glm::uvec3{x,y,z};
+            dist = curr_dist;
+          }
+        }
+      }
+    }
+    return glm::fvec3{fit} / glm::fvec3{m_cv_widths[index], m_cv_heights[index], m_cv_depths[index]};
+  };
+
+  for(unsigned i = 0; i < m_cv_xyz_filenames.size(); ++i) {
+    std::vector<glm::fvec3> curr_volume_inv(volume_res.x * volume_res.y * volume_res.z,{-1.0f, -1.0f, -1.0f});
+    for(unsigned x = 0; x < volume_res.x; ++x) {
+      for(unsigned y = 0; y < volume_res.y; ++y) {
+        for(unsigned z = 0; z < volume_res.z; ++z) {
+
+          curr_volume_inv[z * volume_res.x * volume_res.y + y * volume_res.x + x] = get_pixel(sample_pos, i);
+
+          sample_pos.z += sample_step.z;
+        }
+        std::cout << "y slice " << y << " done" << std::endl;
+        sample_pos.y += sample_step.y;
+        sample_pos.z = sample_start.z;
+      }
+      std::cout << "x slice " << x << " done" << std::endl;
+      sample_pos.x += sample_step.x;
+      sample_pos.y = sample_start.y;
+    }
+    m_data_volumes_xyz_inv.push_back(std::move(curr_volume_inv));
+  }
 }
 
 std::vector<int> CalibVolume::getXYZVolumeUnitsInv() const {
@@ -184,6 +241,9 @@ void CalibVolume::addVolume(std::string const& filename_xyz, std::string filenam
   fread(storage_uv.data(), sizeof(uv), width_uv * height_uv * depth_uv, file_uv);
   fclose(file_uv);
   
+  m_data_volumes_xyz.push_back(storage_xyz);
+  m_data_volumes_uv.push_back(storage_uv);
+
   auto volume_xyz = globjects::Texture::createDefault(GL_TEXTURE_3D);
   volume_xyz->image3D(0, GL_RGB32F, width_xyz, height_xyz, depth_xyz, 0, GL_RGB, GL_FLOAT, storage_xyz.data());
   auto volume_uv = globjects::Texture::createDefault(GL_TEXTURE_3D);

@@ -34,6 +34,7 @@ public:
   std::vector<int> getUVVolumeUnitsInv() const;
 
   void calculateInverseVolumes();
+  void calculateInverseVolumes2();
 
   glm::uvec3 getVolumeRes() const;
 
@@ -52,6 +53,10 @@ private:
 
   globjects::Program* m_program;
   VolumeSampler       m_sampler;
+
+  std::vector<std::vector<xyz>>    m_data_volumes_xyz;
+  std::vector<std::vector<uv>>     m_data_volumes_uv;
+  std::vector<std::vector<glm::fvec3>>     m_data_volumes_xyz_inv;
 
 
   gloost::BoundingBox m_bbox;
