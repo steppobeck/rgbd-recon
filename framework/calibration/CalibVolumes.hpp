@@ -59,7 +59,7 @@ private:
 
   std::vector<std::vector<xyz>>    m_data_volumes_xyz;
   std::vector<std::vector<uv>>     m_data_volumes_uv;
-  std::vector<std::vector<glm::fvec3>>     m_data_volumes_xyz_inv;
+  std::vector<std::vector<glm::fvec4>>     m_data_volumes_xyz_inv;
 
 
   gloost::BoundingBox m_bbox;

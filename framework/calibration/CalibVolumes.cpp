@@ -14,6 +14,7 @@
 namespace kinect{
 
 static glm::uvec3 volume_res{128,256,128};
+// static glm::uvec3 volume_res{256, 512, 256};
 // static glm::uvec3 volume_res{32,64,32};
 static int start_image_unit = 1;
 
@@ -129,7 +130,7 @@ void CalibVolumes::calculateInverseVolumes(){
   calculateInverseVolumes2();
   std::cout << "uploading inverted data" << std::endl;
   for (unsigned i = 0; i < m_cv_xyz_filenames.size(); ++i) {
-    m_volumes_xyz_inv[i]->image3D(0, GL_RG32F, volume_res.x, volume_res.y, volume_res.z, 0, GL_RG, GL_FLOAT, m_data_volumes_xyz_inv[i].data());
+    m_volumes_xyz_inv[i]->image3D(0, GL_RGBA32F, volume_res.x, volume_res.y, volume_res.z, 0, GL_RGBA, GL_FLOAT, m_data_volumes_xyz_inv[i].data());
     // m_volumes_xyz_inv[i]->subImage3D(0, glm::ivec3{0}, glm::ivec3{volume_res}, GL_RGBA, GL_FLOAT, m_data_volumes_xyz_inv[i].data());
   }
 
@@ -180,7 +181,7 @@ void CalibVolumes::calculateInverseVolumes2() {
     NearestNeighbourSearch curr_calib_search{curr_calib_samples}; 
     std::cout << "start neighbour search" << std::endl;
 
-    std::vector<glm::fvec3> curr_volume_inv(volume_res.x * volume_res.y * volume_res.z,glm::fvec3{-1.0f});
+    std::vector<glm::fvec4> curr_volume_inv(volume_res.x * volume_res.y * volume_res.z, glm::fvec4{-1.0f});
     #pragma omp parallel for
     for(unsigned x = 0; x < volume_res.x; ++x) {
       for(unsigned y = 0; y < volume_res.y; ++y) {
@@ -191,7 +192,8 @@ void CalibVolumes::calculateInverseVolumes2() {
 
           // std::cout << glm::to_string(sample_pos) << std::endl;
           // std::cout << glm::distance(sample_pos, curr_calib_samples[sample.index.z * volume_res.x * volume_res.y + sample.index.y * volume_res.x + sample.index.x].pos) << ", ";
-          curr_volume_inv[z * volume_res.x * volume_res.y + y * volume_res.x + x] = glm::fvec3{sample.index} / curr_calib_dims;
+          // if(glm::length2(sample_pos - sample.pos) < 0.01f);
+          curr_volume_inv[z * volume_res.x * volume_res.y + y * volume_res.x + x] = glm::fvec4{glm::fvec3{sample.index} / curr_calib_dims, 1.0f};
           // std::cout << glm::to_string(sample.index) << ", ";
 
           sample_pos.z += sample_step.z;
