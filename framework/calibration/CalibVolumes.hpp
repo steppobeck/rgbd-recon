@@ -3,6 +3,7 @@
 
 #include <DataTypes.h>
 #include "volume_sampler.hpp"
+#include "nearest_neighbour_search.hpp"
 
 #include <string>
 #include <vector>
@@ -41,6 +42,8 @@ public:
 private:
   void bindToTextureUnits();
   void bindToTextureUnitsInv();
+
+  std::vector<sample_t> getXyzSamples(std::size_t i);
 
   std::vector<std::string> m_cv_xyz_filenames;
   std::vector<std::string> m_cv_uv_filenames;

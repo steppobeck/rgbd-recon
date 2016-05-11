@@ -126,11 +126,37 @@ void CalibVolumes::calculateInverseVolumes(){
   glDisable(GL_RASTERIZER_DISCARD);
   m_program->release();
 
+  calculateInverseVolumes2();
+  std::cout << "uploading inverted data" << std::endl;
+  for (unsigned i = 0; i < m_cv_xyz_filenames.size(); ++i) {
+    m_volumes_xyz_inv[i]->image3D(0, GL_RG32F, volume_res.x, volume_res.y, volume_res.z, 0, GL_RG, GL_FLOAT, m_data_volumes_xyz_inv[i].data());
+    // m_volumes_xyz_inv[i]->subImage3D(0, glm::ivec3{0}, glm::ivec3{volume_res}, GL_RGBA, GL_FLOAT, m_data_volumes_xyz_inv[i].data());
+  }
+
   if(m_start_texture_unit_inv >= 0) {
     bindToTextureUnitsInv();
   }
 
-  calculateInverseVolumes2();
+}
+
+std::vector<sample_t> CalibVolumes::getXyzSamples(std::size_t i) {
+  std::vector<sample_t> calib_samples{};
+  auto const& volume = m_data_volumes_xyz[i];
+  calib_samples.reserve(volume.size());
+  glm::uvec3 dims{m_cv_widths[i], m_cv_heights[i], m_cv_depths[i]};
+
+  for(unsigned x = 0; x < dims.x; ++x) {
+    for(unsigned y = 0; y < dims.y; ++y) {
+      for(unsigned z = 0; z < dims.z; ++z) {
+        calib_samples.emplace_back(volume[z * dims.x * dims.y + y * dims.y + x], glm::uvec3{x, y, z});
+      }
+    }
+  }
+  // for(std::size_t i = 0; i < volume.size(); ++i) {
+  //   calib_samples.emplace_back(volume[i], i);
+  // }
+
+  return calib_samples;
 }
 
 void CalibVolumes::calculateInverseVolumes2() {
@@ -144,36 +170,29 @@ void CalibVolumes::calculateInverseVolumes2() {
   glm::fvec3 sample_start = bbox_translation + sample_step * 0.5f;
   glm::fvec3 sample_pos = sample_start;
 
-  auto get_pixel = [&](glm::fvec3 const& pos, unsigned index){
-    glm::uvec3 fit{0};
-    float dist = 99999999999999999999999999999999.0f;
-    for(unsigned x = 0; x < m_cv_widths[index]; ++x) {
-      for(unsigned y = 0; y < m_cv_heights[index]; ++y) {
-        for(unsigned z = 1; z < m_cv_depths[index]; ++z) {
-          auto const& val = m_data_volumes_xyz[index][x * m_cv_depths[index] * m_cv_heights[index] + y * m_cv_depths[index] + z];
-          auto const& val2 = m_data_volumes_xyz[index][x * m_cv_depths[index] * m_cv_heights[index] + y * m_cv_depths[index] + z];
-          float curr_dist = glm::length2(pos - glm::fvec3{val.x, val.y, val.z});
-          if(curr_dist < dist) {
-            fit = glm::uvec3{x,y,z};
-            dist = curr_dist;
-          }
-        }
-      }
-    }
-    return glm::fvec3{fit} / glm::fvec3{m_cv_widths[index], m_cv_heights[index], m_cv_depths[index]};
-  };
-
+  // #pragma omp parallel for
   for(unsigned i = 0; i < m_cv_xyz_filenames.size(); ++i) {
+    glm::fvec3 curr_calib_dims{m_cv_widths[i], m_cv_heights[i], m_cv_depths[i]};
+    auto curr_calib_samples{getXyzSamples(i)};
+    std::cout << "building nn search structure " << i << std::endl;
+    NearestNeighbourSearch curr_calib_search{curr_calib_samples}; 
+    std::cout << "start neighbour search" << std::endl;
+
     std::vector<glm::fvec3> curr_volume_inv(volume_res.x * volume_res.y * volume_res.z,{-1.0f, -1.0f, -1.0f});
+    #pragma omp parallel for
     for(unsigned x = 0; x < volume_res.x; ++x) {
       for(unsigned y = 0; y < volume_res.y; ++y) {
         for(unsigned z = 0; z < volume_res.z; ++z) {
-
-          // curr_volume_inv[z * volume_res.x * volume_res.y + y * volume_res.x + x] = get_pixel(sample_pos, i);
+          if(x == 0 && y == 0 && z == 0) {
+            std::cout << "first element" << std::endl;
+          }
+          auto samples = curr_calib_search.search({sample_pos, glm::uvec3{}}, 1);
+          auto const& sample = samples[0];
+          curr_volume_inv[z * volume_res.x * volume_res.y + y * volume_res.x + x] = glm::fvec3{sample.index} / curr_calib_dims;
 
           sample_pos.z += sample_step.z;
         }
-        std::cout << "y slice " << y << " done" << std::endl;
+        // std::cout << "y slice " << y << " done" << std::endl;
         sample_pos.y += sample_step.y;
         sample_pos.z = sample_start.z;
       }
@@ -181,7 +200,8 @@ void CalibVolumes::calculateInverseVolumes2() {
       sample_pos.x += sample_step.x;
       sample_pos.y = sample_start.y;
     }
-    m_data_volumes_xyz_inv.push_back(std::move(curr_volume_inv));
+    std::cout << "storing volume " << i << std::endl;
+    m_data_volumes_xyz_inv.push_back(curr_volume_inv);
   }
 }
 

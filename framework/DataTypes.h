@@ -16,6 +16,10 @@ namespace kinect{
     float x;
     float y;
     float z;
+    
+    operator glm::fvec3() const {
+      return glm::fvec3{x,y,z};
+    }
   };
 
   extern std::ostream& operator << (std::ostream& o, const xyz& v);
@@ -25,6 +29,10 @@ namespace kinect{
   public:
     float u;
     float v;
+    
+    operator glm::fvec2() const {
+      return glm::fvec2{u,v};
+    }
   };
 
   extern std::ostream& operator << (std::ostream& o, const uv& v);
@@ -35,12 +43,20 @@ namespace kinect{
     double x;
     double y;
     double z;
+    
+    operator glm::fvec3() const {
+      return glm::fvec3{x,y,z};
+    }
   };
 
   class uv_d{
   public:
     double u;
     double v;
+    
+    operator glm::fvec2() const {
+      return glm::fvec2{u,v};
+    }
   };
 
 

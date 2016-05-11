@@ -12,7 +12,8 @@ add_library(framework STATIC
 # self built libraries
 target_link_libraries(framework ${SVG_LIBRARIES} ${GLOOST_LIBRARIES} ${FASTDXT_LIBRARIES} ${SQUISH_LIBRARIES} globjects glbinding)
 # global libraries
-target_link_libraries(framework GLU ${ZMQ_LIBRARIES} ${CGAL_LIBRARIES} ${BOOST_LIBRARIES} ${GMP_LIBRARIES} ${MPFR_LIBRARIES})
+target_link_libraries(framework GLU ${ZMQ_LIBRARIES} ${CGAL_LIBRARIES} ${BOOST_LIBRARIES} ${GMP_LIBRARIES} ${MPFR_LIBRARIES} -fopenmp)
+set_target_properties(framework PROPERTIES COMPILE_FLAGS "-fopenmp")
 
 target_include_directories(framework PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(framework PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/calibration)
