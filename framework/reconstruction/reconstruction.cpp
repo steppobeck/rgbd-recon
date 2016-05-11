@@ -1,11 +1,11 @@
 #include "reconstruction.hpp"
 
 #include "calibration_files.hpp"
-#include "CalibVolume.h"
+#include "CalibVolumes.hpp"
 
 namespace kinect{
 
-Reconstruction::Reconstruction(CalibrationFiles const& cfs, CalibVolume const* cv, gloost::BoundingBox const&  bbox)
+Reconstruction::Reconstruction(CalibrationFiles const& cfs, CalibVolumes const* cv, gloost::BoundingBox const&  bbox)
  :m_cv(cv)
  ,m_cf(&cfs)
  ,m_tex_width{cfs.getWidth()}

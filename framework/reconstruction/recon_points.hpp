@@ -13,7 +13,7 @@ namespace kinect{
   class ReconPoints : public Reconstruction {
 
   public:
-    ReconPoints(CalibrationFiles const& cfs, CalibVolume const* cv, gloost::BoundingBox const&  bbox);
+    ReconPoints(CalibrationFiles const& cfs, CalibVolumes const* cv, gloost::BoundingBox const&  bbox);
     ~ReconPoints();
 
     void draw() override;

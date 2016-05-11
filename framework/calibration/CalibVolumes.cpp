@@ -1,4 +1,4 @@
-#include "CalibVolume.h"
+#include "CalibVolumes.hpp"
 #include <KinectCalibrationFile.h>
 #include <timevalue.h>
 
@@ -17,7 +17,7 @@ static glm::uvec3 volume_res{128,256,128};
 // static glm::uvec3 volume_res{32,64,32};
 static int start_image_unit = 1;
 
-CalibVolume::CalibVolume(std::vector<std::string> const& calib_volume_files, gloost::BoundingBox const& bbox)
+CalibVolumes::CalibVolumes(std::vector<std::string> const& calib_volume_files, gloost::BoundingBox const& bbox)
  :m_cv_xyz_filenames()
  ,m_cv_uv_filenames()
  ,m_volumes_xyz{}
@@ -74,7 +74,7 @@ CalibVolume::CalibVolume(std::vector<std::string> const& calib_volume_files, glo
 }
 
 /*virtual*/
-CalibVolume::~CalibVolume(){
+CalibVolumes::~CalibVolumes(){
   for(unsigned i = 0; i < m_cv_xyz_filenames.size(); ++i){
     m_volumes_xyz[i]->destroy();
     m_volumes_uv[i]->destroy();
@@ -83,7 +83,7 @@ CalibVolume::~CalibVolume(){
   }
 }
 
-void CalibVolume::reload(){
+void CalibVolumes::reload(){
   if (!m_volumes_xyz.empty()) { 
     for(unsigned i = 0; i < m_cv_xyz_filenames.size(); ++i){
       m_volumes_xyz[i]->destroy();
@@ -108,7 +108,7 @@ void CalibVolume::reload(){
   }
 }
 
-void CalibVolume::calculateInverseVolumes(){
+void CalibVolumes::calculateInverseVolumes(){
   m_program->setUniform("cv_xyz", getXYZVolumeUnits());
   m_program->setUniform("cv_uv", getUVVolumeUnits());
 
@@ -133,7 +133,7 @@ void CalibVolume::calculateInverseVolumes(){
   calculateInverseVolumes2();
 }
 
-void CalibVolume::calculateInverseVolumes2() {
+void CalibVolumes::calculateInverseVolumes2() {
   glm::fvec3 bbox_dimensions = glm::fvec3{m_bbox.getPMax()[0] - m_bbox.getPMin()[0],
                                           m_bbox.getPMax()[1] - m_bbox.getPMin()[1],
                                           m_bbox.getPMax()[2] - m_bbox.getPMin()[2]};
@@ -149,8 +149,9 @@ void CalibVolume::calculateInverseVolumes2() {
     float dist = 99999999999999999999999999999999.0f;
     for(unsigned x = 0; x < m_cv_widths[index]; ++x) {
       for(unsigned y = 0; y < m_cv_heights[index]; ++y) {
-        for(unsigned z = 0; z < m_cv_depths[index]; ++z) {
-          auto const& val = m_data_volumes_xyz[index][z * m_cv_widths[index] * m_cv_heights[index] + y * m_cv_widths[index] + x];
+        for(unsigned z = 1; z < m_cv_depths[index]; ++z) {
+          auto const& val = m_data_volumes_xyz[index][x * m_cv_depths[index] * m_cv_heights[index] + y * m_cv_depths[index] + z];
+          auto const& val2 = m_data_volumes_xyz[index][x * m_cv_depths[index] * m_cv_heights[index] + y * m_cv_depths[index] + z];
           float curr_dist = glm::length2(pos - glm::fvec3{val.x, val.y, val.z});
           if(curr_dist < dist) {
             fit = glm::uvec3{x,y,z};
@@ -168,7 +169,7 @@ void CalibVolume::calculateInverseVolumes2() {
       for(unsigned y = 0; y < volume_res.y; ++y) {
         for(unsigned z = 0; z < volume_res.z; ++z) {
 
-          curr_volume_inv[z * volume_res.x * volume_res.y + y * volume_res.x + x] = get_pixel(sample_pos, i);
+          // curr_volume_inv[z * volume_res.x * volume_res.y + y * volume_res.x + x] = get_pixel(sample_pos, i);
 
           sample_pos.z += sample_step.z;
         }
@@ -184,14 +185,14 @@ void CalibVolume::calculateInverseVolumes2() {
   }
 }
 
-std::vector<int> CalibVolume::getXYZVolumeUnitsInv() const {
+std::vector<int> CalibVolumes::getXYZVolumeUnitsInv() const {
   std::vector<int> units(5, 0);
   for(int i = 0; i < int(m_cv_xyz_filenames.size()); ++i) {
     units[i] = m_start_texture_unit_inv + i * 2;
   }
   return units;
 }
-std::vector<int> CalibVolume::getUVVolumeUnitsInv() const {
+std::vector<int> CalibVolumes::getUVVolumeUnitsInv() const {
   std::vector<int> units(5, 0);
   for(int i = 0; i < int(m_cv_xyz_filenames.size()); ++i) {
     units[i] = m_start_texture_unit_inv  + i * 2 + 1;
@@ -199,11 +200,11 @@ std::vector<int> CalibVolume::getUVVolumeUnitsInv() const {
   return units;
 }
 
-glm::uvec3 CalibVolume::getVolumeRes() const {
+glm::uvec3 CalibVolumes::getVolumeRes() const {
   return volume_res;
 }
 
-void CalibVolume::addVolume(std::string const& filename_xyz, std::string filename_uv) {
+void CalibVolumes::addVolume(std::string const& filename_xyz, std::string filename_uv) {
   unsigned width_xyz = 0;
   unsigned height_xyz = 0;
   unsigned depth_xyz = 0;
@@ -259,14 +260,14 @@ void CalibVolume::addVolume(std::string const& filename_xyz, std::string filenam
   m_cv_max_ds.push_back(max_d_xyz);
 }
 
-std::vector<int> CalibVolume::getXYZVolumeUnits() const {
+std::vector<int> CalibVolumes::getXYZVolumeUnits() const {
   std::vector<int> units(5, 0);
   for(int i = 0; i < int(m_cv_xyz_filenames.size()); ++i) {
     units[i] = m_start_texture_unit + i * 2;
   }
   return units;
 }
-std::vector<int> CalibVolume::getUVVolumeUnits() const {
+std::vector<int> CalibVolumes::getUVVolumeUnits() const {
   std::vector<int> units(5, 0);
   for(int i = 0; i < int(m_cv_xyz_filenames.size()); ++i) {
     units[i] = m_start_texture_unit + i * 2 + 1;
@@ -275,7 +276,7 @@ std::vector<int> CalibVolume::getUVVolumeUnits() const {
 }
 
 void
-CalibVolume::bindToTextureUnits() {
+CalibVolumes::bindToTextureUnits() {
   for(unsigned layer = 0; layer < m_cv_xyz_filenames.size(); ++layer){
     m_volumes_xyz[layer]->bindActive(GL_TEXTURE0 + m_start_texture_unit + layer * 2);
     m_volumes_uv[layer]->bindActive(GL_TEXTURE0 + m_start_texture_unit + layer * 2 + 1);
@@ -284,7 +285,7 @@ CalibVolume::bindToTextureUnits() {
 }
 
 void
-CalibVolume::bindToTextureUnitsInv() {
+CalibVolumes::bindToTextureUnitsInv() {
   for(unsigned layer = 0; layer < m_cv_xyz_filenames.size(); ++layer){
     m_volumes_xyz_inv[layer]->bindActive(GL_TEXTURE0 + m_start_texture_unit_inv + layer * 2);
     m_volumes_uv_inv[layer]->bindActive(GL_TEXTURE0 + m_start_texture_unit_inv + layer * 2 + 1);
@@ -292,12 +293,12 @@ CalibVolume::bindToTextureUnitsInv() {
   glActiveTexture(GL_TEXTURE0);
 }
 
-void CalibVolume::setStartTextureUnit(unsigned start_texture_unit) {
+void CalibVolumes::setStartTextureUnit(unsigned start_texture_unit) {
   m_start_texture_unit = start_texture_unit;
   bindToTextureUnits();
 }
 
-void CalibVolume::setStartTextureUnitInv(unsigned start_texture_unit) {
+void CalibVolumes::setStartTextureUnitInv(unsigned start_texture_unit) {
   m_start_texture_unit_inv = start_texture_unit;
   bindToTextureUnitsInv();
 }

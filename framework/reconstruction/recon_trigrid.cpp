@@ -3,7 +3,7 @@
 #include "calibration_files.hpp"
 #include "screen_quad.hpp"
 #include <KinectCalibrationFile.h>
-#include <CalibVolume.h>
+#include "CalibVolumes.hpp"
 
 #include <Matrix.h>
 #include <glm/gtc/type_precision.hpp>
@@ -20,7 +20,7 @@ static getWidthHeight(unsigned& width, unsigned& height){
   height = vp_params[3];
 }
 
-ReconTrigrid::ReconTrigrid(CalibrationFiles const& cfs, CalibVolume const* cv, gloost::BoundingBox const&  bbox)
+ReconTrigrid::ReconTrigrid(CalibrationFiles const& cfs, CalibVolumes const* cv, gloost::BoundingBox const&  bbox)
  :Reconstruction(cfs, cv, bbox)
  ,m_va_pass_depth()
  ,m_va_pass_accum()

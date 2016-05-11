@@ -6,7 +6,7 @@
 #include <Timer.h>
 #include <TextureArray.h>
 #include <KinectCalibrationFile.h>
-#include <CalibVolume.h>
+#include "CalibVolumes.hpp"
 #include <timevalue.h>
 #include <clock.h>
 #include <DXTCompressor.h>
@@ -34,7 +34,7 @@
 
 namespace kinect{
 
-  NetKinectArray::NetKinectArray(std::string const& serverport, CalibrationFiles const* calibs, CalibVolume const* vols, bool readfromfile)
+  NetKinectArray::NetKinectArray(std::string const& serverport, CalibrationFiles const* calibs, CalibVolumes const* vols, bool readfromfile)
     : m_width(0),
       m_widthc(0),
       m_height(0),

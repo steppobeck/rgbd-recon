@@ -23,7 +23,7 @@ using namespace gl;
 
 #include <CameraNavigator.h>
 #include <FourTiledWindow.h>
-#include <CalibVolume.h>
+#include "CalibVolumes.hpp"
 #include <calibration_files.hpp>
 #include <NetKinectArray.h>
 #include <KinectCalibrationFile.h>
@@ -59,7 +59,7 @@ pmd::CameraNavigator g_navi{0.1f};
 std::unique_ptr<mvt::Statistics> g_stats{};
 ScreenSpaceMeasureTool g_ssmt{&g_camera, g_screenWidth, g_screenHeight};
 std::unique_ptr<kinect::NetKinectArray> g_nka;
-std::unique_ptr<kinect::CalibVolume> g_cv;
+std::unique_ptr<kinect::CalibVolumes> g_cv;
 std::unique_ptr<kinect::CalibrationFiles> g_calib_files;
 
 void init(std::vector<std::string>& args);
@@ -135,7 +135,7 @@ void init(std::vector<std::string> args){
   g_bbox.setPMax(bbox_max);
 
   g_calib_files = std::unique_ptr<kinect::CalibrationFiles>{new kinect::CalibrationFiles(calib_filenames)};
-  g_cv = std::unique_ptr<kinect::CalibVolume>{new kinect::CalibVolume(g_calib_files->getFileNames(), g_bbox)};
+  g_cv = std::unique_ptr<kinect::CalibVolumes>{new kinect::CalibVolumes(g_calib_files->getFileNames(), g_bbox)};
   g_nka = std::unique_ptr<kinect::NetKinectArray>{new kinect::NetKinectArray(serverport, g_calib_files.get(), g_cv.get())};
   
   // binds to unit 1 to 3

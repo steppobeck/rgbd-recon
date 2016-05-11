@@ -15,7 +15,7 @@ namespace kinect{
   class ReconIntegration : public Reconstruction {
 
   public:
-    ReconIntegration(CalibrationFiles const& cfs, CalibVolume const* cv, gloost::BoundingBox const&  bbox);
+    ReconIntegration(CalibrationFiles const& cfs, CalibVolumes const* cv, gloost::BoundingBox const&  bbox);
     ~ReconIntegration();
 
     void draw() override;

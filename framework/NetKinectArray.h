@@ -113,12 +113,12 @@ inline void swap(double_pbo& a, double_pbo& b) {
 
   class KinectCalibrationFile;
   class CalibrationFiles;
-  class CalibVolume;
+  class CalibVolumes;
 
   class NetKinectArray{
 
   public:
-    NetKinectArray(std::string const& serverport, CalibrationFiles const* calibs, CalibVolume const* vols, bool readfromfile = false);
+    NetKinectArray(std::string const& serverport, CalibrationFiles const* calibs, CalibVolumes const* vols, bool readfromfile = false);
 
     NetKinectArray(std::vector<KinectCalibrationFile*>& calibs);
 
@@ -182,7 +182,7 @@ inline void swap(double_pbo& a, double_pbo& b) {
 
     unsigned m_start_texture_unit;
     CalibrationFiles const* m_calib_files;
-    CalibVolume const* m_calib_vols;
+    CalibVolumes const* m_calib_vols;
   public:
     bool depth_compression_lex;
     float depth_compression_ratio;

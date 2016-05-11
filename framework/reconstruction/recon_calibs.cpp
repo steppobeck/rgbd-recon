@@ -3,7 +3,7 @@
 #include "calibration_files.hpp"
 #include "unit_cube.hpp"
 #include <KinectCalibrationFile.h>
-#include <CalibVolume.h>
+#include "CalibVolumes.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
@@ -15,7 +15,7 @@ namespace kinect{
 
 static float limit = 0.01f;
 
-ReconCalibs::ReconCalibs(CalibrationFiles const& cfs, CalibVolume const* cv, gloost::BoundingBox const&  bbox)
+ReconCalibs::ReconCalibs(CalibrationFiles const& cfs, CalibVolumes const* cv, gloost::BoundingBox const&  bbox)
  :Reconstruction(cfs, cv, bbox)
  ,m_program{new globjects::Program()}
  ,m_sampler{cv->getVolumeRes()}

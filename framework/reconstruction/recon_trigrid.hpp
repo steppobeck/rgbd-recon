@@ -13,7 +13,7 @@ namespace kinect{
   class ReconTrigrid : public Reconstruction {
 
   public:
-    ReconTrigrid(CalibrationFiles const& cfs, CalibVolume const* cv, gloost::BoundingBox const&  bbox);
+    ReconTrigrid(CalibrationFiles const& cfs, CalibVolumes const* cv, gloost::BoundingBox const&  bbox);
     ~ReconTrigrid();
     
     void draw() override;

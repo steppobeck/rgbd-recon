@@ -5,13 +5,13 @@
 
 namespace kinect{
 
-  class CalibVolume;
+  class CalibVolumes;
   class CalibrationFiles;
 
   class Reconstruction{
 
   public:
-    Reconstruction(CalibrationFiles const& cfs, CalibVolume const* cv, gloost::BoundingBox const&  bbox);
+    Reconstruction(CalibrationFiles const& cfs, CalibVolumes const* cv, gloost::BoundingBox const&  bbox);
 
     virtual void draw() = 0;
 
@@ -20,7 +20,7 @@ namespace kinect{
     virtual void resize(std::size_t width, std::size_t height);
 
   protected:
-    CalibVolume const* m_cv;
+    CalibVolumes const* m_cv;
     CalibrationFiles const* m_cf;
 
     unsigned m_tex_width;

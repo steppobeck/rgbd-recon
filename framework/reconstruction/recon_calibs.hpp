@@ -15,7 +15,7 @@ namespace kinect{
   class ReconCalibs : public Reconstruction {
 
   public:
-    ReconCalibs(CalibrationFiles const& cfs, CalibVolume const* cv, gloost::BoundingBox const&  bbox);
+    ReconCalibs(CalibrationFiles const& cfs, CalibVolumes const* cv, gloost::BoundingBox const&  bbox);
     ~ReconCalibs();
 
     void draw() override;

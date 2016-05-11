@@ -1,5 +1,5 @@
-#ifndef KINECT_CALIBVOLUME_H
-#define KINECT_CALIBVOLUME_H
+#ifndef KINECT_CalibVolumes_H
+#define KINECT_CalibVolumes_H
 
 #include <DataTypes.h>
 #include "volume_sampler.hpp"
@@ -15,11 +15,11 @@
 
 namespace kinect{
 
-class CalibVolume{
+class CalibVolumes{
 
 public:
-  CalibVolume(std::vector<std::string> const& calib_volume_files, gloost::BoundingBox const& bbox);
-  virtual ~CalibVolume();
+  CalibVolumes(std::vector<std::string> const& calib_volume_files, gloost::BoundingBox const& bbox);
+  virtual ~CalibVolumes();
 
   void reload();
   
@@ -77,4 +77,4 @@ public:
 
 }
 
-#endif // #ifndef KINECT_CALIBVOLUME_H
+#endif // #ifndef KINECT_CalibVolumes_H

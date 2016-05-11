@@ -2,7 +2,7 @@
 
 #include "calibration_files.hpp"
 #include <KinectCalibrationFile.h>
-#include <CalibVolume.h>
+#include "CalibVolumes.hpp"
 
 #include <Matrix.h>
 #include <glm/gtc/type_precision.hpp>
@@ -19,7 +19,7 @@ static getWidthHeight(unsigned& width, unsigned& height){
   height = vp_params[3];
 }
 
-ReconPoints::ReconPoints(CalibrationFiles const& cfs, CalibVolume const* cv, gloost::BoundingBox const&  bbox)
+ReconPoints::ReconPoints(CalibrationFiles const& cfs, CalibVolumes const* cv, gloost::BoundingBox const&  bbox)
  :Reconstruction(cfs, cv, bbox)
  ,m_point_grid{new globjects::VertexArray()}
  ,m_point_buffer{new globjects::Buffer()}
