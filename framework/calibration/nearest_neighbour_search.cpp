@@ -3,7 +3,6 @@
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Search_traits_3.h>
 #include <CGAL/Search_traits_adapter.h>
-//#include <CGAL/point_generators_3.h>
 #include <CGAL/Orthogonal_k_neighbor_search.h>
 #include <CGAL/property_map.h>
 #include <boost/iterator/zip_iterator.hpp>
@@ -50,8 +49,8 @@ std::vector<sample_t>
 NearestNeighbourSearch::search(const sample_t& ipolant,unsigned num_neighbours) const{
   std::vector<sample_t> result;
 
-  Point_3 query(ipolant.pos.x, ipolant.pos.y, ipolant.pos.z);
-  K_neighbor_search search(*(reinterpret_cast<Tree*>(m_tree)), query, num_neighbours);
+  Point_3 query_point(ipolant.pos.x, ipolant.pos.y, ipolant.pos.z);
+  K_neighbor_search search(*(reinterpret_cast<Tree*>(m_tree)), query_point, num_neighbours);
 
   for(K_neighbor_search::iterator it = search.begin(); it != search.end(); it++) {
     result.push_back(m_samples[boost::get<1>(it->first)]);

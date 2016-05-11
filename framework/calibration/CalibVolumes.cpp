@@ -148,7 +148,8 @@ std::vector<sample_t> CalibVolumes::getXyzSamples(std::size_t i) {
   for(unsigned x = 0; x < dims.x; ++x) {
     for(unsigned y = 0; y < dims.y; ++y) {
       for(unsigned z = 0; z < dims.z; ++z) {
-        calib_samples.emplace_back(volume[z * dims.x * dims.y + y * dims.y + x], glm::uvec3{x, y, z});
+        // std::cout << "point " << glm::to_string(glm::fvec3{volume[z * dims.x * dims.y + y * dims.x + x]}) << ", ";
+        calib_samples.emplace_back(volume[z * dims.x * dims.y + y * dims.x + x], glm::uvec3{x, y, z});
       }
     }
   }
@@ -166,29 +167,32 @@ void CalibVolumes::calculateInverseVolumes2() {
   glm::fvec3 bbox_translation = glm::fvec3{m_bbox.getPMin()[0], m_bbox.getPMin()[1], m_bbox.getPMin()[2]};
 
   glm::fvec3 volume_step{glm::fvec3{1.0f} / glm::fvec3{volume_res}};
-  glm::fvec3 sample_step{bbox_dimensions * sample_step};
+  glm::fvec3 sample_step{bbox_dimensions * volume_step};
   glm::fvec3 sample_start = bbox_translation + sample_step * 0.5f;
   glm::fvec3 sample_pos = sample_start;
 
   // #pragma omp parallel for
   for(unsigned i = 0; i < m_cv_xyz_filenames.size(); ++i) {
+  // for(unsigned i = 0; i < 1; ++i) {
     glm::fvec3 curr_calib_dims{m_cv_widths[i], m_cv_heights[i], m_cv_depths[i]};
     auto curr_calib_samples{getXyzSamples(i)};
     std::cout << "building nn search structure " << i << std::endl;
     NearestNeighbourSearch curr_calib_search{curr_calib_samples}; 
     std::cout << "start neighbour search" << std::endl;
 
-    std::vector<glm::fvec3> curr_volume_inv(volume_res.x * volume_res.y * volume_res.z,{-1.0f, -1.0f, -1.0f});
+    std::vector<glm::fvec3> curr_volume_inv(volume_res.x * volume_res.y * volume_res.z,glm::fvec3{-1.0f});
     #pragma omp parallel for
     for(unsigned x = 0; x < volume_res.x; ++x) {
       for(unsigned y = 0; y < volume_res.y; ++y) {
         for(unsigned z = 0; z < volume_res.z; ++z) {
-          if(x == 0 && y == 0 && z == 0) {
-            std::cout << "first element" << std::endl;
-          }
+          glm::fvec3 sample_pos = sample_start + (glm::fvec3{x,y,z} + glm::fvec3{0.5f}) * sample_step; 
           auto samples = curr_calib_search.search({sample_pos, glm::uvec3{}}, 1);
           auto const& sample = samples[0];
+
+          // std::cout << glm::to_string(sample_pos) << std::endl;
+          // std::cout << glm::distance(sample_pos, curr_calib_samples[sample.index.z * volume_res.x * volume_res.y + sample.index.y * volume_res.x + sample.index.x].pos) << ", ";
           curr_volume_inv[z * volume_res.x * volume_res.y + y * volume_res.x + x] = glm::fvec3{sample.index} / curr_calib_dims;
+          // std::cout << glm::to_string(sample.index) << ", ";
 
           sample_pos.z += sample_step.z;
         }
