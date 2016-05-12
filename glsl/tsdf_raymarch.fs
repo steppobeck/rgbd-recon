@@ -1,6 +1,15 @@
 #version 330
 
 in vec3 pass_Position;
+// input
+uniform sampler2DArray kinect_colors;
+uniform sampler2DArray kinect_depths;
+uniform sampler2DArray kinect_qualities;
+// calibration
+uniform sampler3D[5] cv_xyz_inv;
+uniform sampler3D[5] cv_uv;
+uniform uint num_kinects;
+uniform float limit;
 
 uniform mat4 gl_ModelViewMatrix;
 uniform mat4 NormalMatrix;
@@ -19,7 +28,6 @@ out vec4 out_Color;
 out float gl_FragDepth;
 
 // light
-
 const vec3 LightPosition = vec3(1.5f, 1.0f, 1.0f);
 const vec3 LightDiffuse = vec3(1.0f, 0.9f, 0.7f);
 const vec3 LightAmbient = LightDiffuse * 0.2f;
@@ -29,10 +37,13 @@ const vec3 LightSpecular = vec3(1.0f);
 const float ks = 0.5f;            // specular intensity
 const float n = 20.0f;            //specular exponent 
 
+// #define SHADEDs
+
 vec2 phongDiffSpec(const vec3 position, const vec3 normal, const float n, const vec3 lightPos);
 vec3 get_gradient(const vec3 pos);
 bool isInside(const vec3 pos);
 float sample(const vec3 pos);
+vec3 blendColors(const in vec3 sample_pos);
 
 void main() {
   // multiply with dimensions to scale direction by dimension relation
@@ -67,12 +78,15 @@ void main() {
       vec3 view_pos = (gl_ModelViewMatrix * vol_to_world * vec4(sample_pos, 1.0f)).xyz;
 
       vec2 diffSpec = phongDiffSpec(view_pos, view_normal, n, LightPosition);
-
+      #ifdef SHADED
       vec3 diffuseColor = vec3(0.5f);
       out_Color = vec4(LightAmbient * diffuseColor 
                       + LightDiffuse * diffuseColor * diffSpec.x
                       + LightSpecular * ks * diffSpec.y, 1.0f);
-      // out_Color.rgb = view_pos;
+      #else
+      vec3 diffuseColor = blendColors(sample_pos);
+      out_Color = vec4(diffuseColor, 1.0f);
+      #endif
       // apply projection matrix on z component of view-space position
       gl_FragDepth = (gl_ProjectionMatrix[2].z *view_pos.z + gl_ProjectionMatrix[3].z) / -view_pos.z * 0.5f + 0.5f;
       return;
@@ -105,6 +119,27 @@ vec3 get_gradient(const vec3 pos) {
    sample(pos + x_offset) - sample(pos - x_offset),
    sample(pos + y_offset) - sample(pos - y_offset),
    sample(pos + z_offset) - sample(pos - z_offset)));
+}
+
+vec3 blendColors(const in vec3 sample_pos) {
+  vec3 total_color = vec3(0.0f);
+  float total_weight = 0.0f;
+  for(uint i = 0u; i < num_kinects; ++i) {
+    vec3 pos_calib = texture(cv_xyz_inv[i], sample_pos).xyz;
+    float depth = texture(kinect_depths, vec3(pos_calib.xy, float(i))).r;
+    if(abs(depth - pos_calib.z) >= limit) continue;
+    vec2 pos_color = texture(cv_uv[i], pos_calib).xy;
+    vec3 color = texture(kinect_colors, vec3(pos_color.xy, float(i))).rgb;
+
+    float lateral_quality = texture(kinect_qualities, vec3(pos_calib.xy, float(i))).r;
+    float quality = lateral_quality/(pos_calib.z * 4.0f+ 0.5f);
+
+    total_color += color * quality;
+    total_weight += quality;
+  }
+
+  total_color /= total_weight;
+  return total_color;
 }
 
 // phong diss and spec coefficient calculation in viewspace

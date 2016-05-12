@@ -45,7 +45,7 @@ void main() {
     else {
       float tsd = clamp(sdist, -limit, limit);
       float lateral_quality = texture(kinect_qualities, vec3(pos_calib.xy, float(i))).r;
-      float quality = lateral_quality/(pos_calib.z * 4.0f+ 0.5f);
+      float quality = lateral_quality/(pos_calib.z * 4.0f + 0.5f);
       weighted_tsd = (weighted_tsd * weight + quality * tsd) / (weight + quality);
       weight += quality;
     }

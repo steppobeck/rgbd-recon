@@ -28,12 +28,6 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/tsdf_raymarch.vs"),
     globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/tsdf_raymarch.fs")
   );
-  m_program_integration->attach(
-    globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/tsdf_integration.vs")
-  );
-  m_program_integration->setUniform("cv_xyz_inv", m_cv->getXYZVolumeUnitsInv());
-  m_program_integration->setUniform("cv_uv_inv", m_cv->getUVVolumeUnitsInv());
-  m_program->setUniform("volume_tsdf", 29);
 
   glm::fvec3 bbox_dimensions = glm::fvec3{m_bbox.getPMax()[0] - m_bbox.getPMin()[0],
                                           m_bbox.getPMax()[1] - m_bbox.getPMin()[1],
@@ -46,6 +40,20 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
   auto volume_res = m_cv->getVolumeRes();
   m_program->setUniform("VolumeDimensions", glm::fvec3{volume_res});
   m_program->setUniform("vol_to_world", m_mat_vol_to_world);
+  m_program->setUniform("kinect_colors",1);
+  m_program->setUniform("kinect_depths",2);
+  m_program->setUniform("kinect_qualities",3);
+  m_program->setUniform("cv_xyz_inv", m_cv->getXYZVolumeUnitsInv());
+  m_program->setUniform("cv_uv", m_cv->getUVVolumeUnits());
+  m_program->setUniform("num_kinects", m_num_kinects);
+  m_program->setUniform("limit", limit);
+  
+  m_program_integration->attach(
+    globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/tsdf_integration.vs")
+  );
+  m_program_integration->setUniform("cv_xyz_inv", m_cv->getXYZVolumeUnitsInv());
+  m_program_integration->setUniform("cv_uv_inv", m_cv->getUVVolumeUnitsInv());
+  m_program->setUniform("volume_tsdf", 29);
 
   m_program_integration->setUniform("volume_tsdf", start_image_unit);
   m_program_integration->setUniform("kinect_colors",1);
@@ -56,7 +64,6 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
   m_program_integration->setUniform("res_depth", glm::uvec2{m_cf->getWidth(), m_cf->getHeight()});
   m_program_integration->setUniform("res_tsdf", volume_res);
   m_program_integration->setUniform("limit", limit);
-  m_program->setUniform("limit", limit);
 
   m_volume_tsdf = globjects::Texture::createDefault(GL_TEXTURE_3D);
   std::vector<float> empty_tsdf(volume_res.x * volume_res.y * volume_res.z, -limit);
