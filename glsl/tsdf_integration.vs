@@ -58,15 +58,11 @@ void main() {
     }
     else {
       float tsd = clamp(sdist, -limit, limit);
-    // float lateral_quality = texture2DArray(kinect_qualities, vec3(pos_calib.xy * res_depth, float(i))).r;
-    // float quality = lateral_quality/(pos_calib.z * 4.0f+ 0.5f);
-    float quality = 1.0f;
-      // if(pos_calib.x < 0.0f) tsd = 10.0f;
-    // if(abs(tsd) < abs(weighted_tsd)) weighted_tsd = tsd;
+      float lateral_quality = texture2DArray(kinect_qualities, vec3(pos_calib.xy, float(i))).r;
+      float quality = lateral_quality/(pos_calib.z * 4.0f+ 0.5f);
       weighted_tsd = (weighted_tsd * weight + quality * tsd) / (weight + quality);
       weight += quality;
     }
-    // weighted_tsd = tsd;
   }
     // weighted_tsd = pos_calib.x;
   // weighted_tsd /= weight;

@@ -27,7 +27,7 @@ void main() {
   // pos_calib = geo_pos_volume;
   geo_pos_world  = (vol_to_world * vec4(geo_pos_volume, 1.0)).xyz;
   // geo_pos_world  = (vol_to_world * vec4(pos_vol, 1.0)).xyz;
-  // geo_pos_world  = (vec4(pos_vol, 1.0)).xyz;s
+  // geo_pos_world  = (vec4(pos_vol, 1.0)).xyz;
 
   geo_pos_view   = (gl_ModelViewMatrix * vec4(geo_pos_world, 1.0)).xyz;
   // geo_texcoord   = texture(cv_uv[layer], pos_calib).xy;

@@ -161,6 +161,18 @@ std::vector<sample_t> CalibVolumes::getXyzSamples(std::size_t i) {
   return calib_samples;
 }
 
+static glm::fvec3 inverseDistance(glm::fvec3 const& curr_point, std::vector<sample_t> const& neighbours){
+  float total_weight = 0.0f;
+  glm::fvec3 weighted_index{0.0f};
+  for(auto const& sample : neighbours) {
+    float weight = 1.0f / glm::distance(curr_point, sample.pos);
+    weighted_index += weight * glm::fvec3{sample.index};
+    total_weight += weight;
+  }
+  weighted_index /= total_weight;
+  return weighted_index;
+}
+
 void CalibVolumes::calculateInverseVolumes2() {
   glm::fvec3 bbox_dimensions = glm::fvec3{m_bbox.getPMax()[0] - m_bbox.getPMin()[0],
                                           m_bbox.getPMax()[1] - m_bbox.getPMin()[1],
@@ -187,14 +199,10 @@ void CalibVolumes::calculateInverseVolumes2() {
       for(unsigned y = 0; y < volume_res.y; ++y) {
         for(unsigned z = 0; z < volume_res.z; ++z) {
           glm::fvec3 sample_pos = sample_start + (glm::fvec3{x,y,z} + glm::fvec3{0.5f}) * sample_step; 
-          auto samples = curr_calib_search.search({sample_pos, glm::uvec3{}}, 1);
+          auto samples = curr_calib_search.search(sample_pos, 4);
           auto const& sample = samples[0];
-
-          // std::cout << glm::to_string(sample_pos) << std::endl;
-          // std::cout << glm::distance(sample_pos, curr_calib_samples[sample.index.z * volume_res.x * volume_res.y + sample.index.y * volume_res.x + sample.index.x].pos) << ", ";
-          // if(glm::length2(sample_pos - sample.pos) < 0.01f);
-          curr_volume_inv[z * volume_res.x * volume_res.y + y * volume_res.x + x] = glm::fvec4{glm::fvec3{sample.index} / curr_calib_dims, 1.0f};
-          // std::cout << glm::to_string(sample.index) << ", ";
+          auto weighted_index = inverseDistance(sample_pos, samples);
+          curr_volume_inv[z * volume_res.x * volume_res.y + y * volume_res.x + x] = glm::fvec4{weighted_index / curr_calib_dims, 1.0f};
 
           sample_pos.z += sample_step.z;
         }
