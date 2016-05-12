@@ -29,8 +29,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
     globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/tsdf_raymarch.fs")
   );
   m_program_integration->attach(
-    globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/tsdf_integration.vs"),
-    globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/calib_vis.fs")
+    globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/tsdf_integration.vs")
   );
   m_program_integration->setUniform("cv_xyz_inv", m_cv->getXYZVolumeUnitsInv());
   m_program_integration->setUniform("cv_uv_inv", m_cv->getUVVolumeUnitsInv());
