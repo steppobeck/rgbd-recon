@@ -44,7 +44,6 @@ void main() {
   float prev_density = sample(sample_pos); 
 
   while (inside) {
-    out_Color = vec4(1.0f);
      // get sample
     float density = sample(sample_pos);
 
@@ -52,7 +51,6 @@ void main() {
     if (density >= IsoValue && prev_density < IsoValue ||
       density < IsoValue && prev_density >= IsoValue) {
 
-      out_Color = vec4(0.5f);
       // bool in_surface = true;
       // for (float i = 1; i <= refinement_num; ++i) {
       //   if (in_surface) {
@@ -103,7 +101,7 @@ vec3 get_gradient(const vec3 pos) {
   vec3 y_offset = vec3(0, sampleDistance, 0);
   vec3 z_offset = vec3(0, 0, sampleDistance);
   // invert direction because it points to bigger density
-  return normalize(-vec3(
+  return normalize(vec3(
    sample(pos + x_offset) - sample(pos - x_offset),
    sample(pos + y_offset) - sample(pos - y_offset),
    sample(pos + z_offset) - sample(pos - z_offset)));

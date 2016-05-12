@@ -39,15 +39,15 @@ void main() {
   for (uint i = 0u; i < num_kinects; ++i) {
     vec3 pos_calib = texture(cv_xyz_inv[i], geo_pos_volume).xyz;
     float depth = texture2DArray(kinect_depths, vec3(pos_calib.xy, float(i))).r;
-    if (is_outside(depth)) {
-      // no write yet -> voxel outside of surface
-      if (weighted_tsd >= limit) {
-        weighted_tsd = -limit;
-        continue;
-      }
-      // tsd = 10.0f;
-      // break;
-    }
+    // if (is_outside(depth)) {
+    //   // no write yet -> voxel outside of surface
+    //   if (weighted_tsd >= limit) {
+    //     weighted_tsd = -limit;
+    //     continue;
+    //   }
+    //   // tsd = 10.0f;
+    //   // break;
+    // }
     float sdist = depth - pos_calib.z;
     if (sdist <= -limit) {
       // weighted_tsd = -limit;

@@ -27,6 +27,8 @@ ReconCalibs::ReconCalibs(CalibrationFiles const& cfs, CalibVolumes const* cv, gl
   );
 
   m_program->setUniform("volume_tsdf", 29);
+  m_program->setUniform("cv_xyz", m_cv->getXYZVolumeUnits());
+  m_program->setUniform("cv_uv", m_cv->getUVVolumeUnits());
   m_program->setUniform("cv_xyz_inv", m_cv->getXYZVolumeUnitsInv());
   m_program->setUniform("cv_uv_inv", m_cv->getUVVolumeUnitsInv());
 
@@ -49,6 +51,7 @@ ReconCalibs::~ReconCalibs() {
 void ReconCalibs::draw(){
   m_program->use();
 
+  m_program->setUniform("layer", m_active_kinect);
   m_sampler.sample();
 
   m_program->release();  
