@@ -154,9 +154,6 @@ std::vector<sample_t> CalibVolumes::getXyzSamples(std::size_t i) {
       }
     }
   }
-  // for(std::size_t i = 0; i < volume.size(); ++i) {
-  //   calib_samples.emplace_back(volume[i], i);
-  // }
 
   return calib_samples;
 }
@@ -181,6 +178,7 @@ void CalibVolumes::calculateInverseVolumes2() {
 
   glm::fvec3 volume_step{glm::fvec3{1.0f} / glm::fvec3{volume_res}};
   glm::fvec3 sample_step{bbox_dimensions * volume_step};
+  // important, start with offset of a half voxel
   glm::fvec3 sample_start = bbox_translation + sample_step * 0.5f;
   glm::fvec3 sample_pos = sample_start;
 
@@ -198,11 +196,10 @@ void CalibVolumes::calculateInverseVolumes2() {
     for(unsigned x = 0; x < volume_res.x; ++x) {
       for(unsigned y = 0; y < volume_res.y; ++y) {
         for(unsigned z = 0; z < volume_res.z; ++z) {
-          glm::fvec3 sample_pos = sample_start + (glm::fvec3{x,y,z} + glm::fvec3{0.5f}) * sample_step; 
+          glm::fvec3 sample_pos = sample_start + glm::fvec3{x,y,z} * sample_step; 
           auto samples = curr_calib_search.search(sample_pos, 4);
-          auto const& sample = samples[0];
           auto weighted_index = inverseDistance(sample_pos, samples);
-          curr_volume_inv[z * volume_res.x * volume_res.y + y * volume_res.x + x] = glm::fvec4{weighted_index / curr_calib_dims, 1.0f};
+          curr_volume_inv[z * volume_res.x * volume_res.y + y * volume_res.x + x] = glm::fvec4{(weighted_index + glm::fvec3{0.5f}) / curr_calib_dims, 1.0f};
 
           sample_pos.z += sample_step.z;
         }

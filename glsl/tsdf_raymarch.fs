@@ -37,7 +37,7 @@ const vec3 LightSpecular = vec3(1.0f);
 const float ks = 0.5f;            // specular intensity
 const float n = 20.0f;            //specular exponent 
 
-// #define SHADEDs
+// #define SHADED
 
 vec2 phongDiffSpec(const vec3 position, const vec3 normal, const float n, const vec3 lightPos);
 vec3 get_gradient(const vec3 pos);
@@ -62,16 +62,16 @@ void main() {
     if (density >= IsoValue && prev_density < IsoValue ||
       density < IsoValue && prev_density >= IsoValue) {
 
-      // bool in_surface = true;
-      // for (float i = 1; i <= refinement_num; ++i) {
-      //   if (in_surface) {
-      //     sample_pos -= sampleStep * pow(0.5, i);
-      //   }
-      //   else {
-      //     sample_pos += sampleStep * pow(0.5, i);
-      //   }
-      //   in_surface = sample(sample_pos) >= IsoValue;
-      // }
+      bool in_surface = true;
+      for (float i = 1; i <= refinement_num; ++i) {
+        if (in_surface) {
+          sample_pos -= sampleStep * pow(0.5, i);
+        }
+        else {
+          sample_pos += sampleStep * pow(0.5, i);
+        }
+        in_surface = sample(sample_pos) <= IsoValue;
+      }
 
       float final_density = sample(sample_pos);
       vec3 view_normal = normalize((NormalMatrix * vec4(get_gradient(sample_pos), 0.0f)).xyz);
