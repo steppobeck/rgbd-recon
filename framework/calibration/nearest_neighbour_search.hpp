@@ -49,7 +49,6 @@ private:
 	typedef K_neighbor_search::Distance                         Distance;
 		
 	const std::vector<sample_t> m_samples;
-	// void* m_tree;
 	std::unique_ptr<Tree> m_tree;
 
 };

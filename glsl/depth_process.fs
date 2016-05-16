@@ -16,8 +16,8 @@ uniform float scale;
 uniform float near;
 uniform float scaled_near;
 
-uniform float[5] cv_min_ds;
-uniform float[5] cv_max_ds;
+uniform float cv_min_ds;
+uniform float cv_max_ds;
 uniform int mode;
 
 int kernel_size = 6; // in pixel
@@ -62,11 +62,11 @@ float sample(vec3 coords) {
 }
 
 bool is_outside(float d){
-  return (d < cv_min_ds[layer]) || (d > cv_max_ds[layer]);
+  return (d < cv_min_ds) || (d > cv_max_ds);
 }
 
 float normalize(float depth) {
-  return (depth - cv_min_ds[layer])/(cv_max_ds[layer] - cv_min_ds[layer]);
+  return (depth - cv_min_ds)/(cv_max_ds - cv_min_ds);
 }
 vec2 bilateral_filter(vec3 coords){
 

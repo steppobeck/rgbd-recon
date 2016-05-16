@@ -247,9 +247,9 @@ void NetKinectArray::bindToFramebuffer(GLuint array_handle, GLuint layer) {
   	m_depthArray->bind();
     m_program_filter->use();
 
-    m_program_filter->setUniform("cv_min_ds",m_calib_vols->m_cv_min_ds);
-    m_program_filter->setUniform("cv_max_ds",m_calib_vols->m_cv_max_ds);
     for(unsigned i = 0; i < m_calib_files->num(); ++i){
+      m_program_filter->setUniform("cv_min_ds",m_calib_vols->getDepthLimits(i).x);
+      m_program_filter->setUniform("cv_max_ds",m_calib_vols->getDepthLimits(i).y);
       //
       //std::cerr << current_fbo << std::endl;
       // render to depth

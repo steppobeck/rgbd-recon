@@ -16,11 +16,39 @@
 
 namespace kinect{
 
+template<typename T>
+struct calib_volume_t {
+  glm::uvec3 dimensions;
+  glm::fvec2 depth_limits;
+  std::vector<T> volume;
+
+  calib_volume_t(std::string const& filename)
+   :dimensions{0}
+   ,depth_limits{0}
+   ,volume{}
+  {
+    read(filename);
+  }
+
+  void read(std::string const& filename) {
+    FILE* file_input = fopen( filename.c_str(), "rb");
+    fread(&dimensions.x, sizeof(unsigned), 1, file_input);
+    fread(&dimensions.y, sizeof(unsigned), 1, file_input);
+    fread(&dimensions.z, sizeof(unsigned), 1, file_input);
+    fread(&depth_limits.x, sizeof(float), 1, file_input);
+    fread(&depth_limits.y, sizeof(float), 1, file_input);
+    // std::vector<xyz> storage(dimensions.x * dimensions.y * dimensions.z);
+    volume.resize(dimensions.x * dimensions.y * dimensions.z);
+    fread(volume.data(), sizeof(T), dimensions.x * dimensions.y * dimensions.z, file_input);
+    fclose(file_input);    
+  }
+};
+
 class CalibVolumes{
 
 public:
   CalibVolumes(std::vector<std::string> const& calib_volume_files, gloost::BoundingBox const& bbox);
-  virtual ~CalibVolumes();
+  ~CalibVolumes();
 
   void reload();
   
@@ -38,6 +66,7 @@ public:
   void calculateInverseVolumes2();
 
   glm::uvec3 getVolumeRes() const;
+  glm::fvec2 getDepthLimits(unsigned i) const;
 
 private:
   void bindToTextureUnits();
@@ -57,14 +86,13 @@ private:
   globjects::Program* m_program;
   VolumeSampler       m_sampler;
 
-  std::vector<std::vector<xyz>>    m_data_volumes_xyz;
+  std::vector<calib_volume_t<xyz>>    m_data_volumes_xyz2;
+  // std::vector<std::vector<xyz>>    m_data_volumes_xyz;
   std::vector<std::vector<uv>>     m_data_volumes_uv;
   std::vector<std::vector<glm::fvec4>>     m_data_volumes_xyz_inv;
 
-
   gloost::BoundingBox m_bbox;
 
-public:
   std::vector<float> m_cv_min_ds;
   std::vector<float> m_cv_max_ds;
   std::vector<unsigned> m_cv_widths;
