@@ -14,8 +14,6 @@
 namespace kinect{
 
 static glm::uvec3 volume_res{128,256,128};
-// static glm::uvec3 volume_res{256, 512, 256};
-// static glm::uvec3 volume_res{32,64,32};
 static int start_image_unit = 1;
 
 CalibVolumes::CalibVolumes(std::vector<std::string> const& calib_volume_files, gloost::BoundingBox const& bbox)
@@ -24,7 +22,6 @@ CalibVolumes::CalibVolumes(std::vector<std::string> const& calib_volume_files, g
  ,m_volumes_xyz{}
  ,m_volumes_uv{}
  ,m_volumes_xyz_inv{}
- ,m_volumes_uv_inv{}
  ,m_program{new globjects::Program()}
  ,m_sampler{volume_res}
  ,m_bbox{bbox}
@@ -58,12 +55,8 @@ CalibVolumes::CalibVolumes(std::vector<std::string> const& calib_volume_files, g
   std::vector<uv> empty_uv(volume_res.x * volume_res.y * volume_res.z, {0.0f, 1.0f});
   for (unsigned i = 0; i < m_cv_xyz_filenames.size(); ++i) {
     auto volume_xyz = globjects::Texture::createDefault(GL_TEXTURE_3D);
-    volume_xyz->image3D(0, GL_RGBA32F, volume_res.x, volume_res.y, volume_res.z, 0, GL_RGBA, GL_FLOAT, empty_xyz.data());
+    volume_xyz->image3D(0, GL_RGBA32F, glm::ivec3{volume_res}, 0, GL_RGBA, GL_FLOAT, empty_xyz.data());
     m_volumes_xyz_inv.emplace_back(volume_xyz);
-
-    auto volume_uv = globjects::Texture::createDefault(GL_TEXTURE_3D);
-    volume_uv->image3D(0, GL_RG32F, volume_res.x, volume_res.y, volume_res.z, 0, GL_RG, GL_FLOAT, empty_uv.data());
-    m_volumes_uv_inv.emplace_back(volume_uv);
   }
 
   reload();
@@ -74,7 +67,6 @@ CalibVolumes::~CalibVolumes(){
     m_volumes_xyz[i]->destroy();
     m_volumes_uv[i]->destroy();
     m_volumes_xyz_inv[i]->destroy();
-    m_volumes_uv_inv[i]->destroy();
   }
 }
 
@@ -83,11 +75,13 @@ void CalibVolumes::reload(){
     for(unsigned i = 0; i < m_cv_xyz_filenames.size(); ++i){
       m_volumes_xyz[i]->destroy();
       m_volumes_uv[i]->destroy();
+      m_volumes_xyz_inv[i]->destroy();
     }
   }
 
   m_volumes_xyz.clear();
   m_volumes_uv.clear();
+  m_volumes_xyz_inv.clear();
 
   for(unsigned i = 0; i < m_cv_xyz_filenames.size(); ++i){
     addVolume(m_cv_xyz_filenames[i], m_cv_uv_filenames[i]);
@@ -108,8 +102,6 @@ void CalibVolumes::calculateInverseVolumes(){
   for(unsigned i = 0; i < m_cv_xyz_filenames.size(); ++i) {
     m_program->setUniform("layer", i);
     m_volumes_xyz_inv[i]->bindImageTexture(start_image_unit, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA32F);
-    m_volumes_uv_inv[i]->bindImageTexture(start_image_unit + 1, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RG32F);
-    
     m_sampler.sample();
   }
 
@@ -119,7 +111,8 @@ void CalibVolumes::calculateInverseVolumes(){
   calculateInverseVolumes2();
   std::cout << "uploading inverted data" << std::endl;
   for (unsigned i = 0; i < m_cv_xyz_filenames.size(); ++i) {
-    m_volumes_xyz_inv[i]->image3D(0, GL_RGBA32F, volume_res.x, volume_res.y, volume_res.z, 0, GL_RGBA, GL_FLOAT, m_data_volumes_xyz_inv[i].data());
+    m_volumes_xyz_inv[i]->image3D(0, GL_RGBA32F, glm::ivec3{volume_res}, 0, GL_RGBA, GL_FLOAT, m_data_volumes_xyz_inv[i].volume().data());
+    // m_data_volumes_xyz_inv[i].write(m_cv_xyz_filenames[i] + std::string{"_inv"});
   }
 
   if(m_start_texture_unit_inv >= 0) {
@@ -196,21 +189,14 @@ void CalibVolumes::calculateInverseVolumes2() {
       sample_pos.y = sample_start.y;
     }
     std::cout << "storing volume " << i << std::endl;
-    m_data_volumes_xyz_inv.push_back(curr_volume_inv);
+    m_data_volumes_xyz_inv.emplace_back(volume_res, glm::fvec2{0.5f, 4.5f}, curr_volume_inv);
   }
 }
 
 std::vector<int> CalibVolumes::getXYZVolumeUnitsInv() const {
   std::vector<int> units(5, 0);
   for(int i = 0; i < int(m_cv_xyz_filenames.size()); ++i) {
-    units[i] = m_start_texture_unit_inv + i * 2;
-  }
-  return units;
-}
-std::vector<int> CalibVolumes::getUVVolumeUnitsInv() const {
-  std::vector<int> units(5, 0);
-  for(int i = 0; i < int(m_cv_xyz_filenames.size()); ++i) {
-    units[i] = m_start_texture_unit_inv  + i * 2 + 1;
+    units[i] = m_start_texture_unit_inv + i;
   }
   return units;
 }
@@ -237,9 +223,9 @@ void CalibVolumes::addVolume(std::string const& filename_xyz, std::string const&
             << " minmax d - " << calib_uv.depthLimits().x << ", " << calib_uv.depthLimits().y << std::endl;
 
   auto volume_xyz = globjects::Texture::createDefault(GL_TEXTURE_3D);
-  volume_xyz->image3D(0, GL_RGB32F, calib_xyz.res().x, calib_xyz.res().y, calib_xyz.res().z, 0, GL_RGB, GL_FLOAT, calib_xyz.volume().data());
+  volume_xyz->image3D(0, GL_RGB32F, glm::ivec3{calib_xyz.res()}, 0, GL_RGB, GL_FLOAT, calib_xyz.volume().data());
   auto volume_uv = globjects::Texture::createDefault(GL_TEXTURE_3D);
-  volume_uv->image3D(0, GL_RG32F, calib_uv.res().x, calib_uv.res().y, calib_uv.res().z, 0, GL_RG, GL_FLOAT, calib_uv.volume().data());
+  volume_uv->image3D(0, GL_RG32F, glm::ivec3{calib_uv.res()}, 0, GL_RG, GL_FLOAT, calib_uv.volume().data());
 
   m_volumes_xyz.push_back(volume_xyz);
   m_volumes_uv.push_back(volume_uv);
@@ -272,8 +258,7 @@ CalibVolumes::bindToTextureUnits() {
 void
 CalibVolumes::bindToTextureUnitsInv() {
   for(unsigned layer = 0; layer < m_cv_xyz_filenames.size(); ++layer){
-    m_volumes_xyz_inv[layer]->bindActive(GL_TEXTURE0 + m_start_texture_unit_inv + layer * 2);
-    m_volumes_uv_inv[layer]->bindActive(GL_TEXTURE0 + m_start_texture_unit_inv + layer * 2 + 1);
+    m_volumes_xyz_inv[layer]->bindActive(GL_TEXTURE0 + m_start_texture_unit_inv + layer);
   }
   glActiveTexture(GL_TEXTURE0);
 }
@@ -287,20 +272,5 @@ void CalibVolumes::setStartTextureUnitInv(unsigned start_texture_unit) {
   m_start_texture_unit_inv = start_texture_unit;
   bindToTextureUnitsInv();
 }
-
-// template<typename T>
-// void CalibVolumes::saveVolume(ste::string const& filename, std::vector<T> volume) {
-//   {
-//     FILE* f = fopen( filename, "wb");
-//     fwrite(&width, sizeof(unsigned), 1, f);
-//     fwrite(&height, sizeof(unsigned), 1, f);
-//     fwrite(&depth, sizeof(unsigned), 1, f);
-//     fwrite(&min_d, sizeof(float), 1, f);
-//     fwrite(&max_d, sizeof(float), 1, f);
-//     fwrite(volume.data(), sizeof(T), width * height * depth, f);
-//     fclose(f);
-//   }
-//   std::cout << "saved " << filename_xyz << std::endl;
-// }
 
 }

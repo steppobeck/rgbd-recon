@@ -19,6 +19,12 @@ class CalibrationVolume {
   {
     read(filename);
   }
+
+  CalibrationVolume(glm::uvec3 const& res, glm::fvec2 const& depth, std::vector<T> const& vol)
+   :m_resolution{res}
+   ,m_depth_limits{depth}
+   ,m_volume{vol}
+  {}
   
   void write(std::string const& filename) {
     FILE* file_output = fopen(filename.c_str(), "wb");

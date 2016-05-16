@@ -32,7 +32,6 @@ public:
   std::vector<int> getUVVolumeUnits() const;
 
   std::vector<int> getXYZVolumeUnitsInv() const;
-  std::vector<int> getUVVolumeUnitsInv() const;
 
   void calculateInverseVolumes();
   void calculateInverseVolumes2();
@@ -53,14 +52,13 @@ private:
   std::vector<globjects::Texture*> m_volumes_uv;
 
   std::vector<globjects::Texture*> m_volumes_xyz_inv;
-  std::vector<globjects::Texture*> m_volumes_uv_inv;
 
   globjects::Program* m_program;
   VolumeSampler       m_sampler;
 
   std::vector<CalibrationVolume<xyz>>    m_data_volumes_xyz;
   std::vector<CalibrationVolume<uv>>    m_data_volumes_uv;
-  std::vector<std::vector<glm::fvec4>>     m_data_volumes_xyz_inv;
+  std::vector<CalibrationVolume<glm::fvec4>>    m_data_volumes_xyz_inv;
 
   gloost::BoundingBox m_bbox;
 

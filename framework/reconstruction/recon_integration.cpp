@@ -52,7 +52,6 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/tsdf_integration.vs")
   );
   m_program_integration->setUniform("cv_xyz_inv", m_cv->getXYZVolumeUnitsInv());
-  m_program_integration->setUniform("cv_uv_inv", m_cv->getUVVolumeUnitsInv());
   m_program->setUniform("volume_tsdf", 29);
 
   m_program_integration->setUniform("volume_tsdf", start_image_unit);

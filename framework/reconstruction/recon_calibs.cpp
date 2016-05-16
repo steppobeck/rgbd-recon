@@ -30,7 +30,6 @@ ReconCalibs::ReconCalibs(CalibrationFiles const& cfs, CalibVolumes const* cv, gl
   m_program->setUniform("cv_xyz", m_cv->getXYZVolumeUnits());
   m_program->setUniform("cv_uv", m_cv->getUVVolumeUnits());
   m_program->setUniform("cv_xyz_inv", m_cv->getXYZVolumeUnitsInv());
-  m_program->setUniform("cv_uv_inv", m_cv->getUVVolumeUnitsInv());
 
   glm::fvec3 bbox_dimensions = glm::fvec3{m_bbox.getPMax()[0] - m_bbox.getPMin()[0],
                                           m_bbox.getPMax()[1] - m_bbox.getPMin()[1],
