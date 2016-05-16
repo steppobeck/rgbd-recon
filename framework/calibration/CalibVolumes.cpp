@@ -28,11 +28,6 @@ CalibVolumes::CalibVolumes(std::vector<std::string> const& calib_volume_files, g
  ,m_program{new globjects::Program()}
  ,m_sampler{volume_res}
  ,m_bbox{bbox}
- ,m_cv_min_ds()
- ,m_cv_max_ds()
- ,m_cv_widths()
- ,m_cv_heights()
- ,m_cv_depths()
  ,m_start_texture_unit(-1)
  ,m_start_texture_unit_inv(-1)
 {
@@ -130,19 +125,18 @@ void CalibVolumes::calculateInverseVolumes(){
   if(m_start_texture_unit_inv >= 0) {
     bindToTextureUnitsInv();
   }
-
 }
 
 std::vector<sample_t> CalibVolumes::getXyzSamples(std::size_t i) {
   std::vector<sample_t> calib_samples{};
-  auto const& calib = m_data_volumes_xyz2[i];
-  calib_samples.reserve(calib.volume.size());
-  glm::uvec3 const& dims{calib.dimensions};
+  auto const& calib = m_data_volumes_xyz[i];
+  calib_samples.reserve(calib.numVoxels());
+  glm::uvec3 const& dims{calib.res()};
 
   for(unsigned x = 0; x < dims.x; ++x) {
     for(unsigned y = 0; y < dims.y; ++y) {
       for(unsigned z = 0; z < dims.z; ++z) {
-        calib_samples.emplace_back(calib.volume[z * dims.x * dims.y + y * dims.x + x], glm::uvec3{x, y, z});
+        calib_samples.emplace_back(calib.volume()[z * dims.x * dims.y + y * dims.x + x], glm::uvec3{x, y, z});
       }
     }
   }
@@ -175,7 +169,7 @@ void CalibVolumes::calculateInverseVolumes2() {
   glm::fvec3 sample_pos = sample_start;
 
   for(unsigned i = 0; i < m_cv_xyz_filenames.size(); ++i) {
-    glm::fvec3 curr_calib_dims{m_data_volumes_xyz2[i].dimensions};
+    glm::fvec3 curr_calib_dims{m_data_volumes_xyz[i].res()};
     auto curr_calib_samples{getXyzSamples(i)};
     std::cout << "building nn search structure " << i << std::endl;
     NearestNeighbourSearch curr_calib_search{curr_calib_samples}; 
@@ -226,42 +220,26 @@ glm::uvec3 CalibVolumes::getVolumeRes() const {
 }
 
 glm::fvec2 CalibVolumes::getDepthLimits(unsigned i) const {
-  return glm::fvec2{0.5f, 4.5f};
-  return m_data_volumes_xyz2[i].depth_limits;
+  return m_data_volumes_xyz[i].depthLimits();
 }
 
-void CalibVolumes::addVolume(std::string const& filename_xyz, std::string filename_uv) {
-  unsigned width_uv = 0;
-  unsigned height_uv = 0;
-  unsigned depth_uv = 0;
-
-  float min_d_uv = 0.0f;
-  float max_d_uv = 0.0f;
-
+void CalibVolumes::addVolume(std::string const& filename_xyz, std::string const& filename_uv) {
   std::cerr << "loading " << filename_xyz << std::endl;
-  m_data_volumes_xyz2.emplace_back(filename_xyz);
-  auto const& calib_xyz{m_data_volumes_xyz2.back()};
-  std::cout << "dimensions xyz - " << calib_xyz.dimensions.x << ", " << calib_xyz.dimensions.y << ", " << calib_xyz.dimensions.z 
-            << " minmax d - " << calib_xyz.depth_limits.x << ", " << calib_xyz.depth_limits.y << std::endl;
+  m_data_volumes_xyz.emplace_back(filename_xyz);
+  auto const& calib_xyz{m_data_volumes_xyz.back()};
+  std::cout << "dimensions xyz - " << calib_xyz.res().x << ", " << calib_xyz.res().y << ", " << calib_xyz.res().z 
+            << " minmax d - " << calib_xyz.depthLimits().x << ", " << calib_xyz.depthLimits().y << std::endl;
 
   std::cerr << "loading " << filename_uv << std::endl;
-  FILE* file_uv = fopen( filename_uv.c_str(), "rb");
-  fread(&width_uv, sizeof(unsigned), 1, file_uv);
-  fread(&height_uv, sizeof(unsigned), 1, file_uv);
-  fread(&depth_uv, sizeof(unsigned), 1, file_uv);
-  fread(&min_d_uv, sizeof(float), 1, file_uv);
-  fread(&max_d_uv, sizeof(float), 1, file_uv);
-  std::cout << "dimensions uv - " << width_uv << ", " << height_uv << ", " << depth_uv << " minmax d - " << min_d_uv << ", " << max_d_uv << std::endl;
-  std::vector<uv> storage_uv(width_uv * height_uv * depth_uv);
-  fread(storage_uv.data(), sizeof(uv), width_uv * height_uv * depth_uv, file_uv);
-  fclose(file_uv);
-  
-  m_data_volumes_uv.push_back(storage_uv);
+  m_data_volumes_uv.emplace_back(filename_uv);
+  auto const& calib_uv{m_data_volumes_uv.back()};
+  std::cout << "dimensions uv - " << calib_uv.res().x << ", " << calib_uv.res().y << ", " << calib_uv.res().z 
+            << " minmax d - " << calib_uv.depthLimits().x << ", " << calib_uv.depthLimits().y << std::endl;
 
   auto volume_xyz = globjects::Texture::createDefault(GL_TEXTURE_3D);
-  volume_xyz->image3D(0, GL_RGB32F, calib_xyz.dimensions.x, calib_xyz.dimensions.y, calib_xyz.dimensions.z, 0, GL_RGB, GL_FLOAT, calib_xyz.volume.data());
+  volume_xyz->image3D(0, GL_RGB32F, calib_xyz.res().x, calib_xyz.res().y, calib_xyz.res().z, 0, GL_RGB, GL_FLOAT, calib_xyz.volume().data());
   auto volume_uv = globjects::Texture::createDefault(GL_TEXTURE_3D);
-  volume_uv->image3D(0, GL_RG32F, width_uv, height_uv, depth_uv, 0, GL_RG, GL_FLOAT, storage_uv.data());
+  volume_uv->image3D(0, GL_RG32F, calib_uv.res().x, calib_uv.res().y, calib_uv.res().z, 0, GL_RG, GL_FLOAT, calib_uv.volume().data());
 
   m_volumes_xyz.push_back(volume_xyz);
   m_volumes_uv.push_back(volume_uv);
