@@ -39,10 +39,15 @@ public:
   glm::uvec3 getVolumeRes() const;
   glm::fvec2 getDepthLimits(unsigned i) const;
 
+  void writeInverseCalibs(std::string const& path) const;
+  void loadInverseCalibs(std::string const& path);
+
+
 private:
   void bindToTextureUnits();
   void bindToTextureUnitsInv();
 
+  void createVolumeTextures();
   std::vector<sample_t> getXyzSamples(std::size_t i);
 
   std::vector<std::string> m_cv_xyz_filenames;
@@ -52,9 +57,6 @@ private:
   std::vector<globjects::Texture*> m_volumes_uv;
 
   std::vector<globjects::Texture*> m_volumes_xyz_inv;
-
-  globjects::Program* m_program;
-  VolumeSampler       m_sampler;
 
   std::vector<CalibrationVolume<xyz>>    m_data_volumes_xyz;
   std::vector<CalibrationVolume<uv>>    m_data_volumes_uv;

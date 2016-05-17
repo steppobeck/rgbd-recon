@@ -22,8 +22,8 @@ CalibVolumes::CalibVolumes(std::vector<std::string> const& calib_volume_files, g
  ,m_volumes_xyz{}
  ,m_volumes_uv{}
  ,m_volumes_xyz_inv{}
- ,m_program{new globjects::Program()}
- ,m_sampler{volume_res}
+ // ,m_program{new globjects::Program()}
+ // ,m_sampler{volume_res}
  ,m_bbox{bbox}
  ,m_start_texture_unit(-1)
  ,m_start_texture_unit_inv(-1)
@@ -35,21 +35,21 @@ CalibVolumes::CalibVolumes(std::vector<std::string> const& calib_volume_files, g
   	m_cv_uv_filenames.push_back(basefile + "cv_uv");
   }
 
-  m_program->attach(
-    globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/calib_sample.vs"),
-    globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/calib_vis.fs")
-  );
+  // m_program->attach(
+  //   globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/calib_sample.vs"),
+  //   globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/calib_vis.fs")
+  // );
 
-  m_program->setUniform("volume_xyz", start_image_unit);
-  m_program->setUniform("volume_uv", start_image_unit + 1);
-  m_program->setUniform("volume_res", volume_res);
-  auto vol_to_world(glm::scale(glm::fmat4{1.0f}, glm::fvec3{m_bbox.getPMax()[0] - m_bbox.getPMin()[0],
-                                                            m_bbox.getPMax()[1] - m_bbox.getPMin()[1],
-                                                            m_bbox.getPMax()[2] - m_bbox.getPMin()[2]}));
+  // m_program->setUniform("volume_xyz", start_image_unit);
+  // m_program->setUniform("volume_uv", start_image_unit + 1);
+  // m_program->setUniform("volume_res", volume_res);
+  // auto vol_to_world(glm::scale(glm::fmat4{1.0f}, glm::fvec3{m_bbox.getPMax()[0] - m_bbox.getPMin()[0],
+  //                                                           m_bbox.getPMax()[1] - m_bbox.getPMin()[1],
+  //                                                           m_bbox.getPMax()[2] - m_bbox.getPMin()[2]}));
 
-  vol_to_world = glm::translate(glm::fmat4{1.0f}, glm::fvec3{m_bbox.getPMin()[0], m_bbox.getPMin()[1], m_bbox.getPMin()[2]}) * vol_to_world;
-  auto world_to_vol(glm::inverse(vol_to_world));
-  m_program->setUniform("world_to_vol", world_to_vol);
+  // vol_to_world = glm::translate(glm::fmat4{1.0f}, glm::fvec3{m_bbox.getPMin()[0], m_bbox.getPMin()[1], m_bbox.getPMin()[2]}) * vol_to_world;
+  // auto world_to_vol(glm::inverse(vol_to_world));
+  // m_program->setUniform("world_to_vol", world_to_vol);
 
   std::vector<float> empty_xyz(volume_res.x * volume_res.y * volume_res.z * 4, -0.01f);
   std::vector<uv> empty_uv(volume_res.x * volume_res.y * volume_res.z, {0.0f, 1.0f});
@@ -59,11 +59,16 @@ CalibVolumes::CalibVolumes(std::vector<std::string> const& calib_volume_files, g
     m_volumes_xyz_inv.emplace_back(volume_xyz);
   }
 
-  reload();
+  // reload();
+  for(unsigned i = 0; i < m_cv_xyz_filenames.size(); ++i){
+    addVolume(m_cv_xyz_filenames[i], m_cv_uv_filenames[i]);
+  }
+
+  createVolumeTextures();
 }
 
 CalibVolumes::~CalibVolumes(){
-  for(unsigned i = 0; i < m_cv_xyz_filenames.size(); ++i){
+  for(unsigned i = 0; i < m_volumes_xyz.size(); ++i){
     m_volumes_xyz[i]->destroy();
     m_volumes_uv[i]->destroy();
     m_volumes_xyz_inv[i]->destroy();
@@ -72,7 +77,7 @@ CalibVolumes::~CalibVolumes(){
 
 void CalibVolumes::reload(){
   if (!m_volumes_xyz.empty()) { 
-    for(unsigned i = 0; i < m_cv_xyz_filenames.size(); ++i){
+    for(unsigned i = 0; i < m_volumes_xyz.size(); ++i){
       m_volumes_xyz[i]->destroy();
       m_volumes_uv[i]->destroy();
       m_volumes_xyz_inv[i]->destroy();
@@ -92,27 +97,33 @@ void CalibVolumes::reload(){
   }
 }
 
-void CalibVolumes::calculateInverseVolumes(){
-  m_program->setUniform("cv_xyz", getXYZVolumeUnits());
-  m_program->setUniform("cv_uv", getUVVolumeUnits());
+void CalibVolumes::writeInverseCalibs(std::string const& path) const {
+  for(unsigned i = 0; i < m_data_volumes_xyz_inv.size(); ++i) {
+    m_data_volumes_xyz_inv[i].write(path + m_cv_xyz_filenames[i] + "_inv");
+  }
+}
 
-  m_program->use();
-  glEnable(GL_RASTERIZER_DISCARD);
-
-  for(unsigned i = 0; i < m_cv_xyz_filenames.size(); ++i) {
-    m_program->setUniform("layer", i);
-    m_volumes_xyz_inv[i]->bindImageTexture(start_image_unit, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA32F);
-    m_sampler.sample();
+void CalibVolumes::loadInverseCalibs(std::string const& path) {
+  for(unsigned i = 0; i < m_cv_xyz_filenames.size(); ++i){
+    std::string name_source{m_cv_xyz_filenames[i].substr( m_cv_xyz_filenames[i].find_last_of("/\\") + 1)};
+    std::string name_input{path + name_source + "_inv"};
+    m_data_volumes_xyz_inv.emplace_back(name_input);
+    auto const& calib{m_data_volumes_xyz.back()};
+    std::cout << "dimensions xyz - " << calib.res().x << ", " << calib.res().y << ", " << calib.res().z 
+              << " minmax d - " << calib.depthLimits().x << ", " << calib.depthLimits().y << std::endl;
   }
 
-  glDisable(GL_RASTERIZER_DISCARD);
-  m_program->release();
+  for (unsigned i = 0; i < m_cv_xyz_filenames.size(); ++i) {
+    m_volumes_xyz_inv[i]->image3D(0, GL_RGBA32F, glm::ivec3{volume_res}, 0, GL_RGBA, GL_FLOAT, m_data_volumes_xyz_inv[i].volume().data());
+  }
+}
+
+void CalibVolumes::calculateInverseVolumes(){
 
   calculateInverseVolumes2();
   std::cout << "uploading inverted data" << std::endl;
   for (unsigned i = 0; i < m_cv_xyz_filenames.size(); ++i) {
     m_volumes_xyz_inv[i]->image3D(0, GL_RGBA32F, glm::ivec3{volume_res}, 0, GL_RGBA, GL_FLOAT, m_data_volumes_xyz_inv[i].volume().data());
-    // m_data_volumes_xyz_inv[i].write(m_cv_xyz_filenames[i] + std::string{"_inv"});
   }
 
   if(m_start_texture_unit_inv >= 0) {
@@ -222,13 +233,20 @@ void CalibVolumes::addVolume(std::string const& filename_xyz, std::string const&
   std::cout << "dimensions uv - " << calib_uv.res().x << ", " << calib_uv.res().y << ", " << calib_uv.res().z 
             << " minmax d - " << calib_uv.depthLimits().x << ", " << calib_uv.depthLimits().y << std::endl;
 
-  auto volume_xyz = globjects::Texture::createDefault(GL_TEXTURE_3D);
-  volume_xyz->image3D(0, GL_RGB32F, glm::ivec3{calib_xyz.res()}, 0, GL_RGB, GL_FLOAT, calib_xyz.volume().data());
-  auto volume_uv = globjects::Texture::createDefault(GL_TEXTURE_3D);
-  volume_uv->image3D(0, GL_RG32F, glm::ivec3{calib_uv.res()}, 0, GL_RG, GL_FLOAT, calib_uv.volume().data());
+}
 
-  m_volumes_xyz.push_back(volume_xyz);
-  m_volumes_uv.push_back(volume_uv);
+void CalibVolumes::createVolumeTextures() {
+  for(unsigned i = 0; i < m_data_volumes_xyz.size(); ++i){
+    auto const& calib_xyz = m_data_volumes_xyz[i];
+    auto const& calib_uv = m_data_volumes_uv[i];
+    auto volume_xyz = globjects::Texture::createDefault(GL_TEXTURE_3D);
+    volume_xyz->image3D(0, GL_RGB32F, glm::ivec3{calib_xyz.res()}, 0, GL_RGB, GL_FLOAT, calib_xyz.volume().data());
+    auto volume_uv = globjects::Texture::createDefault(GL_TEXTURE_3D);
+    volume_uv->image3D(0, GL_RG32F, glm::ivec3{calib_uv.res()}, 0, GL_RG, GL_FLOAT, calib_uv.volume().data());
+
+    m_volumes_xyz.push_back(volume_xyz);
+    m_volumes_uv.push_back(volume_uv);
+  }
 }
 
 std::vector<int> CalibVolumes::getXYZVolumeUnits() const {

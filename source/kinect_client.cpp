@@ -135,15 +135,15 @@ void init(std::vector<std::string> args){
   g_bbox.setPMax(bbox_max);
 
   g_calib_files = std::unique_ptr<kinect::CalibrationFiles>{new kinect::CalibrationFiles(calib_filenames)};
-  g_cv = std::unique_ptr<kinect::CalibVolumes>{new kinect::CalibVolumes(g_calib_files->getFileNames(), g_bbox)};
+  g_cv = std::unique_ptr<kinect::CalibVolumes>{new kinect::CalibVolumes(calib_filenames, g_bbox)};
   g_nka = std::unique_ptr<kinect::NetKinectArray>{new kinect::NetKinectArray(serverport, g_calib_files.get(), g_cv.get())};
   
   // binds to unit 1 to 3
   g_nka->setStartTextureUnit(1);
   // bind calubration volumes from 4 - 13
   g_cv->setStartTextureUnit(4);
+  g_cv->loadInverseCalibs(resource_path);
   g_cv->setStartTextureUnitInv(30);
-  g_cv->calculateInverseVolumes();
 
   g_recons.emplace_back(new kinect::ReconTrigrid(*g_calib_files, g_cv.get(), g_bbox));
   g_recons.emplace_back(new kinect::ReconPoints(*g_calib_files, g_cv.get(), g_bbox));

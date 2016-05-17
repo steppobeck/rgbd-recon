@@ -26,7 +26,7 @@ class CalibrationVolume {
    ,m_volume{vol}
   {}
   
-  void write(std::string const& filename) {
+  void write(std::string const& filename) const {
     FILE* file_output = fopen(filename.c_str(), "wb");
     fwrite(&m_resolution.x, sizeof(unsigned), 1, file_output);
     fwrite(&m_resolution.y, sizeof(unsigned), 1, file_output);
