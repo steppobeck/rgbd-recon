@@ -15,22 +15,16 @@ void init(std::vector<std::string> args){
   if (file_name.empty() || ext != "ks") {
     throw std::invalid_argument{"No .ks file specified"};
   }
-  // return;
 
-  std::string serverport{};
   std::vector<std::string> calib_filenames;
   gloost::Point3 bbox_min{-1.0f ,0.0f, -1.0f};
   gloost::Point3 bbox_max{ 1.0f ,2.2f, 1.0f};
 
   std::string resource_path = file_name.substr(0, file_name.find_last_of("/\\")) + '/';
-  std::cout << resource_path << std::endl;
   std::ifstream in(file_name);
   std::string token;
   while(in >> token){
-    if(token == "serverport"){
-      in >> serverport;
-    } 
-    else if (token == "kinect") {
+    if (token == "kinect") {
       in >> token;
       // detect absolute path
       if (token[0] == '/' || token[1] == ':') {
@@ -63,11 +57,7 @@ void init(std::vector<std::string> args){
 ////////////////////////////////////////////////////////////////////////////////
 int main(int argc, char *argv[]) {
   CMDParser p("ks_file ...");
-  // p.addOpt("r",2,"resolution", "set screen resolution");
   p.init(argc,argv);
-
-  if(p.isOptSet("r")){
-  }
   
   init(p.getArgs());
 
