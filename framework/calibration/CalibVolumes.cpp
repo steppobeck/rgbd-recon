@@ -44,29 +44,9 @@ CalibVolumes::~CalibVolumes(){
   for(unsigned i = 0; i < m_volumes_xyz.size(); ++i){
     m_volumes_xyz[i]->destroy();
     m_volumes_uv[i]->destroy();
+  }
+  for(unsigned i = 0; i < m_volumes_xyz_inv.size(); ++i){
     m_volumes_xyz_inv[i]->destroy();
-  }
-}
-
-void CalibVolumes::reload(){
-  if (!m_volumes_xyz.empty()) { 
-    for(unsigned i = 0; i < m_volumes_xyz.size(); ++i){
-      m_volumes_xyz[i]->destroy();
-      m_volumes_uv[i]->destroy();
-      m_volumes_xyz_inv[i]->destroy();
-    }
-  }
-
-  m_volumes_xyz.clear();
-  m_volumes_uv.clear();
-  m_volumes_xyz_inv.clear();
-
-  for(unsigned i = 0; i < m_cv_xyz_filenames.size(); ++i){
-    addVolume(m_cv_xyz_filenames[i], m_cv_uv_filenames[i]);
-  }
-
-  if(m_start_texture_unit >= 0) {
-    bindToTextureUnits();
   }
 }
 
@@ -81,8 +61,10 @@ void CalibVolumes::loadInverseCalibs(std::string const& path) {
               << " minmax d - " << calib.depthLimits().x << ", " << calib.depthLimits().y << std::endl;
   }
 
-  for (unsigned i = 0; i < m_cv_xyz_filenames.size(); ++i) {
-    m_volumes_xyz_inv[i]->image3D(0, GL_RGBA32F, glm::ivec3{ m_data_volumes_xyz_inv[i].res()}, 0, GL_RGBA, GL_FLOAT, m_data_volumes_xyz_inv[i].volume().data());
+  for (auto const& calib : m_data_volumes_xyz_inv) {
+    auto volume_xyz_inv = globjects::Texture::createDefault(GL_TEXTURE_3D);
+    volume_xyz_inv->image3D(0, GL_RGBA32F, glm::ivec3{calib.res()}, 0, GL_RGBA, GL_FLOAT, calib.volume().data());
+    m_volumes_xyz_inv.emplace_back(volume_xyz_inv);
   }
 }
 
@@ -95,7 +77,7 @@ std::vector<int> CalibVolumes::getXYZVolumeUnitsInv() const {
 }
 
 glm::uvec3 CalibVolumes::getVolumeRes() const {
-  return volume_res;
+  return m_data_volumes_xyz_inv[0].res();
 }
 
 glm::fvec2 CalibVolumes::getDepthLimits(unsigned i) const {
@@ -118,8 +100,6 @@ void CalibVolumes::addVolume(std::string const& filename_xyz, std::string const&
 }
 
 void CalibVolumes::createVolumeTextures() {
-  std::vector<float> empty_xyz(volume_res.x * volume_res.y * volume_res.z * 4, -0.01f);
-
   for(unsigned i = 0; i < m_data_volumes_xyz.size(); ++i){
     auto const& calib_xyz = m_data_volumes_xyz[i];
     auto volume_xyz = globjects::Texture::createDefault(GL_TEXTURE_3D);
@@ -130,10 +110,6 @@ void CalibVolumes::createVolumeTextures() {
     auto volume_uv = globjects::Texture::createDefault(GL_TEXTURE_3D);
     volume_uv->image3D(0, GL_RG32F, glm::ivec3{calib_uv.res()}, 0, GL_RG, GL_FLOAT, calib_uv.volume().data());
     m_volumes_uv.push_back(volume_uv);
-
-    auto volume_xyz_inv = globjects::Texture::createDefault(GL_TEXTURE_3D);
-    volume_xyz_inv->image3D(0, GL_RGBA32F, glm::ivec3{volume_res}, 0, GL_RGBA, GL_FLOAT, empty_xyz.data());
-    m_volumes_xyz_inv.emplace_back(volume_xyz_inv);
   }
 }
 

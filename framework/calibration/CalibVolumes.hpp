@@ -22,8 +22,6 @@ class CalibVolumes{
 public:
   CalibVolumes(std::vector<std::string> const& calib_volume_files, gloost::BoundingBox const& bbox);
   ~CalibVolumes();
-
-  void reload();
   
   void setStartTextureUnit(unsigned start_texture_unit);
   void setStartTextureUnitInv(unsigned start_texture_unit);
