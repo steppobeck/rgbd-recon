@@ -24,6 +24,7 @@ namespace kinect{
   private:
     globjects::Program* m_program;
     globjects::Program* m_program_integration;
+    glm::uvec3          m_res_volume;
     VolumeSampler       m_sampler;
     globjects::Texture* m_volume_tsdf;
 

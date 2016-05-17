@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <vector>
 #include <string>
+#include <iostream>
 
 namespace kinect {
 

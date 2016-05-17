@@ -98,7 +98,7 @@ void CalibrationInverter::calculateInverseVolumes(glm::uvec3 const& volume_res) 
         sample_pos.y += sample_step.y;
         sample_pos.z = sample_start.z;
       }
-      std::cout << "x slice " << x << " done" << std::endl;
+      // std::cout << "x slice " << x << " done" << std::endl;
       sample_pos.x += sample_step.x;
       sample_pos.y = sample_start.y;
     }

@@ -56,7 +56,7 @@ void CalibVolumes::loadInverseCalibs(std::string const& path) {
     std::string name_input{path + name_source + "_inv"};
     std::cout << "loading " << name_input << std::endl;
     m_data_volumes_xyz_inv.emplace_back(name_input);
-    auto const& calib{m_data_volumes_xyz.back()};
+    auto const& calib{m_data_volumes_xyz_inv.back()};
     std::cout << "dimensions xyz - " << calib.res().x << ", " << calib.res().y << ", " << calib.res().z 
               << " minmax d - " << calib.depthLimits().x << ", " << calib.depthLimits().y << std::endl;
   }

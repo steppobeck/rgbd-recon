@@ -13,15 +13,18 @@
 
 namespace kinect{
 
-static glm::uvec3 volume_res{128,256,128};
 static int start_image_unit = 3;
 static float limit = 0.01f;
+static float voxel_size = 0.007f;
 
 ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes const* cv, gloost::BoundingBox const&  bbox)
  :Reconstruction(cfs, cv, bbox)
  ,m_program{new globjects::Program()}
  ,m_program_integration{new globjects::Program()}
- ,m_sampler{volume_res}
+ ,m_res_volume{glm::ceil(glm::fvec3{bbox.getPMax()[0] - bbox.getPMin()[0],
+                                    bbox.getPMax()[1] - bbox.getPMin()[1],
+                                    bbox.getPMax()[2] - bbox.getPMin()[2]} / voxel_size)}
+ ,m_sampler{m_res_volume}
  ,m_volume_tsdf{}
  ,m_mat_vol_to_world{1.0f}
 {
@@ -60,12 +63,12 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
 
   m_program_integration->setUniform("num_kinects", m_num_kinects);
   m_program_integration->setUniform("res_depth", glm::uvec2{m_cf->getWidth(), m_cf->getHeight()});
-  m_program_integration->setUniform("res_tsdf", volume_res);
+  m_program_integration->setUniform("res_tsdf", m_res_volume);
   m_program_integration->setUniform("limit", limit);
 
   m_volume_tsdf = globjects::Texture::createDefault(GL_TEXTURE_3D);
-  std::vector<float> empty_tsdf(volume_res.x * volume_res.y * volume_res.z, -limit);
-  m_volume_tsdf->image3D(0, GL_R32F, glm::ivec3{volume_res}, 0, GL_RED, GL_FLOAT, empty_tsdf.data());
+  std::vector<float> empty_tsdf(m_res_volume.x * m_res_volume.y * m_res_volume.z, -limit);
+  m_volume_tsdf->image3D(0, GL_R32F, glm::ivec3{m_res_volume}, 0, GL_RED, GL_FLOAT, empty_tsdf.data());
   m_volume_tsdf->bindActive(GL_TEXTURE0 + 29);
 }
 
