@@ -322,9 +322,6 @@ void key(unsigned char key, int x, int y)
   case 'q':
     exit(0);
     break;
-  case 9:
-    g_recon_mode = (g_recon_mode + 1) % g_recons.size();
-    break;
   case 'r':
     g_draw_axes = !g_draw_axes;
     break;
@@ -419,6 +416,17 @@ void mouseFunc(int button, int state, int mouse_h, int mouse_v){
 void specialKey(int key, int x, int y){
   g_ftw.specialKey(key, x, y);
   glutPostRedisplay();
+
+  switch(key) {
+    case GLUT_KEY_PAGE_UP:
+      g_recon_mode = (g_recon_mode + 1) % g_recons.size();
+      break;
+    case  GLUT_KEY_PAGE_DOWN:
+      g_recon_mode = (g_recon_mode - 1 + g_recons.size()) % g_recons.size();
+      break;  
+    default:
+      break;
+  }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
