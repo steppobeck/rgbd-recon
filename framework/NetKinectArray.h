@@ -131,8 +131,6 @@ inline void swap(double_pbo& a, double_pbo& b) {
     void setStartTextureUnit(unsigned m_start_texture_unit);
 
     unsigned getStartTextureUnit() const;
-    std::vector<int> getColorTextureUnits() const;
-    std::vector<int> getDepthTextureUnits() const;
 
     std::vector<KinectCalibrationFile*> const& getCalibs() const;
 
@@ -146,6 +144,8 @@ inline void swap(double_pbo& a, double_pbo& b) {
 
     void bindToTextureUnits() const;
     void bindBackToTextureUnits() const;
+
+    void drawTextures(unsigned type, unsigned layer) const;
   protected:
     void bindToFramebuffer(GLuint array_handle, GLuint layer);
 
@@ -165,7 +165,8 @@ inline void swap(double_pbo& a, double_pbo& b) {
     mvt::TextureArray*  m_colorArray_back;
     mvt::TextureArray*  m_depthArray_back;
 
-    globjects::Program*                  m_program_filter;
+    globjects::Program* m_program_filter;
+    globjects::Program* m_program_tex;
 
     unsigned m_fboID;
 

@@ -51,6 +51,9 @@ bool     g_wire         = false;
 unsigned g_recon_mode   = 1;
 bool     g_bilateral    = true;
 bool     g_draw_calibvis= false;
+bool     g_draw_textures= false;
+unsigned g_texture_type = 0;
+unsigned g_num_texture  = 0;
 gloost::BoundingBox     g_bbox{};
 
 gloost::PerspectiveCamera g_camera{50.0, g_aspect, 0.1, 200.0};
@@ -287,6 +290,10 @@ void draw3d(void)
     glPopAttrib();
   }
 
+  if (g_draw_textures) {
+    g_nka->drawTextures(g_texture_type, g_num_texture);
+  }
+
   g_bbox.draw();
 }
 
@@ -340,6 +347,15 @@ void key(unsigned char key, int x, int y)
     break;
   case 'w':
     g_wire = !g_wire;
+    break;
+  case 'y':
+    g_num_texture = (g_num_texture + 1) % g_calib_files->num();
+    break;
+  case 'u':
+    g_texture_type = (g_texture_type + 1) % 3;
+    break;
+  case 't':
+    g_draw_textures = !g_draw_textures;
     break;
   case 's':
       for (auto& recon : g_recons) {
