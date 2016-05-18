@@ -166,6 +166,7 @@ inline void swap(double_pbo& a, double_pbo& b) {
     mvt::TextureArray* m_colorArray;
     mvt::TextureArray* m_depthArray;
     globjects::Texture* m_textures_quality;
+    globjects::Texture* m_textures_normal;
     mvt::TextureArray*  m_colorArray_back;
     mvt::TextureArray*  m_depthArray_back;
 

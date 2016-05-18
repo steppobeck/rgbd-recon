@@ -145,7 +145,7 @@ void init(std::vector<std::string> args){
   // binds to unit 1 to 3
   g_nka->setStartTextureUnit(1);
   // bind calubration volumes from 4 - 13
-  g_cv->setStartTextureUnit(4);
+  g_cv->setStartTextureUnit(5);
   g_cv->loadInverseCalibs(resource_path);
   g_cv->setStartTextureUnitInv(30);
 
@@ -353,7 +353,7 @@ void key(unsigned char key, int x, int y)
     g_num_texture = (g_num_texture + 1) % g_calib_files->num();
     break;
   case 'u':
-    g_texture_type = (g_texture_type + 1) % 3;
+    g_texture_type = (g_texture_type + 1) % 4;
     break;
   case 't':
     g_draw_textures = !g_draw_textures;

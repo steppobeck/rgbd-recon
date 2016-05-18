@@ -10,6 +10,9 @@ uniform sampler2DArray kinect_depths;
 uniform vec2 texSizeInv;
 uniform bool filter_textures;
 
+uniform sampler3D[5] cv_xyz;
+uniform sampler3D[5] cv_uv;
+
 uniform uint layer;
 uniform bool compress;
 uniform float scale;
@@ -20,8 +23,8 @@ uniform float cv_min_ds;
 uniform float cv_max_ds;
 uniform int mode;
 
-int kernel_size = 6; // in pixel
-int kernel_end = kernel_size + 1;
+const int kernel_size = 6; // in pixel
+const int kernel_end = kernel_size + 1;
 
 
 float dist_space_max_inv = 1.0/float(kernel_size);
@@ -65,7 +68,7 @@ bool is_outside(float d){
   return (d < cv_min_ds) || (d > cv_max_ds);
 }
 
-float normalize(float depth) {
+float normalize_depth(float depth) {
   return (depth - cv_min_ds)/(cv_max_ds - cv_min_ds);
 }
 vec2 bilateral_filter(vec3 coords){
@@ -89,7 +92,7 @@ vec2 bilateral_filter(vec3 coords){
   for(int y = -kernel_size; y < kernel_end; ++y){
     for(int x = -kernel_size; x < kernel_end; ++x){
       num_samples += 1.0f;
-      vec3 coords_s = vec3(coords.s + float(x) * texSizeInv.x, coords.t + float(y) * texSizeInv.y, float(layer));
+      vec3 coords_s = coords + vec3(vec2(x, y) * texSizeInv, 0.0f);
       
       float depth_s = sample(coords_s);
       float depth_range = abs(depth_s - depth);
@@ -122,6 +125,23 @@ vec2 bilateral_filter(vec3 coords){
   return vec2(filtered_depth, pow(lateral_quality,30.0));
 }
 
+vec3 calculate_normal(const in vec2 tex_pos) {
+  vec2 tex_t = tex_pos + vec2(0.0f, texSizeInv.y);
+  vec2 tex_b = tex_pos + vec2(0.0f, -texSizeInv.y);
+  vec2 tex_l = tex_pos + vec2(-texSizeInv.x, 0.0f);
+  vec2 tex_r = tex_pos + vec2(texSizeInv.x, 0.0f);
+  float depth_t = texture(kinect_depths, vec3(tex_t, layer)).r;
+  float depth_b = texture(kinect_depths, vec3(tex_b, layer)).r;
+  float depth_l = texture(kinect_depths, vec3(tex_l, layer)).r;
+  float depth_r = texture(kinect_depths, vec3(tex_r, layer)).r;
+  vec3 world_t = texture(cv_xyz[layer], vec3(tex_t, depth_t)).xyz;
+  vec3 world_b = texture(cv_xyz[layer], vec3(tex_b, depth_b)).xyz;
+  vec3 world_l = texture(cv_xyz[layer], vec3(tex_l, depth_l)).xyz;
+  vec3 world_r = texture(cv_xyz[layer], vec3(tex_r, depth_r)).xyz;
+
+  return normalize(cross(world_b - world_t, world_r - world_l)) * 0.5f + 0.5f;
+}
+
 void main( void )
 {
 
@@ -131,6 +151,7 @@ void main( void )
     res.x = sample(coords);
   }
 
-  gl_FragData[0].r = normalize(res.x);
+  gl_FragData[0].r = normalize_depth(res.x);
   gl_FragData[1].r = res.y;
+  gl_FragData[2].rgb = calculate_normal(pass_TexCoord);
 }

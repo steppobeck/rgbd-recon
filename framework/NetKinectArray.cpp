@@ -44,6 +44,7 @@ namespace kinect{
       m_colorArray(0),
       m_depthArray(0),
       m_textures_quality{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
+      m_textures_normal{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
       m_colorArray_back(0),
       m_depthArray_back(0),
       m_program_filter{new globjects::Program()},
@@ -130,7 +131,8 @@ namespace kinect{
     m_colorArray->getGLHandle();
     check_gl_errors("after m_colorArray->getGLHandle()", false);
 
-    m_textures_quality->image3D(0, GL_R32F, m_width, m_height, m_numLayers, 0, GL_RED, GL_FLOAT, (void*)nullptr);
+    m_textures_quality->image3D(0, GL_LUMINANCE32F_ARB, m_width, m_height, m_numLayers, 0, GL_RED, GL_FLOAT, (void*)nullptr);
+    m_textures_normal->image3D(0, GL_RGB32F, m_width, m_height, m_numLayers, 0, GL_RGB, GL_FLOAT, (void*)nullptr);
 
     m_depthArray = new mvt::TextureArray(m_width, m_height, m_numLayers, GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT);
 
@@ -169,6 +171,7 @@ namespace kinect{
     delete m_mutex;
 
     m_textures_quality->destroy();
+    m_textures_normal->destroy();
     m_program_filter->destroy();
   }
 
@@ -262,10 +265,11 @@ void NetKinectArray::bindToFramebuffer(GLuint array_handle, GLuint layer) {
       //std::cerr << current_fbo << std::endl;
       // render to depth
       glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, m_fboID);
-      GLenum buffers[] = {GL_COLOR_ATTACHMENT0_EXT, GL_COLOR_ATTACHMENT1_EXT };
-      glDrawBuffers(2, buffers);
+      std::vector<GLenum> attachments{GL_COLOR_ATTACHMENT0_EXT, GL_COLOR_ATTACHMENT1_EXT, GL_COLOR_ATTACHMENT2_EXT};
+      glDrawBuffers(attachments.size(), attachments.data());
       glFramebufferTextureLayerEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, m_depthArray_back->getGLHandle(), 0, i);
       glFramebufferTextureLayerEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT1_EXT, m_textures_quality->id(), 0, i);
+      glFramebufferTextureLayerEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT2_EXT, m_textures_normal->id(), 0, i);
 
       m_program_filter->setUniform("filter_textures", m_filter_textures);
       GLenum status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT);
@@ -310,6 +314,9 @@ void NetKinectArray::bindToFramebuffer(GLuint array_handle, GLuint layer) {
       m_program_filter->setUniform("scale",scale);
       m_program_filter->setUniform("near",near);
       m_program_filter->setUniform("scaled_near",scale/255.0f);
+ 
+      m_program_filter->setUniform("cv_xyz", m_calib_vols->getXYZVolumeUnits());
+      m_program_filter->setUniform("cv_uv", m_calib_vols->getUVVolumeUnits());
 
       ScreenQuad::draw();
     }
@@ -338,6 +345,8 @@ void NetKinectArray::bindToTextureUnits() const {
   m_depthArray->bind();
   glActiveTexture(GL_TEXTURE0 + m_start_texture_unit + 2);
   m_textures_quality->bind();
+  glActiveTexture(GL_TEXTURE0 + m_start_texture_unit + 3);
+  m_textures_normal->bind();
 }
 
 
