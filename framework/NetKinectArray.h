@@ -1,6 +1,8 @@
 #ifndef KINECT_NETKINECTARRAY_H
 #define KINECT_NETKINECTARRAY_H
 
+#include <glm/gtc/type_precision.hpp>
+
 #include <glbinding/gl/gl.h>
 using namespace gl;
 
@@ -145,7 +147,9 @@ inline void swap(double_pbo& a, double_pbo& b) {
     void bindToTextureUnits() const;
     void bindBackToTextureUnits() const;
 
-    void drawTextures(unsigned type, unsigned layer) const;
+    glm::uvec2 getDepthResolution() const;
+    glm::uvec2 getColorResolution() const;
+
   protected:
     void bindToFramebuffer(GLuint array_handle, GLuint layer);
 
@@ -166,7 +170,6 @@ inline void swap(double_pbo& a, double_pbo& b) {
     mvt::TextureArray*  m_depthArray_back;
 
     globjects::Program* m_program_filter;
-    globjects::Program* m_program_tex;
 
     unsigned m_fboID;
 

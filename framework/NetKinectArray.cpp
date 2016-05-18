@@ -1,6 +1,7 @@
 #include "NetKinectArray.h"
 
 #include "calibration_files.hpp"
+#include "texture_blitter.hpp"
 #include "screen_quad.hpp"
 #include <FileBuffer.h>
 #include <Timer.h>
@@ -46,7 +47,6 @@ namespace kinect{
       m_colorArray_back(0),
       m_depthArray_back(0),
       m_program_filter{new globjects::Program()},
-      m_program_tex{new globjects::Program()},
       m_fboID(0),
       m_colorsize(0),
       m_depthsize(0),
@@ -73,13 +73,8 @@ namespace kinect{
     }
 
     m_program_filter->attach(
-     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/depth_process.vs")
+     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/texture_passthrough.vs")
     ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/depth_process.fs")
-    );
-
-    m_program_tex->attach(
-     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/depth_process.vs")
-    ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/texture_passthrough.fs")
     );
   }
 
@@ -175,7 +170,6 @@ namespace kinect{
 
     m_textures_quality->destroy();
     m_program_filter->destroy();
-    m_program_tex->destroy();
   }
 
   void
@@ -195,24 +189,11 @@ namespace kinect{
     processTextures();
   }
 
-void NetKinectArray::drawTextures(unsigned type, unsigned layer) const {
-  GLsizei old_vp_params[4];
-  glGetIntegerv(GL_VIEWPORT, old_vp_params);
-
-  glViewport(0, 0, m_width, m_height);
-
-  m_program_tex->use();
-  m_program_tex->setUniform("texture_array", GLint(m_start_texture_unit + type));
-  m_program_tex->setUniform("layer", layer);
-
-  ScreenQuad::draw();
-
-  m_program_tex->release();
-
-  glViewport(old_vp_params[0],
-            old_vp_params[1],
-            old_vp_params[2],
-            old_vp_params[3]);
+glm::uvec2 NetKinectArray::getDepthResolution() const {
+  return glm::uvec2{m_width, m_height};
+}
+glm::uvec2 NetKinectArray::getColorResolution() const {
+  return glm::uvec2{m_widthc, m_heightc};
 }
 
 void NetKinectArray::bindToFramebuffer(GLuint array_handle, GLuint layer) {

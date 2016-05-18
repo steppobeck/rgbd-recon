@@ -1,5 +1,6 @@
 #include <CMDParser.h>
-#include <screen_space_measurement_tool.hpp>
+#include "texture_blitter.hpp"
+#include "screen_space_measurement_tool.hpp"
 
 #include <globjects/globjects.h>
 #include <globjects/base/File.h>
@@ -291,7 +292,7 @@ void draw3d(void)
   }
 
   if (g_draw_textures) {
-    g_nka->drawTextures(g_texture_type, g_num_texture);
+    TextureBlitter::blit(g_nka->getStartTextureUnit() + g_texture_type, g_num_texture, g_nka->getDepthResolution());
   }
 
   g_bbox.draw();
