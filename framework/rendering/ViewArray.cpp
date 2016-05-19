@@ -29,21 +29,15 @@ namespace mvt{
 
   }
 
-
-  void
-  ViewArray::init(){
-    check_gl_errors("before m_colorArray->getGLHandle()", false);
+  void ViewArray::init() {
     m_colorArray = new TextureArray(m_width, m_height, m_numLayers, GL_RGBA32F, GL_RGBA, GL_FLOAT);
-    m_colorArray->getGLHandle();
-    check_gl_errors("after m_colorArray->getGLHandle()", false);
+
     m_depthArray = new TextureArray(m_width, m_height, m_numLayers, GL_DEPTH_COMPONENT32, GL_DEPTH_COMPONENT, GL_FLOAT);
-    m_depthArray->getGLHandle();
-    check_gl_errors("after m_depthArray->getGLHandle()", false);
+    m_depthArray->setMAGMINFilter(GL_NEAREST);
+
     // create fbo
     glGenFramebuffersEXT(1, &m_glHandle);
-    std::cerr << "creating fbo: " << m_glHandle << std::endl;
   }
-
 
   void
   ViewArray::enable(unsigned layer, bool use_vp, unsigned* ox, unsigned* oy, bool clearcolor){
@@ -158,8 +152,6 @@ namespace mvt{
     glActiveTexture(GL_TEXTURE0 + start_texture_unit);
     m_colorArray->bind();
   }
-
-
 
   unsigned
   ViewArray::getWidth(){

@@ -15,6 +15,7 @@ using namespace gl;
 
 #include <globjects/Program.h>
 #include <globjects/Texture.h>
+#include <globjects/Framebuffer.h>
 #include <globjects/Buffer.h>
 
 namespace boost{
@@ -167,6 +168,7 @@ inline void swap(double_pbo& a, double_pbo& b) {
     mvt::TextureArray* m_depthArray;
     globjects::Texture* m_textures_quality;
     globjects::Texture* m_textures_normal;
+    globjects::Framebuffer* m_fbo;
     mvt::TextureArray*  m_colorArray_back;
     mvt::TextureArray*  m_depthArray_back;
 

@@ -45,6 +45,7 @@ namespace kinect{
       m_depthArray(0),
       m_textures_quality{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
       m_textures_normal{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
+      m_fbo{new globjects::Framebuffer()},
       m_colorArray_back(0),
       m_depthArray_back(0),
       m_program_filter{new globjects::Program()},
@@ -125,11 +126,7 @@ namespace kinect{
     else{
       m_colorArray = new mvt::TextureArray(m_widthc, m_heightc, m_numLayers, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE);
     }
-
     m_colorArray_back = new mvt::TextureArray(m_widthc, m_heightc, m_numLayers, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE);
-    
-    m_colorArray->getGLHandle();
-    check_gl_errors("after m_colorArray->getGLHandle()", false);
 
     m_textures_quality->image3D(0, GL_LUMINANCE32F_ARB, m_width, m_height, m_numLayers, 0, GL_RED, GL_FLOAT, (void*)nullptr);
     m_textures_normal->image3D(0, GL_RGB32F, m_width, m_height, m_numLayers, 0, GL_RGB, GL_FLOAT, (void*)nullptr);
@@ -142,12 +139,8 @@ namespace kinect{
     else{
       m_depthArray_back = new mvt::TextureArray(m_width, m_height, m_numLayers, GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT);
     }
-    
-    m_depthArray->getGLHandle();
-    check_gl_errors("after m_depthArray->getGLHandle()", false);
-
-    m_colorArray_back->getGLHandle();
-    m_depthArray_back->getGLHandle();
+    m_depthArray->setMAGMINFilter(GL_NEAREST);
+    m_depthArray_back->setMAGMINFilter(GL_NEAREST);
 
     glGenFramebuffersEXT(1, &m_fboID);
     m_program_filter->setUniform("kinect_depths",40);
