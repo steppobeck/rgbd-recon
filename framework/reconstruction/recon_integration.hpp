@@ -3,7 +3,6 @@
 
 #include "reconstruction.hpp"
 #include "volume_sampler.hpp"
-#include <ViewArray.h>
 
 #include <globjects/Buffer.h>
 #include <globjects/Program.h>

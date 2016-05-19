@@ -94,6 +94,10 @@ void TextureArray::fillLayersFromPBO(unsigned id) {
   glBindBuffer(GL_PIXEL_UNPACK_BUFFER,0);
 }
 
+globjects::Texture* TextureArray::getTexture() const {
+  return m_texture;
+}
+
 void TextureArray::bind() {
   m_texture->bind();
 }

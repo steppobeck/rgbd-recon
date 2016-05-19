@@ -2,7 +2,6 @@
 #define RECON_POINTS_HPP
 
 #include "reconstruction.hpp"
-#include <ViewArray.h>
 
 #include <globjects/Buffer.h>
 #include <globjects/Program.h>

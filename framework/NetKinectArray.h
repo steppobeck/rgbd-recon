@@ -174,8 +174,6 @@ inline void swap(double_pbo& a, double_pbo& b) {
 
     globjects::Program* m_program_filter;
 
-    unsigned m_fboID;
-
     unsigned m_colorsize; // per frame
     unsigned m_depthsize; // per frame
     double_pbo m_pbo_colors;

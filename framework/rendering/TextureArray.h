@@ -27,6 +27,8 @@ class TextureArray{
   void bind();
   void unbind();
 
+  globjects::Texture* getTexture() const;
+
   GLuint getGLHandle();
 
   // bool copyToCPU(unsigned layer, void* data);
