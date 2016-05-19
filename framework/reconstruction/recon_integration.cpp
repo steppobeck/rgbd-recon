@@ -45,6 +45,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
   m_program->setUniform("kinect_colors",1);
   m_program->setUniform("kinect_depths",2);
   m_program->setUniform("kinect_qualities",3);
+  m_program->setUniform("kinect_normals",4);
   m_program->setUniform("cv_xyz_inv", m_cv->getXYZVolumeUnitsInv());
   m_program->setUniform("cv_uv", m_cv->getUVVolumeUnits());
   m_program->setUniform("num_kinects", m_num_kinects);

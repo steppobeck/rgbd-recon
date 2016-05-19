@@ -76,7 +76,7 @@ vec2 bilateral_filter(vec3 coords){
     return vec2(-1.0,0.0);
   }
   // the valid range scales with depth
-  float max_depth = 4.5f; // Kinect V2
+  const float max_depth = 4.5f; // Kinect V2
   float d_dmax = depth / max_depth;
   dist_range_max = 0.35f * d_dmax; // threshold around 
   dist_range_max_inv = 1.0f / dist_range_max;

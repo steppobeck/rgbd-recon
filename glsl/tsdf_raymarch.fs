@@ -5,6 +5,7 @@ in vec3 pass_Position;
 uniform sampler2DArray kinect_colors;
 uniform sampler2DArray kinect_depths;
 uniform sampler2DArray kinect_qualities;
+uniform sampler2DArray kinect_normals;
 // calibration
 uniform sampler3D[5] cv_xyz_inv;
 uniform sampler3D[5] cv_uv;
@@ -36,13 +37,15 @@ const vec3 LightSpecular = vec3(1.0f);
 const float ks = 0.5f;            // specular intensity
 const float n = 20.0f;            //specular exponent 
 
-#define SHADED
+// #define SHADED
+#define NORMAL
 
 vec2 phongDiffSpec(const vec3 position, const vec3 normal, const float n, const vec3 lightPos);
 vec3 get_gradient(const vec3 pos);
 bool isInside(const vec3 pos);
 float sample(const vec3 pos);
 vec3 blendColors(const in vec3 sample_pos);
+vec3 blendNormals(const in vec3 sample_pos);
 
 void main() {
   // multiply with dimensions to scale direction by dimension relation
@@ -73,8 +76,13 @@ void main() {
                       + LightDiffuse * diffuseColor * diffSpec.x
                       + LightSpecular * ks * diffSpec.y, 1.0f);
       #else
-      vec3 diffuseColor = blendColors(sample_pos);
-      out_Color = vec4(diffuseColor, 1.0f);
+        #ifdef NORMAL
+          out_Color = vec4((inverse(gl_ModelViewMatrix) * vec4(view_normal, 0.0f)).xyz, 1.0f);
+          out_Color = vec4(blendNormals(sample_pos), 1.0f);
+        #else
+          vec3 diffuseColor = blendColors(sample_pos);
+          out_Color = vec4(diffuseColor, 1.0f);
+        #endif
       #endif
       // apply projection matrix on z component of view-space position
       gl_FragDepth = (gl_ProjectionMatrix[2].z *view_pos.z + gl_ProjectionMatrix[3].z) / -view_pos.z * 0.5f + 0.5f;
@@ -119,6 +127,26 @@ vec3 blendColors(const in vec3 sample_pos) {
     if(abs(depth - pos_calib.z) >= limit) continue;
     vec2 pos_color = texture(cv_uv[i], pos_calib).xy;
     vec3 color = texture(kinect_colors, vec3(pos_color.xy, float(i))).rgb;
+
+    float lateral_quality = texture(kinect_qualities, vec3(pos_calib.xy, float(i))).r;
+    float quality = lateral_quality/(pos_calib.z * 4.0f+ 0.5f);
+
+    total_color += color * quality;
+    total_weight += quality;
+  }
+
+  total_color /= total_weight;
+  return total_color;
+}
+vec3 blendNormals(const in vec3 sample_pos) {
+  vec3 total_color = vec3(0.0f);
+  float total_weight = 0.0f;
+  for(uint i = 0u; i < num_kinects; ++i) {
+    vec3 pos_calib = texture(cv_xyz_inv[i], sample_pos).xyz;
+    float depth = texture(kinect_depths, vec3(pos_calib.xy, float(i))).r;
+    if(abs(depth - pos_calib.z) >= limit) continue;
+    vec2 pos_color = texture(cv_uv[i], pos_calib).xy;
+    vec3 color = texture(kinect_normals, vec3(pos_color.xy, float(i))).rgb;
 
     float lateral_quality = texture(kinect_qualities, vec3(pos_calib.xy, float(i))).r;
     float quality = lateral_quality/(pos_calib.z * 4.0f+ 0.5f);

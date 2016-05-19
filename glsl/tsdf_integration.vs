@@ -34,12 +34,13 @@ void main() {
     //   // tsd = 10.0f;
     //   // break;
     // }
-    float sdist = depth - pos_calib.z;
-    if (sdist <= -limit) {
+    float sdist = depth 
+    - pos_calib.z;
+    if (sdist <= -limit ) {
       // weighted_tsd = -limit;
       // break;
     }
-    else if (sdist >= limit) {
+    else if (sdist >= limit ) {
       // do nothing
     }
     else {
