@@ -291,11 +291,11 @@ void draw3d(void)
     glPopAttrib();
   }
 
+  g_bbox.draw();
+
   if (g_draw_textures) {
     TextureBlitter::blit(g_nka->getStartTextureUnit() + g_texture_type, g_num_texture, g_nka->getDepthResolution());
   }
-
-  g_bbox.draw();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -439,7 +439,7 @@ void specialKey(int key, int x, int y){
       g_recon_mode = (g_recon_mode + 1) % g_recons.size();
       break;
     case  GLUT_KEY_PAGE_DOWN:
-      g_recon_mode = (g_recon_mode - 1 + g_recons.size()) % g_recons.size();
+      g_recon_mode = (g_recon_mode + g_recons.size() - 1) % g_recons.size();
       break;  
     default:
       break;

@@ -1,6 +1,5 @@
 #version 130
-
-#extension GL_EXT_texture_array : enable
+#extension GL_ARB_explicit_attrib_location : enable
 
 noperspective in vec2 pass_TexCoord;
 
@@ -26,6 +25,9 @@ uniform int mode;
 const int kernel_size = 6; // in pixel
 const int kernel_end = kernel_size + 1;
 
+layout(location = 0) out float out_Depth;
+layout(location = 1) out float out_Quality;
+layout(location = 2) out vec3 out_Normal;
 
 float dist_space_max_inv = 1.0/float(kernel_size);
 float computeGaussSpace(float dist_space){
@@ -56,10 +58,10 @@ float uncompress(float d_c){
 float sample(vec3 coords) {
   float depth = 0.0f;
   if(compress){
-    depth = uncompress(texture2DArray(kinect_depths, coords).r);
+    depth = uncompress(texture(kinect_depths, coords).r);
   }
   else{
-    depth = texture2DArray(kinect_depths, coords).r;
+    depth = texture(kinect_depths, coords).r;
   }
   return depth;
 }
@@ -126,14 +128,14 @@ vec2 bilateral_filter(vec3 coords){
 }
 
 vec3 calculate_normal(const in vec2 tex_pos) {
-  vec2 tex_t = tex_pos + vec2(0.0f, texSizeInv.y);
-  vec2 tex_b = tex_pos + vec2(0.0f, -texSizeInv.y);
-  vec2 tex_l = tex_pos + vec2(-texSizeInv.x, 0.0f);
-  vec2 tex_r = tex_pos + vec2(texSizeInv.x, 0.0f);
-  float depth_t = texture(kinect_depths, vec3(tex_t, layer)).r;
-  float depth_b = texture(kinect_depths, vec3(tex_b, layer)).r;
-  float depth_l = texture(kinect_depths, vec3(tex_l, layer)).r;
-  float depth_r = texture(kinect_depths, vec3(tex_r, layer)).r;
+  vec2 tex_t = tex_pos + vec2(0.0f, texSizeInv.y * 1.0f);
+  vec2 tex_b = tex_pos - vec2(0.0f, texSizeInv.y * 1.0f);
+  vec2 tex_l = tex_pos - vec2(texSizeInv.x * 1.0f, 0.0f);
+  vec2 tex_r = tex_pos + vec2(texSizeInv.x * 1.0f, 0.0f);
+  float depth_t = normalize_depth(sample(vec3(tex_t, layer)));
+  float depth_b = normalize_depth(sample(vec3(tex_b, layer)));
+  float depth_l = normalize_depth(sample(vec3(tex_l, layer)));
+  float depth_r = normalize_depth(sample(vec3(tex_r, layer)));
   vec3 world_t = texture(cv_xyz[layer], vec3(tex_t, depth_t)).xyz;
   vec3 world_b = texture(cv_xyz[layer], vec3(tex_b, depth_b)).xyz;
   vec3 world_l = texture(cv_xyz[layer], vec3(tex_l, depth_l)).xyz;
@@ -142,16 +144,14 @@ vec3 calculate_normal(const in vec2 tex_pos) {
   return normalize(cross(world_b - world_t, world_r - world_l)) * 0.5f + 0.5f;
 }
 
-void main( void )
-{
-
+void main(void) {
   vec3 coords = vec3(pass_TexCoord, layer);
   vec2 res = bilateral_filter(coords);
   if(!filter_textures) {
     res.x = sample(coords);
   }
 
-  gl_FragData[0].r = normalize_depth(res.x);
-  gl_FragData[1].r = res.y;
-  gl_FragData[2].rgb = calculate_normal(pass_TexCoord);
+  out_Depth = normalize_depth(res.x);
+  out_Quality = res.y;
+  out_Normal = calculate_normal(pass_TexCoord);
 }
