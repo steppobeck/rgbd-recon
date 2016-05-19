@@ -146,7 +146,6 @@ inline void swap(double_pbo& a, double_pbo& b) {
     void filterTextures(bool filter);
 
     void bindToTextureUnits() const;
-    void bindBackToTextureUnits() const;
 
     glm::uvec2 getDepthResolution() const;
     glm::uvec2 getColorResolution() const;
@@ -173,6 +172,7 @@ inline void swap(double_pbo& a, double_pbo& b) {
     mvt::TextureArray*  m_depthArray_back;
 
     globjects::Program* m_program_filter;
+    globjects::Program* m_program_normal;
 
     unsigned m_colorsize; // per frame
     unsigned m_depthsize; // per frame

@@ -9,9 +9,6 @@ uniform sampler2DArray kinect_depths;
 uniform vec2 texSizeInv;
 uniform bool filter_textures;
 
-uniform sampler3D[5] cv_xyz;
-uniform sampler3D[5] cv_uv;
-
 uniform uint layer;
 uniform bool compress;
 uniform float scale;
@@ -27,7 +24,6 @@ const int kernel_end = kernel_size + 1;
 
 layout(location = 0) out float out_Depth;
 layout(location = 1) out float out_Quality;
-layout(location = 2) out vec3 out_Normal;
 
 float dist_space_max_inv = 1.0/float(kernel_size);
 float computeGaussSpace(float dist_space){
@@ -127,23 +123,6 @@ vec2 bilateral_filter(vec3 coords){
   return vec2(filtered_depth, pow(lateral_quality,30.0));
 }
 
-vec3 calculate_normal(const in vec2 tex_pos) {
-  vec2 tex_t = tex_pos + vec2(0.0f, texSizeInv.y * 1.0f);
-  vec2 tex_b = tex_pos - vec2(0.0f, texSizeInv.y * 1.0f);
-  vec2 tex_l = tex_pos - vec2(texSizeInv.x * 1.0f, 0.0f);
-  vec2 tex_r = tex_pos + vec2(texSizeInv.x * 1.0f, 0.0f);
-  float depth_t = normalize_depth(sample(vec3(tex_t, layer)));
-  float depth_b = normalize_depth(sample(vec3(tex_b, layer)));
-  float depth_l = normalize_depth(sample(vec3(tex_l, layer)));
-  float depth_r = normalize_depth(sample(vec3(tex_r, layer)));
-  vec3 world_t = texture(cv_xyz[layer], vec3(tex_t, depth_t)).xyz;
-  vec3 world_b = texture(cv_xyz[layer], vec3(tex_b, depth_b)).xyz;
-  vec3 world_l = texture(cv_xyz[layer], vec3(tex_l, depth_l)).xyz;
-  vec3 world_r = texture(cv_xyz[layer], vec3(tex_r, depth_r)).xyz;
-
-  return normalize(cross(world_b - world_t, world_r - world_l)) * 0.5f + 0.5f;
-}
-
 void main(void) {
   vec3 coords = vec3(pass_TexCoord, layer);
   vec2 res = bilateral_filter(coords);
@@ -153,5 +132,4 @@ void main(void) {
 
   out_Depth = normalize_depth(res.x);
   out_Quality = res.y;
-  out_Normal = calculate_normal(pass_TexCoord);
 }
