@@ -56,7 +56,7 @@ void CalibVolumes::loadInverseCalibs(std::string const& path) {
     std::string name_input{path + name_source + "_inv"};
     std::cout << "loading " << name_input << std::endl;
     m_data_volumes_xyz_inv.emplace_back(name_input);
-    auto const& calib{m_data_volumes_xyz_inv.back()};
+    auto const& calib(m_data_volumes_xyz_inv.back());
     std::cout << "dimensions xyz - " << calib.res().x << ", " << calib.res().y << ", " << calib.res().z 
               << " minmax d - " << calib.depthLimits().x << ", " << calib.depthLimits().y << std::endl;
   }
@@ -87,13 +87,13 @@ glm::fvec2 CalibVolumes::getDepthLimits(unsigned i) const {
 void CalibVolumes::addVolume(std::string const& filename_xyz, std::string const& filename_uv) {
   std::cout << "loading " << filename_xyz << std::endl;
   m_data_volumes_xyz.emplace_back(filename_xyz);
-  auto const& calib_xyz{m_data_volumes_xyz.back()};
+  auto const& calib_xyz(m_data_volumes_xyz.back());
   std::cout << "dimensions xyz - " << calib_xyz.res().x << ", " << calib_xyz.res().y << ", " << calib_xyz.res().z 
             << " minmax d - " << calib_xyz.depthLimits().x << ", " << calib_xyz.depthLimits().y << std::endl;
 
   std::cout << "loading " << filename_uv << std::endl;
   m_data_volumes_uv.emplace_back(filename_uv);
-  auto const& calib_uv{m_data_volumes_uv.back()};
+  auto const& calib_uv(m_data_volumes_uv.back());
   std::cout << "dimensions uv - " << calib_uv.res().x << ", " << calib_uv.res().y << ", " << calib_uv.res().z 
             << " minmax d - " << calib_uv.depthLimits().x << ", " << calib_uv.depthLimits().y << std::endl;
 

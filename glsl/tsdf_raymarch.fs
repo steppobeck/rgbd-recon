@@ -38,7 +38,8 @@ const float ks = 0.5f;            // specular intensity
 const float n = 20.0f;            //specular exponent 
 
 // #define SHADED
-#define NORMAL
+// #define NORMAL
+// #define GRAD_NORMALS
 
 vec2 phongDiffSpec(const vec3 position, const vec3 normal, const float n, const vec3 lightPos);
 vec3 get_gradient(const vec3 pos);
@@ -66,7 +67,11 @@ void main() {
       sample_pos = (sample_pos - sampleStep) - sampleStep * (prev_density / (density - prev_density));
 
       float final_density = sample(sample_pos);
+      #ifdef GRAD_NORMALS
       vec3 view_normal = normalize((NormalMatrix * vec4(get_gradient(sample_pos), 0.0f)).xyz);
+      #else
+      vec3 view_normal = normalize((NormalMatrix * vec4(blendNormals(sample_pos), 0.0f)).xyz);
+      #endif
       vec3 view_pos = (gl_ModelViewMatrix * vol_to_world * vec4(sample_pos, 1.0f)).xyz;
 
       vec2 diffSpec = phongDiffSpec(view_pos, view_normal, n, LightPosition);
@@ -78,7 +83,6 @@ void main() {
       #else
         #ifdef NORMAL
           out_Color = vec4((inverse(gl_ModelViewMatrix) * vec4(view_normal, 0.0f)).xyz, 1.0f);
-          out_Color = vec4(blendNormals(sample_pos), 1.0f);
         #else
           vec3 diffuseColor = blendColors(sample_pos);
           out_Color = vec4(diffuseColor, 1.0f);
@@ -118,41 +122,50 @@ vec3 get_gradient(const vec3 pos) {
    sample(pos + z_offset) - sample(pos - z_offset)));
 }
 
+float[5] getWeights(const in vec3 sample_pos) {
+  float weights[5] =float[5](0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+  for (uint i = 0u; i < num_kinects; ++i) {
+    vec3 pos_calib = texture(cv_xyz_inv[i], sample_pos).xyz;
+    float depth = texture(kinect_depths, vec3(pos_calib.xy, float(i))).r;
+    float quality = 0.0f;
+    // blend if in valid depth range
+    if(abs(depth - pos_calib.z) < limit) {
+      float lateral_quality = texture(kinect_qualities, vec3(pos_calib.xy, float(i))).r;
+      quality = lateral_quality/(pos_calib.z * 4.0f+ 0.5f);
+    }
+
+    weights[i] = quality;
+  }
+  return weights;
+}
+
 vec3 blendColors(const in vec3 sample_pos) {
   vec3 total_color = vec3(0.0f);
   float total_weight = 0.0f;
+  float[5] weights = getWeights(sample_pos);
   for(uint i = 0u; i < num_kinects; ++i) {
     vec3 pos_calib = texture(cv_xyz_inv[i], sample_pos).xyz;
-    float depth = texture(kinect_depths, vec3(pos_calib.xy, float(i))).r;
-    if(abs(depth - pos_calib.z) >= limit) continue;
     vec2 pos_color = texture(cv_uv[i], pos_calib).xy;
     vec3 color = texture(kinect_colors, vec3(pos_color.xy, float(i))).rgb;
 
-    float lateral_quality = texture(kinect_qualities, vec3(pos_calib.xy, float(i))).r;
-    float quality = lateral_quality/(pos_calib.z * 4.0f+ 0.5f);
-
-    total_color += color * quality;
-    total_weight += quality;
+    total_color += color * weights[i];
+    total_weight += weights[i];
   }
 
   total_color /= total_weight;
   return total_color;
 }
+
 vec3 blendNormals(const in vec3 sample_pos) {
   vec3 total_color = vec3(0.0f);
   float total_weight = 0.0f;
+  float[5] weights = getWeights(sample_pos);
   for(uint i = 0u; i < num_kinects; ++i) {
     vec3 pos_calib = texture(cv_xyz_inv[i], sample_pos).xyz;
-    float depth = texture(kinect_depths, vec3(pos_calib.xy, float(i))).r;
-    if(abs(depth - pos_calib.z) >= limit) continue;
-    vec2 pos_color = texture(cv_uv[i], pos_calib).xy;
-    vec3 color = texture(kinect_normals, vec3(pos_color.xy, float(i))).rgb;
+    vec3 color = texture(kinect_normals, vec3(pos_calib.xy, float(i))).rgb;
 
-    float lateral_quality = texture(kinect_qualities, vec3(pos_calib.xy, float(i))).r;
-    float quality = lateral_quality/(pos_calib.z * 4.0f+ 0.5f);
-
-    total_color += color * quality;
-    total_weight += quality;
+    total_color += color * weights[i];
+    total_weight += weights[i];
   }
 
   total_color /= total_weight;

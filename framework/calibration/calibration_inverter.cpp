@@ -77,7 +77,7 @@ void CalibrationInverter::calculateInverseVolumes(glm::uvec3 const& volume_res) 
 
   for(unsigned i = 0; i < m_cv_xyz_filenames.size(); ++i) {
     glm::fvec3 curr_calib_dims{m_data_volumes_xyz[i].res()};
-    auto curr_calib_samples{getXyzSamples(i)};
+    auto curr_calib_samples(getXyzSamples(i));
     std::cout << "building nn search structure " << i << std::endl;
     NearestNeighbourSearch curr_calib_search{curr_calib_samples}; 
     std::cout << "start neighbour search" << std::endl;
@@ -109,7 +109,7 @@ void CalibrationInverter::calculateInverseVolumes(glm::uvec3 const& volume_res) 
 void CalibrationInverter::addVolume(std::string const& filename_xyz) {
   std::cerr << "loading " << filename_xyz << std::endl;
   m_data_volumes_xyz.emplace_back(filename_xyz);
-  auto const& calib_xyz{m_data_volumes_xyz.back()};
+  auto const& calib_xyz(m_data_volumes_xyz.back());
   std::cout << "dimensions xyz - " << calib_xyz.res().x << ", " << calib_xyz.res().y << ", " << calib_xyz.res().z 
             << " minmax d - " << calib_xyz.depthLimits().x << ", " << calib_xyz.depthLimits().y << std::endl;
 }
