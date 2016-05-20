@@ -54,6 +54,10 @@ class CalibrationVolume {
     return m_volume;
   }
 
+  T const& operator()(unsigned x, unsigned y, unsigned z) const {
+    return m_volume[z * m_resolution.x * m_resolution.y + y * m_resolution.x + x];
+  }
+
  private:
   void read(std::string const& filename) {
     FILE* file_input = fopen(filename.c_str(), "rb");

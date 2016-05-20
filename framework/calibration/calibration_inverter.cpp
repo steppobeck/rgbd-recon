@@ -43,7 +43,7 @@ std::vector<sample_t> CalibrationInverter::getXyzSamples(std::size_t i) {
   for(unsigned x = 0; x < dims.x; ++x) {
     for(unsigned y = 0; y < dims.y; ++y) {
       for(unsigned z = 0; z < dims.z; ++z) {
-        calib_samples.emplace_back(calib.volume()[z * dims.x * dims.y + y * dims.x + x], glm::uvec3{x, y, z});
+        calib_samples.emplace_back(calib(x,y,z), glm::uvec3{x, y, z});
       }
     }
   }
@@ -60,6 +60,7 @@ static glm::fvec3 inverseDistance(glm::fvec3 const& curr_point, std::vector<samp
     total_weight += weight;
   }
   weighted_index /= total_weight;
+
   return weighted_index;
 }
 
