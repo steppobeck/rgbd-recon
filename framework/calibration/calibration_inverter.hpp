@@ -2,6 +2,7 @@
 #define CALIBRATION_INVERTER_HPP
 
 #include "calibration_volume.hpp"
+#include "frustum.hpp"
 #include <DataTypes.h>
 #include "volume_sampler.hpp"
 #include "nearest_neighbour_search.hpp"
@@ -32,12 +33,11 @@ private:
   std::vector<std::string> m_cv_xyz_filenames;
 
   std::vector<CalibrationVolume<xyz>>    m_data_volumes_xyz;
-  std::vector<CalibrationVolume<uv>>    m_data_volumes_uv;
   std::vector<CalibrationVolume<glm::fvec4>>    m_data_volumes_xyz_inv;
 
+  std::vector<Frustum>    m_frustums;
   gloost::BoundingBox m_bbox;
 
- protected:
   void addVolume(std::string const& filename_xyz);
 };
 

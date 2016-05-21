@@ -11,6 +11,7 @@ namespace kinect{
 
 CalibrationInverter::CalibrationInverter(std::vector<std::string> const& calib_volume_files, gloost::BoundingBox const& bbox)
  :m_cv_xyz_filenames()
+ ,m_frustums{}
  ,m_bbox{bbox}
 {
   for(auto const& calib_file : calib_volume_files){
@@ -88,7 +89,13 @@ void CalibrationInverter::calculateInverseVolumes(glm::uvec3 const& volume_res) 
     for(unsigned x = 0; x < volume_res.x; ++x) {
       for(unsigned y = 0; y < volume_res.y; ++y) {
         for(unsigned z = 0; z < volume_res.z; ++z) {
-          glm::fvec3 sample_pos = sample_start + glm::fvec3{x,y,z} * sample_step; 
+          glm::fvec3 sample_pos = sample_start + glm::fvec3{x,y,z} * sample_step;
+          // invalidate if point is not visible from camera
+          if (!m_frustums[i].inside(sample_pos)) {
+            curr_volume_inv[z * volume_res.x * volume_res.y + y * volume_res.x + x] = glm::fvec4{-1.0f};
+            continue;
+          }
+
           auto samples = curr_calib_search.search(sample_pos, 8);
           auto weighted_index = inverseDistance(sample_pos, samples);
           curr_volume_inv[z * volume_res.x * volume_res.y + y * volume_res.x + x] = glm::fvec4{(weighted_index + glm::fvec3{0.5f}) / curr_calib_dims, 1.0f};
@@ -107,12 +114,31 @@ void CalibrationInverter::calculateInverseVolumes(glm::uvec3 const& volume_res) 
   }
 }
 
+static std::array<glm::fvec3, 8> getCornerPoints(CalibrationVolume<xyz> const& curr_volume) {
+  glm::uvec3 end_points{curr_volume.res() - glm::uvec3{1}};
+  std::array<glm::fvec3, 8> points_corner{};
+  // 
+  points_corner[0] = (curr_volume(0,          0,          0));
+  points_corner[1] = (curr_volume(0,          end_points.y, 0));
+  points_corner[2] = (curr_volume(end_points.x, end_points.y, 0));
+  points_corner[3] = (curr_volume(end_points.x, 0,          0));
+
+  points_corner[4] = (curr_volume(0,          0,          end_points.z));
+  points_corner[5] = (curr_volume(0,          end_points.y, end_points.z));
+  points_corner[6] = (curr_volume(end_points.x, end_points.y, end_points.z));
+  points_corner[7] = (curr_volume(end_points.x, 0,          end_points.z));
+
+  return points_corner;
+}
+
 void CalibrationInverter::addVolume(std::string const& filename_xyz) {
   std::cerr << "loading " << filename_xyz << std::endl;
   m_data_volumes_xyz.emplace_back(filename_xyz);
   auto const& calib_xyz(m_data_volumes_xyz.back());
   std::cout << "dimensions xyz - " << calib_xyz.res().x << ", " << calib_xyz.res().y << ", " << calib_xyz.res().z 
             << " minmax d - " << calib_xyz.depthLimits().x << ", " << calib_xyz.depthLimits().y << std::endl;
+            
+  m_frustums.emplace_back(getCornerPoints(calib_xyz));
 }
 
 }
