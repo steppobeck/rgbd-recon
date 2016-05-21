@@ -4,6 +4,7 @@
 # LIB - library name
 # LIB_FOLDER - library folder
 # LIB_FLAGS - compilation flags
+# ARGN - true expression to install target lib and header
 ##############################################################################
 #output variables
 #LIB_INCLUDE_DIRS
@@ -33,11 +34,17 @@ string(TOUPPER ${LIB} LIB_CAPS)
 set(${LIB_CAPS}_LIBRARIES lib${LIB} CACHE STRING " librarie filnames")
 # set(${LIB_CAPS}_INCLUDE_DIRS ${LIB_FOLDER} CACHE STRING "include directories")
 
-INSTALL(
-    TARGETS lib${LIB}
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
-    PUBLIC_HEADER DESTINATION include/${LIB}
-)
+# Cannot use ARGN directly with list() command.
+set(extra_macro_args ${ARGN})
+# check if first optional argument is true
+list(GET extra_macro_args 0 INST)
+if(${INST})
+  install(
+      TARGETS lib${LIB}
+      LIBRARY DESTINATION lib
+      ARCHIVE DESTINATION lib
+      PUBLIC_HEADER DESTINATION include/${LIB}
+  )
+endif(${INST})
 
 ENDMACRO(add_sublibrary)
