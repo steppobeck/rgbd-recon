@@ -44,9 +44,6 @@ namespace mvt{
       m_far_upper_left_color(),
       m_culler() {}
 
-    virtual ~CameraView(){}
-
-
     virtual void updateMatrices(){}
 
     gloost::Matrix image_d_to_eye_d;

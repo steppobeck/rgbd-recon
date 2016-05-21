@@ -257,20 +257,6 @@ void draw3d(void)
   }
 
   if(g_draw_frustums) {
-    // for(unsigned idx = 0; idx  < g_calib_files->num(); ++idx){
-    //   glPushAttrib(GL_ALL_ATTRIB_BITS);
-    //   glPolygonMode( GL_FRONT_AND_BACK, GL_LINE);
-      
-    //   mvt::CameraView* v = (mvt::CameraView*) &g_calib_files->getCalibs()[idx];
-    //   v->updateMatrices();
-      
-    //   glPushMatrix();
-    //   gloostMultMatrix(v->eye_d_to_world.data());
-    //   glColor4f(0.0,0.0,1.0,1.0);
-    //   v->drawFrustum();
-    //   glPopMatrix();
-    //   glPopAttrib();
-    // }
     g_cv->drawFrustums();
   }
   // draw black grid on floor for fancy look

@@ -2,6 +2,7 @@
 #define KINECT_CalibVolumes_H
 
 #include "calibration_volume.hpp"
+#include "frustum.hpp"
 #include <DataTypes.h>
 #include "volume_sampler.hpp"
 #include "nearest_neighbour_search.hpp"
@@ -41,6 +42,9 @@ public:
   void loadInverseCalibs(std::string const& path);
 
   void drawFrustums() const;
+  void drawValidVoxels() const;
+
+  Frustum const& getFrustum(unsigned i) const;
 
 private:
   void bindToTextureUnits();
@@ -62,6 +66,7 @@ private:
   std::vector<CalibrationVolume<uv>>    m_data_volumes_uv;
   std::vector<CalibrationVolume<glm::fvec4>>    m_data_volumes_xyz_inv;
 
+  std::vector<Frustum>    m_frustums;
   gloost::BoundingBox m_bbox;
 
  protected:
