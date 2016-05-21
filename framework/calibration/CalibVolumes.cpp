@@ -155,4 +155,103 @@ void CalibVolumes::setStartTextureUnitInv(unsigned start_texture_unit) {
   bindToTextureUnitsInv();
 }
 
+static glm::fvec3 closestPoint(glm::fvec3 p, glm::fvec3 u, glm::fvec3 q, glm::fvec3 v) {
+  glm::fvec3 w0 = p - q;
+  float a = glm::dot(u, u);
+  float b = glm::dot(u, v);
+  float c = glm::dot(v, v);
+  float d = glm::dot(u, w0);
+  float e = glm::dot(v, w0);
+
+  float sc = (b * e - c * d) / (a * c - b * b);
+  float tc = (a * e - b * d) / (a * c - b * b);
+  glm::fvec3 pc = p + u * sc;
+  glm::fvec3 qc = q + v * tc;
+
+  return (pc + qc) * 0.5f;
+}
+
+static std::array<glm::fvec3, 8> getCornerPoints(CalibrationVolume<xyz> const& curr_volume) {
+  glm::uvec3 end_points{curr_volume.res() - glm::uvec3{1}};
+  std::array<glm::fvec3, 8> points_corner{};
+  points_corner[0] = (curr_volume(0,          0,          0));
+  points_corner[1] = (curr_volume(0,          end_points.y, 0));
+  points_corner[2] = (curr_volume(end_points.x, end_points.y, 0));
+  points_corner[3] = (curr_volume(end_points.x, 0,          0));
+
+  points_corner[4] = (curr_volume(0,          0,          end_points.z));
+  points_corner[5] = (curr_volume(0,          end_points.y, end_points.z));
+  points_corner[6] = (curr_volume(end_points.x, end_points.y, end_points.z));
+  points_corner[7] = (curr_volume(end_points.x, 0,          end_points.z));
+
+  return points_corner;
+}
+
+static glm::fvec3 getCameraPos(std::array<glm::fvec3, 8> const& points_corner) {
+    //  glm::fvec3 p1{closestPoint(points_corner[0], points_corner[0] - points_corner[4], points_corner[2], points_corner[2] - points_corner[6])};
+    // glm::fvec3 p2{closestPoint(points_corner[1], points_corner[1] - points_corner[5], points_corner[3], points_corner[3] - points_corner[7])};
+  glm::fvec3 p3{closestPoint(points_corner[0], points_corner[0] - points_corner[4], points_corner[1], points_corner[1] - points_corner[5])};
+  glm::fvec3 p4{closestPoint(points_corner[1], points_corner[1] - points_corner[5], points_corner[2], points_corner[2] - points_corner[6])};
+  
+  glm::fvec3 p5{closestPoint(points_corner[2], points_corner[2] - points_corner[6], points_corner[3], points_corner[3] - points_corner[7])};
+  glm::fvec3 p6{closestPoint(points_corner[3], points_corner[3] - points_corner[7], points_corner[0], points_corner[0] - points_corner[4])};
+  return (p3 + p4 + p5 + p6) / 4.0f;
+}
+
+void CalibVolumes::drawFrustums() const {
+  for(unsigned i = 0; i < m_cv_xyz_filenames.size(); ++i) {
+    std::array<glm::fvec3, 8> points_corner(getCornerPoints(m_data_volumes_xyz[i]));
+
+    glBegin(GL_LINES);
+      glColor3f(0.0f, 1.0f, 0.0f);
+      glVertex3f(points_corner[0].x, points_corner[0].y, points_corner[0].z);
+      glVertex3f(points_corner[4].x, points_corner[4].y, points_corner[4].z);
+      
+      glVertex3f(points_corner[1].x, points_corner[1].y, points_corner[1].z);
+      glVertex3f(points_corner[5].x, points_corner[5].y, points_corner[5].z);
+      
+      glVertex3f(points_corner[2].x, points_corner[2].y, points_corner[2].z);
+      glVertex3f(points_corner[6].x, points_corner[6].y, points_corner[6].z);
+      
+      glVertex3f(points_corner[3].x, points_corner[3].y, points_corner[3].z);
+      glVertex3f(points_corner[7].x, points_corner[7].y, points_corner[7].z);
+
+
+      glVertex3f(points_corner[0].x, points_corner[0].y, points_corner[0].z);
+      glVertex3f(points_corner[1].x, points_corner[1].y, points_corner[1].z);
+      
+      glVertex3f(points_corner[1].x, points_corner[1].y, points_corner[1].z);
+      glVertex3f(points_corner[2].x, points_corner[2].y, points_corner[2].z);
+      
+      glVertex3f(points_corner[2].x, points_corner[2].y, points_corner[2].z);
+      glVertex3f(points_corner[3].x, points_corner[3].y, points_corner[3].z);
+      
+      glVertex3f(points_corner[3].x, points_corner[3].y, points_corner[3].z);
+      glVertex3f(points_corner[0].x, points_corner[0].y, points_corner[0].z);
+
+
+      glVertex3f(points_corner[4].x, points_corner[4].y, points_corner[4].z);
+      glVertex3f(points_corner[5].x, points_corner[5].y, points_corner[5].z);
+      
+      glVertex3f(points_corner[5].x, points_corner[5].y, points_corner[5].z);
+      glVertex3f(points_corner[6].x, points_corner[6].y, points_corner[6].z);
+      
+      glVertex3f(points_corner[6].x, points_corner[6].y, points_corner[6].z);
+      glVertex3f(points_corner[7].x, points_corner[7].y, points_corner[7].z);
+
+      glVertex3f(points_corner[7].x, points_corner[7].y, points_corner[7].z);
+      glVertex3f(points_corner[4].x, points_corner[4].y, points_corner[4].z);
+      
+    glEnd();
+
+    glm::fvec3 cam_pos{getCameraPos(points_corner)};
+
+    glPointSize(3.0f);
+    glBegin(GL_POINTS);
+      glColor3f(1.0f, 0.0f, 0.0f);
+      glVertex3f(cam_pos.x, cam_pos.y, cam_pos.z);
+    glEnd();
+  }
+}
+
 }
