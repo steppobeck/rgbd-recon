@@ -65,7 +65,7 @@ void main() {
 
   vec3 color = texture(kinect_colors, vec3(pass_texcoord, float(layer))).rgb;
   vec3 normal = texture(kinect_normals, vec3(pass_pos_norm, float(layer))).rgb;
-  vec3 view_normal = (gl_NormalMatrix * vec4(normal, 1.0f)).xyz;
+  vec3 view_normal = (gl_NormalMatrix * vec4(normal, 0.0f)).xyz;
   #ifdef NORMAL
   gl_FragColor = vec4(normal, quality);
   #else

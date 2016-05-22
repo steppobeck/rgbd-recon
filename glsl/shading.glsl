@@ -12,7 +12,7 @@ const float ks = 0.5f;            // specular intensity
 const float n = 20.0f;            //specular exponent 
 
 // #define SHADED
-#define NORMAL
+// #define NORMAL
 
 const vec3 solid_diffuse = vec3(0.5f);
 // phong diss and spec coefficient calculation in viewspace

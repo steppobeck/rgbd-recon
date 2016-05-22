@@ -50,7 +50,7 @@ bool     g_draw_frustums= false;
 bool     g_draw_grid    = true;
 bool     g_animate      = false;
 bool     g_wire         = false;
-unsigned g_recon_mode   = 1;
+unsigned g_recon_mode   = 0;
 bool     g_bilateral    = true;
 bool     g_draw_calibvis= false;
 bool     g_draw_textures= false;
@@ -150,9 +150,9 @@ void init(std::vector<std::string> args){
   g_cv->loadInverseCalibs(resource_path);
   g_cv->setStartTextureUnitInv(30);
 
-  g_recons.emplace_back(new kinect::ReconTrigrid(*g_calib_files, g_cv.get(), g_bbox));
   g_recons.emplace_back(new kinect::ReconPoints(*g_calib_files, g_cv.get(), g_bbox));
   g_recons.emplace_back(new kinect::ReconIntegration(*g_calib_files, g_cv.get(), g_bbox));
+  g_recons.emplace_back(new kinect::ReconTrigrid(*g_calib_files, g_cv.get(), g_bbox));
   g_recons.emplace_back(new kinect::ReconMVT(*g_calib_files, g_cv.get(), g_bbox)); 
 
   g_calibvis = std::unique_ptr<kinect::ReconCalibs>(new kinect::ReconCalibs(*g_calib_files, g_cv.get(), g_bbox));
@@ -283,8 +283,7 @@ void draw3d(void)
   g_bbox.draw();
 
   if (g_draw_textures) {
-    TextureBlitter::blit(40, g_num_texture, g_nka->getDepthResolution());
-    // TextureBlitter::blit(g_nka->getStartTextureUnit() + g_texture_type, g_num_texture, g_nka->getDepthResolution());
+    TextureBlitter::blit(g_nka->getStartTextureUnit() + g_texture_type, g_num_texture, g_nka->getDepthResolution());
   }
 }
 

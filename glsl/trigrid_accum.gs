@@ -54,7 +54,7 @@ void main() {
     vec3 b = geo_pos_es[2] - geo_pos_es[0];
     vec3 c = geo_pos_es[2] - geo_pos_es[1];
 
-    vec3 tri_normal = normalize(cross (a, b));
+    vec3 tri_normal = normalize(cross(a, b));
       
     for(int i = 0; i < 3; i++) {
       pass_texcoord      = geo_texcoord[i];

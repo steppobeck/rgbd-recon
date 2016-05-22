@@ -38,6 +38,7 @@ ReconTrigrid::ReconTrigrid(CalibrationFiles const& cfs, CalibVolumes const* cv, 
   m_program_accum->setUniform("kinect_colors",1);
   m_program_accum->setUniform("kinect_depths",2);
   m_program_accum->setUniform("kinect_qualities",3);
+  m_program_accum->setUniform("kinect_normals", 4);
   m_program_accum->setUniform("depth_map_curr",14);
   m_program_accum->setUniform("bbox_min",m_bbox.getPMin());
   m_program_accum->setUniform("bbox_max",m_bbox.getPMax());
