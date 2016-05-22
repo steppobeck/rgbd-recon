@@ -74,11 +74,15 @@ void main() {
     // discard if occluded by triangles in front
     if(epsilon < length(position_curr_es - pass_pos_es)) {
       discard;
-      gl_FragColor = vec4(0.0f, 1.0f, 0.0f, 1.0f);
       return;
     }
 
     vec3 color = texture(kinect_colors, vec3(pass_texcoord, float(layer))).rgb;
-    gl_FragColor = vec4(shade(pass_pos_es, normal, color) * quality, quality);
+    if (g_shade_mode == 3u) {
+      gl_FragColor = vec4(camera_colors[layer] * quality, quality);
+    }
+    else {
+      gl_FragColor = vec4(shade(pass_pos_es, normal, color) * quality, quality);
+    }
    }
 }

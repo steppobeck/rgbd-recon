@@ -39,6 +39,7 @@ bool isInside(const vec3 pos);
 float sample(const vec3 pos);
 vec3 blendColors(const in vec3 sample_pos);
 vec3 blendNormals(const in vec3 sample_pos);
+vec3 blendCameras(const in vec3 sample_pos);
 
 void main() {
   // multiply with dimensions to scale direction by dimension relation
@@ -66,8 +67,13 @@ void main() {
       #endif
       vec3 view_pos = (gl_ModelViewMatrix * vol_to_world * vec4(sample_pos, 1.0f)).xyz;
 
-      vec3 diffuseColor = blendColors(sample_pos);
-      out_Color = vec4(shade(view_pos, view_normal, diffuseColor), 1.0f);
+      if (g_shade_mode == 3u) {
+        out_Color = vec4(blendCameras(sample_pos), 1.0f);
+      }
+      else {
+        vec3 diffuseColor = blendColors(sample_pos);
+        out_Color = vec4(shade(view_pos, view_normal, diffuseColor), 1.0f);
+      }
       // apply projection matrix on z component of view-space position
       gl_FragDepth = (gl_ProjectionMatrix[2].z *view_pos.z + gl_ProjectionMatrix[3].z) / -view_pos.z * 0.5f + 0.5f;
       return;
@@ -143,6 +149,22 @@ vec3 blendNormals(const in vec3 sample_pos) {
   for(uint i = 0u; i < num_kinects; ++i) {
     vec3 pos_calib = texture(cv_xyz_inv[i], sample_pos).xyz;
     vec3 color = texture(kinect_normals, vec3(pos_calib.xy, float(i))).rgb;
+
+    total_color += color * weights[i];
+    total_weight += weights[i];
+  }
+
+  total_color /= total_weight;
+  return total_color;
+}
+
+vec3 blendCameras(const in vec3 sample_pos) {
+  vec3 total_color = vec3(0.0f);
+  float total_weight = 0.0f;
+  float[5] weights = getWeights(sample_pos);
+  for(uint i = 0u; i < num_kinects; ++i) {
+    vec3 pos_calib = texture(cv_xyz_inv[i], sample_pos).xyz;
+    vec3 color = camera_colors[i];
 
     total_color += color * weights[i];
     total_weight += weights[i];

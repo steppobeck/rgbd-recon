@@ -1,4 +1,4 @@
-#version 150
+#version 420
 
 layout(points) in;
 layout(points, max_vertices = 1) out;
@@ -23,11 +23,15 @@ flat out float pass_lateral_quality;
 flat out vec3  pass_normal_es;
 flat out vec4  pass_glpos;
 
+uniform vec3 bbox_max;
+uniform vec3 bbox_min;
+
+layout (std140, binding = 1) uniform Settings {
+  uint g_shade_mode;
+};
 ///////////////////////////////////////////////////////////////////////////////
 // methods 
 ///////////////////////////////////////////////////////////////////////////////
-uniform vec3 bbox_max;
-uniform vec3 bbox_min;
 
 bool clip(vec3 p){
   if(p.x < bbox_min.x ||
@@ -60,7 +64,13 @@ void main() {
   pass_glpos = gl_Position;
 
   float dist = length(geo_pos_es[0]);
-  gl_PointSize  = 10.0f / dist;
+
+  float max_size = 10.0f;
+  // if cameras are visualized, make points smaller to prevent occlusion
+  if (g_shade_mode == 3u) {
+    max_size = 4.0f;
+  }
+  gl_PointSize = max_size / dist;
   
   EmitVertex();
 }

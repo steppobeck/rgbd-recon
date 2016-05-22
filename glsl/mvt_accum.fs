@@ -76,7 +76,12 @@ void main() {
       discard;
     }
 
-    vec3 color = texture(kinect_colors, vec3(texture_coord, float(layer))).rgb;
-    gl_FragColor = vec4(shade(pos_es, normal, color) * quality, quality);
+    if (g_shade_mode == 3u) {
+      gl_FragColor = vec4(camera_colors[layer] * quality, quality);
+    }
+    else {
+      vec3 color = texture(kinect_colors, vec3(texture_coord, float(layer))).rgb;
+      gl_FragColor = vec4(shade(pos_es, normal, color) * quality, quality);
+    }
   }
 }

@@ -12,13 +12,22 @@ const float ks = 0.5f;            // specular intensity
 const float n = 20.0f;            //specular exponent 
 
 layout (std140, binding = 1) uniform Settings {
-  uint c_shade_mode;
+  uint g_shade_mode;
 };
 // 0 = color
 // 1 = shaded
 // 2 = normal
+// 3 = camera influence
 
 const vec3 solid_diffuse = vec3(0.5f);
+
+const vec3 camera_colors[5] = vec3[5](
+  vec3(228,26,28) / 255.0f,
+  vec3(55,126,184) / 255.0f,
+  vec3(77,175,74) / 255.0f,
+  vec3(152,78,163) / 255.0f,
+  vec3(255,127,0) / 255.0f
+);
 // phong diss and spec coefficient calculation in viewspace
 vec2 phongDiffSpec(const vec3 position, const vec3 normal, const float n, const vec3 lightPos) {
   vec3 toLight = normalize(lightPos - position);
@@ -43,17 +52,17 @@ vec2 phongDiffSpec(const vec3 position, const vec3 normal, const float n, const 
 }
 // shade with included light and material info
 vec3 shade(const in vec3 view_pos, const in vec3 view_normal, const in vec3 diffuseColor) {
-  if (c_shade_mode == 0u) { 
+  if (g_shade_mode == 0u) { 
     return diffuseColor;
   }
-  else if(c_shade_mode == 1u){
+  else if(g_shade_mode == 1u){
     // shadow paramater
     vec2 diffSpec = phongDiffSpec(view_pos, view_normal, n, LightPosition);
     return vec3(LightAmbient * solid_diffuse 
               + LightDiffuse * solid_diffuse * diffSpec.x
               + LightSpecular * ks * diffSpec.y);
   }
-  else if (c_shade_mode == 2u) {
+  else if (g_shade_mode == 2u) {
     return (inverse(gl_NormalMatrix) * vec4(view_normal, 0.0f)).xyz;
   }
   else return vec3(1.0f);

@@ -66,8 +66,13 @@ void main() {
   vec3 color = texture(kinect_colors, vec3(pass_texcoord, float(layer))).rgb;
   vec3 normal = texture(kinect_normals, vec3(pass_pos_norm, float(layer))).rgb;
   vec3 view_normal = (gl_NormalMatrix * vec4(normal, 0.0f)).xyz;
-
-  gl_FragColor = vec4(shade(pass_pos_es, view_normal, color), 1.0f);
+  
+  if (g_shade_mode == 3u) {
+    gl_FragColor = vec4(camera_colors[layer], 1.0f);
+  }
+  else {
+    gl_FragColor = vec4(shade(pass_pos_es, view_normal, color), 1.0f);
+  }
   // gl_FragColor = vec4(gl_PointCoord, 0.0f, 1.0f);
   //ndc
   // gl_FragColor = vec4(ndc.xyz, 1.0f);
