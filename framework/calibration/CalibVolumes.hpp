@@ -45,6 +45,7 @@ public:
   void drawValidVoxels() const;
 
   Frustum const& getFrustum(unsigned i) const;
+  std::vector<glm::fvec3> getCameraPositions() const;
 
 private:
   void bindToTextureUnits();

@@ -3,6 +3,9 @@
 #include "calibration_files.hpp"
 #include "CalibVolumes.hpp"
 
+#include <globjects/NamedString.h>
+#include <globjects/base/File.h>
+
 namespace kinect{
 
 Reconstruction::Reconstruction(CalibrationFiles const& cfs, CalibVolumes const* cv, gloost::BoundingBox const&  bbox)
@@ -13,7 +16,9 @@ Reconstruction::Reconstruction(CalibrationFiles const& cfs, CalibVolumes const* 
  ,m_num_kinects{cfs.num()}
  ,m_min_length{cfs.minLength()}
  ,m_bbox{bbox}
-{}
+{
+   globjects::NamedString::create("/shading.glsl", new globjects::File("glsl/shading.glsl"));
+}
 
 void Reconstruction::reload() {
 

@@ -156,4 +156,5 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/glsl
         PATTERN "*.fs"
         PATTERN "*.vs"
         PATTERN "*.gs"
+        PATTERN "*.glsl"
 )

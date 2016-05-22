@@ -210,4 +210,13 @@ void CalibVolumes::drawFrustums() const {
 Frustum const& CalibVolumes::getFrustum(unsigned i) const {
   return m_frustums[i];
 }
+
+std::vector<glm::fvec3> CalibVolumes::getCameraPositions() const {
+  std::vector<glm::fvec3> cam_positions{};
+  for (auto const& frustum : m_frustums) {
+    cam_positions.emplace_back(frustum.getCameraPos());
+  }
+  return cam_positions;
+}
+
 }

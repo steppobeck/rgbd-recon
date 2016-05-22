@@ -1,4 +1,5 @@
 #version 330
+#extension GL_ARB_shading_language_include : require
 
 in vec3 pass_Position;
 // input
@@ -27,21 +28,12 @@ const float IsoValue = 0.0f;
 out vec4 out_Color;
 out float gl_FragDepth;
 
-// light
-const vec3 LightPosition = vec3(1.5f, 1.0f, 1.0f);
-const vec3 LightDiffuse = vec3(1.0f, 0.9f, 0.7f);
-const vec3 LightAmbient = LightDiffuse * 0.2f;
-const vec3 LightSpecular = vec3(1.0f);
+#include </shading.glsl>
 
-// material
-const float ks = 0.5f;            // specular intensity
-const float n = 20.0f;            //specular exponent 
+#define SHADED
+#define NORMAL
+#define GRAD_NORMALS
 
-// #define SHADED
-// #define NORMAL
-// #define GRAD_NORMALS
-
-vec2 phongDiffSpec(const vec3 position, const vec3 normal, const float n, const vec3 lightPos);
 vec3 get_gradient(const vec3 pos);
 bool isInside(const vec3 pos);
 float sample(const vec3 pos);
@@ -74,12 +66,9 @@ void main() {
       #endif
       vec3 view_pos = (gl_ModelViewMatrix * vol_to_world * vec4(sample_pos, 1.0f)).xyz;
 
-      vec2 diffSpec = phongDiffSpec(view_pos, view_normal, n, LightPosition);
       #ifdef SHADED
       vec3 diffuseColor = vec3(0.5f);
-      out_Color = vec4(LightAmbient * diffuseColor 
-                      + LightDiffuse * diffuseColor * diffSpec.x
-                      + LightSpecular * ks * diffSpec.y, 1.0f);
+      out_Color = vec4(shade(view_pos, view_normal, diffuseColor), 1.0f);
       #else
         #ifdef NORMAL
           out_Color = vec4((inverse(gl_ModelViewMatrix) * vec4(view_normal, 0.0f)).xyz, 1.0f);
@@ -170,27 +159,4 @@ vec3 blendNormals(const in vec3 sample_pos) {
 
   total_color /= total_weight;
   return total_color;
-}
-
-// phong diss and spec coefficient calculation in viewspace
-vec2 phongDiffSpec(const vec3 position, const vec3 normal, const float n, const vec3 lightPos) {
-  vec3 toLight = normalize(lightPos - position);
-  float lightAngle = dot(normal, toLight);
-  // if fragment is not directly lit, use only ambient light
-  if (lightAngle <= 0.0f) {
-    return vec2(0.0f);
-  }
-
-  float diffContribution = max(lightAngle, 0.0f);
-
-  vec3 toViewer = normalize(-position);
-  vec3 halfwayVector = normalize(toLight + toViewer);
-  float reflectedAngle = dot(halfwayVector, normal);
-  float specLight = pow(reflectedAngle, n);
-
-  // fade out specular hightlights towards edge of lit region
-  float a = (1.0f - lightAngle) * ( 1.0f - lightAngle);
-  specLight *= 1.0f - a * a * a;
-
-  return vec2(diffContribution, specLight);
 }
