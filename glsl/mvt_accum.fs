@@ -77,13 +77,6 @@ void main() {
     }
 
     vec3 color = texture(kinect_colors, vec3(texture_coord, float(layer))).rgb;
-    gl_FragColor = vec4(color.rgb * quality, quality);
-     //gl_FragColor = vec4(1.5*normal.bgr * quality, quality);
-    #ifdef NORMAL
-      vec3 world_normal = (inverse(gl_NormalMatrix) * vec4(normal, 0.0f)).xyz;
-      gl_FragColor = vec4(world_normal * quality, quality);
-    #else
-      gl_FragColor = vec4(shade(pos_es, normal, color) * quality, quality);
-    #endif
+    gl_FragColor = vec4(shade(pos_es, normal, color) * quality, quality);
   }
 }

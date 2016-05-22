@@ -3,6 +3,7 @@
 #include "screen_space_measurement_tool.hpp"
 
 #include <globjects/globjects.h>
+#include <globjects/Buffer.h>
 #include <globjects/base/File.h>
 // load glbinding function type
 #include <glbinding/Function.h>
@@ -67,6 +68,11 @@ std::unique_ptr<kinect::NetKinectArray> g_nka;
 std::unique_ptr<kinect::CalibVolumes> g_cv;
 std::unique_ptr<kinect::CalibrationFiles> g_calib_files;
 
+globjects::Buffer* g_buffer_shading;
+struct shading_data_t {
+  unsigned mode = 0;
+} g_shading_buffer_data;
+
 void init(std::vector<std::string>& args);
 void update_view_matrix();
 void draw3d();
@@ -77,7 +83,6 @@ void mouseFunc(int button, int state, int mouse_h, int mouse_v);
 void idle(void);
 void watch_gl_errors(bool activate);
 
-std::unique_ptr<kinect::ReconTrigrid> g_ksV3;// 4
 std::vector<std::unique_ptr<kinect::Reconstruction>> g_recons;// 4
 std::unique_ptr<kinect::ReconCalibs> g_calibvis;// 4
 
@@ -160,6 +165,11 @@ void init(std::vector<std::string> args){
   // enable point scaling in vertex shader
   glEnable(GL_PROGRAM_POINT_SIZE);
   glEnable(GL_POINT_SPRITE);
+
+  g_buffer_shading = new globjects::Buffer();
+  g_buffer_shading->ref();
+  g_buffer_shading->setData(sizeof(shading_data_t), &g_shading_buffer_data, GL_STATIC_DRAW);
+  g_buffer_shading->bindBase(GL_UNIFORM_BUFFER, 1);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -359,6 +369,10 @@ void key(unsigned char key, int x, int y)
     break;
   case 'p':
     g_play = !g_play;
+    break;
+  case '1':
+    g_shading_buffer_data.mode = (g_shading_buffer_data.mode + 1) % 4;
+    g_buffer_shading->setSubData(0, sizeof(shading_data_t), &g_shading_buffer_data);
     break;
   case 'v':
     g_draw_calibvis = !g_draw_calibvis;

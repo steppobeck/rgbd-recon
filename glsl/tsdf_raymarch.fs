@@ -14,8 +14,10 @@ uniform uint num_kinects;
 uniform float limit;
 
 uniform mat4 gl_ModelViewMatrix;
-uniform mat4 NormalMatrix;
 uniform mat4 gl_ProjectionMatrix;
+uniform mat4 gl_NormalMatrix;
+
+uniform mat4 NormalMatrix;
 uniform mat4 vol_to_world;
 
 uniform sampler3D volume_tsdf;
@@ -64,12 +66,8 @@ void main() {
       #endif
       vec3 view_pos = (gl_ModelViewMatrix * vol_to_world * vec4(sample_pos, 1.0f)).xyz;
 
-      #ifdef NORMAL
-        out_Color = vec4((inverse(gl_ModelViewMatrix) * vec4(view_normal, 0.0f)).xyz, 1.0f);
-      #else
-        vec3 diffuseColor = blendColors(sample_pos);
-        out_Color = vec4(shade(view_pos, view_normal, diffuseColor), 1.0f);
-      #endif
+      vec3 diffuseColor = blendColors(sample_pos);
+      out_Color = vec4(shade(view_pos, view_normal, diffuseColor), 1.0f);
       // apply projection matrix on z component of view-space position
       gl_FragDepth = (gl_ProjectionMatrix[2].z *view_pos.z + gl_ProjectionMatrix[3].z) / -view_pos.z * 0.5f + 0.5f;
       return;
