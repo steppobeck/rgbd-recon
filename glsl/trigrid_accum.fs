@@ -27,7 +27,7 @@ in vec3  pass_pos_es;
 in vec3  pass_pos_cs;
 
 in float pass_depth;
-in float pass_lateral_quality;
+in float pass_quality;
 in vec3  pass_normal_es;
 
 out vec4 gl_FragColor;
@@ -64,12 +64,11 @@ void main() {
   if ( dot ( normal, normalize(pass_pos_es) ) > 0.0 ) {
    discard;
   }
-  // non-normalized depth was between 0.5 and 4.5
-  float quality = pass_lateral_quality/(pass_depth * 4.0f+ 0.5f);
+  float quality = pass_quality;
   vec3 world_normal = (inverse(gl_NormalMatrix) * vec4(normal, 0.0f)).xyz;
   float angle = dot(normalize(camera_positions[layer] - pass_pos_cs), world_normal);
   quality *= angle;
-  
+
   if(stage > 0u){ // accumulation pass write color and quality if within epsilon
     vec3  coords = vec3(gl_FragCoord.xy * viewportSizeInv, 0.0 /*here layer is always 0*/);
     float depth_curr = texture(depth_map_curr, coords).r;

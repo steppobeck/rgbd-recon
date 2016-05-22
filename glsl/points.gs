@@ -10,7 +10,7 @@ flat in vec2 geo_pos_norm[];
 flat in vec3 geo_pos_es[];
 flat in vec3 geo_pos_cs[];
 flat in float geo_depth[];
-flat in float geo_lateral_quality[];
+flat in float geo_quality[];
 ///////////////////////////////////////////////////////////////////////////////
 // output
 ///////////////////////////////////////////////////////////////////////////////
@@ -19,7 +19,7 @@ flat out vec2  pass_pos_norm;
 flat out vec3  pass_pos_es;
 flat out vec3  pass_pos_cs;
 flat out float pass_depth;
-flat out float pass_lateral_quality;
+flat out float pass_quality;
 flat out vec3  pass_normal_es;
 flat out vec4  pass_glpos;
 
@@ -57,7 +57,7 @@ void main() {
   pass_pos_norm = geo_pos_norm[0];
   pass_pos_es        = geo_pos_es[0];
   pass_pos_cs        = geo_pos_cs[0];
-  pass_lateral_quality = geo_lateral_quality[0];
+  pass_quality = geo_quality[0];
   pass_depth         = geo_depth[0];
   pass_normal_es     = vec3(1.0f);
   gl_Position   = gl_in[0].gl_Position;

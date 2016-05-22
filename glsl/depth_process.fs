@@ -87,15 +87,19 @@ vec2 bilateral_filter(vec3 coords){
   float w_range = 0.0f;
   float border_samples = 0.0f;
   float num_samples = 0.0f;
+  float weight_samples = 0.0f;
+  float weight_border_samples = 0.0f;
   for(int y = -kernel_size; y < kernel_end; ++y){
     for(int x = -kernel_size; x < kernel_end; ++x){
       num_samples += 1.0f;
+      weight_samples +=  1.0f - length(vec2(x,y)) / length(vec2(0,6));
       vec3 coords_s = coords + vec3(vec2(x, y) * texSizeInv, 0.0f);
       
       float depth_s = sample(coords_s);
       float depth_range = abs(depth_s - depth);
       if(is_outside(depth_s) || (depth_range > dist_range_max)){
         border_samples += 1.0f;
+        weight_border_samples += 1.0f - length(vec2(x,y)) / length(vec2(0,6));
         continue;
       }
       float gauss_space = computeGaussSpace(length(vec2(x,y)));
@@ -108,6 +112,10 @@ vec2 bilateral_filter(vec3 coords){
   }
 
   float lateral_quality  = 1.0f - border_samples/num_samples;
+  // float lateral_quality  = 1.0f - border_samples/num_samples * w_range / 40.0f;
+  // lateral_quality  = 1.0f - weight_border_samples/weight_samples;
+  float quality_strong = pow(lateral_quality,30.0);
+  quality_strong /= depth;
   float filtered_depth = 0.0f;
   if(w > 0.0)
     filtered_depth = depth_bf/w;
@@ -120,7 +128,7 @@ vec2 bilateral_filter(vec3 coords){
   }
 #endif
 
-  return vec2(filtered_depth, pow(lateral_quality,30.0));
+  return vec2(filtered_depth, quality_strong);
 }
 
 void main(void) {

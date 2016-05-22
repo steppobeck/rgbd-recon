@@ -16,7 +16,7 @@ out vec2 geo_texcoord;
 out vec3 geo_pos_es;
 out vec3 geo_pos_cs;
 out float geo_depth;
-out float geo_lateral_quality;
+out float geo_quality;
 
 void main() {
 
@@ -28,7 +28,7 @@ void main() {
   geo_pos_es        = (gl_ModelViewMatrix * vec4(geo_pos_cs, 1.0)).xyz;
   geo_texcoord      = texture(cv_uv[layer],  vec3(in_Position, depth)).rg;
   geo_depth         = depth;
-  geo_lateral_quality = texture2DArray(kinect_qualities, coords).r;
+  geo_quality = texture2DArray(kinect_qualities, coords).r;
 
   gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * vec4(geo_pos_cs, 1.0);
 }

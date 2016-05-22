@@ -123,8 +123,7 @@ float[5] getWeights(const in vec3 sample_pos) {
     float quality = 0.0f;
     // blend if in valid depth range
     if(abs(depth - pos_calib.z) < limit) {
-      float lateral_quality = texture(kinect_qualities, vec3(pos_calib.xy, float(i))).r;
-      quality = lateral_quality/(pos_calib.z * 4.0f+ 0.5f);
+      quality = texture(kinect_qualities, vec3(pos_calib.xy, float(i))).r;
       float angle = normal_angle(pos_calib, i);
       quality *= angle;
     }

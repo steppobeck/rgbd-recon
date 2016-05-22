@@ -42,8 +42,7 @@ void main() {
     //   // tsd = 10.0f;
     //   // break;
     // }
-    float sdist = depth 
-    - pos_calib.z;
+    float sdist = depth - pos_calib.z;
     if (sdist <= -limit ) {
       // weighted_tsd = -limit;
       // break;
@@ -53,8 +52,7 @@ void main() {
     }
     else {
       float tsd = clamp(sdist, -limit, limit);
-      float lateral_quality = texture(kinect_qualities, vec3(pos_calib.xy, float(i))).r;
-      float quality = lateral_quality/(pos_calib.z * 4.0f + 0.5f);
+      float quality = texture(kinect_qualities, vec3(pos_calib.xy, float(i))).r;
       float angle = normal_angle(vec3(in_Position.xy, depth), i);
       quality *= angle;
       weighted_tsd = (weighted_tsd * weight + quality * tsd) / (weight + quality);

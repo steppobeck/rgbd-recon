@@ -7,7 +7,7 @@ flat in vec2  pass_pos_norm;
 flat in vec3  pass_pos_es;
 flat in vec3  pass_pos_cs;
 flat in float pass_depth;
-flat in float pass_lateral_quality;
+flat in float pass_quality;
 flat in vec3  normal_es;
 flat in vec4  pass_glpos;
 // used by accumulation pass
@@ -40,7 +40,6 @@ void main() {
       discard;
   }
 
-  highp float quality = pass_lateral_quality/pass_depth;
 // manual
   highp vec3 view =   (gl_ModelViewMatrix * vec4(pass_pos_cs, 1.0f)).xyz;
   highp vec4 clipped = gl_ProjectionMatrix * vec4(pass_pos_es, 1.0f);
@@ -63,6 +62,7 @@ void main() {
   highp vec4 position_curr = img_to_eye_curr * vec4(gl_FragCoord.xy + vec2(0.5,0.5), 0.0f, 1.0);
   highp vec3 position_curr_es = (position_curr / position_curr.w).xyz;
 
+  float quality = pass_quality;
   vec3 color = texture(kinect_colors, vec3(pass_texcoord, float(layer))).rgb;
   vec3 normal = texture(kinect_normals, vec3(pass_pos_norm, float(layer))).rgb;
   vec3 view_normal = (gl_NormalMatrix * vec4(normal, 0.0f)).xyz;
