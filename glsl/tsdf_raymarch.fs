@@ -30,8 +30,6 @@ out float gl_FragDepth;
 
 #include </shading.glsl>
 
-#define SHADED
-#define NORMAL
 #define GRAD_NORMALS
 
 vec3 get_gradient(const vec3 pos);
@@ -66,16 +64,11 @@ void main() {
       #endif
       vec3 view_pos = (gl_ModelViewMatrix * vol_to_world * vec4(sample_pos, 1.0f)).xyz;
 
-      #ifdef SHADED
-      vec3 diffuseColor = vec3(0.5f);
-      out_Color = vec4(shade(view_pos, view_normal, diffuseColor), 1.0f);
+      #ifdef NORMAL
+        out_Color = vec4((inverse(gl_ModelViewMatrix) * vec4(view_normal, 0.0f)).xyz, 1.0f);
       #else
-        #ifdef NORMAL
-          out_Color = vec4((inverse(gl_ModelViewMatrix) * vec4(view_normal, 0.0f)).xyz, 1.0f);
-        #else
-          vec3 diffuseColor = blendColors(sample_pos);
-          out_Color = vec4(diffuseColor, 1.0f);
-        #endif
+        vec3 diffuseColor = blendColors(sample_pos);
+        out_Color = vec4(shade(view_pos, view_normal, diffuseColor), 1.0f);
       #endif
       // apply projection matrix on z component of view-space position
       gl_FragDepth = (gl_ProjectionMatrix[2].z *view_pos.z + gl_ProjectionMatrix[3].z) / -view_pos.z * 0.5f + 0.5f;

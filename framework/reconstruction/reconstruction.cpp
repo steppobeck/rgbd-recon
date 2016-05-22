@@ -6,7 +6,7 @@
 #include <globjects/NamedString.h>
 #include <globjects/base/File.h>
 
-namespace kinect{
+namespace kinect {
 
 Reconstruction::Reconstruction(CalibrationFiles const& cfs, CalibVolumes const* cv, gloost::BoundingBox const&  bbox)
  :m_cv(cv)

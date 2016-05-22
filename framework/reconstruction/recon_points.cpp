@@ -34,6 +34,7 @@ ReconPoints::ReconPoints(CalibrationFiles const& cfs, CalibVolumes const* cv, gl
   m_program->setUniform("kinect_colors", 1);
   m_program->setUniform("kinect_depths", 2);
   m_program->setUniform("kinect_qualities", 3);
+  m_program->setUniform("kinect_normals", 4);
   m_program->setUniform("bbox_min",m_bbox.getPMin());
   m_program->setUniform("bbox_max",m_bbox.getPMax());
   m_program->setUniform("epsilon" , 0.075f);

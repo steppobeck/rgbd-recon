@@ -6,6 +6,7 @@ layout(points, max_vertices = 1) out;
 // input
 ///////////////////////////////////////////////////////////////////////////////
 flat in vec2 geo_texcoord[];
+flat in vec2 geo_pos_norm[];
 flat in vec3 geo_pos_es[];
 flat in vec3 geo_pos_cs[];
 flat in float geo_depth[];
@@ -14,6 +15,7 @@ flat in float geo_lateral_quality[];
 // output
 ///////////////////////////////////////////////////////////////////////////////
 flat out vec2  pass_texcoord;
+flat out vec2  pass_pos_norm;
 flat out vec3  pass_pos_es;
 flat out vec3  pass_pos_cs;
 flat out float pass_depth;
@@ -48,6 +50,7 @@ void main() {
   }
 
   pass_texcoord = geo_texcoord[0];
+  pass_pos_norm = geo_pos_norm[0];
   pass_pos_es        = geo_pos_es[0];
   pass_pos_cs        = geo_pos_cs[0];
   pass_lateral_quality = geo_lateral_quality[0];
