@@ -46,6 +46,7 @@ ReconTrigrid::ReconTrigrid(CalibrationFiles const& cfs, CalibVolumes const* cv, 
   m_program_accum->setUniform("min_length", m_min_length);
   m_program_accum->setUniform("cv_xyz", m_cv->getXYZVolumeUnits());
   m_program_accum->setUniform("cv_uv", m_cv->getUVVolumeUnits());
+  m_program_accum->setUniform("camera_positions", m_cv->getCameraPositions());
 
   m_program_normalize->attach(
      globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/trigrid_normalize.vs")

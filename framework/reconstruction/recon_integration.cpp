@@ -48,6 +48,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
   m_program->setUniform("kinect_normals",4);
   m_program->setUniform("cv_xyz_inv", m_cv->getXYZVolumeUnitsInv());
   m_program->setUniform("cv_uv", m_cv->getUVVolumeUnits());
+  m_program->setUniform("camera_positions", m_cv->getCameraPositions());
   m_program->setUniform("num_kinects", m_num_kinects);
   m_program->setUniform("limit", limit);
   
@@ -61,6 +62,8 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
   m_program_integration->setUniform("kinect_colors",1);
   m_program_integration->setUniform("kinect_depths",2);
   m_program_integration->setUniform("kinect_qualities",3);
+  m_program_integration->setUniform("kinect_normals",4);
+  m_program_integration->setUniform("camera_positions", m_cv->getCameraPositions());
 
   m_program_integration->setUniform("num_kinects", m_num_kinects);
   m_program_integration->setUniform("res_depth", glm::uvec2{m_cf->getWidth(), m_cf->getHeight()});

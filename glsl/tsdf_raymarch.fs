@@ -12,6 +12,7 @@ uniform sampler3D[5] cv_xyz_inv;
 uniform sampler3D[5] cv_uv;
 uniform uint num_kinects;
 uniform float limit;
+uniform vec3[5] camera_positions;
 
 uniform mat4 gl_ModelViewMatrix;
 uniform mat4 gl_ProjectionMatrix;
@@ -108,6 +109,12 @@ vec3 get_gradient(const vec3 pos) {
    sample(pos + z_offset) - sample(pos - z_offset)));
 }
 
+float normal_angle(vec3 position, uint layer) {
+  vec3 world_normal = texture(kinect_normals, vec3(position.xy, float(layer))).xyz;
+  float angle = dot(normalize(camera_positions[layer] - position), world_normal);
+  return angle;
+}
+
 float[5] getWeights(const in vec3 sample_pos) {
   float weights[5] =float[5](0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
   for (uint i = 0u; i < num_kinects; ++i) {
@@ -118,6 +125,8 @@ float[5] getWeights(const in vec3 sample_pos) {
     if(abs(depth - pos_calib.z) < limit) {
       float lateral_quality = texture(kinect_qualities, vec3(pos_calib.xy, float(i))).r;
       quality = lateral_quality/(pos_calib.z * 4.0f+ 0.5f);
+      float angle = normal_angle(pos_calib, i);
+      quality *= angle;
     }
 
     weights[i] = quality;
