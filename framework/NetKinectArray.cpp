@@ -276,6 +276,8 @@ void NetKinectArray::bindToTextureUnits() const {
   m_textures_quality->bind();
   glActiveTexture(GL_TEXTURE0 + m_start_texture_unit + 3);
   m_textures_normal->bind();
+  glActiveTexture(GL_TEXTURE0 + 40);
+  m_depthArray->bind();
 }
 
 unsigned NetKinectArray::getStartTextureUnit() const {

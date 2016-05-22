@@ -36,6 +36,7 @@ using namespace gl;
 #include "recon_points.hpp"
 #include "recon_calibs.hpp"
 #include "recon_integration.hpp"
+#include "recon_mvt.hpp"
 
 /// general setup
 unsigned g_screenWidth  = 1280;
@@ -152,6 +153,7 @@ void init(std::vector<std::string> args){
   g_recons.emplace_back(new kinect::ReconTrigrid(*g_calib_files, g_cv.get(), g_bbox));
   g_recons.emplace_back(new kinect::ReconPoints(*g_calib_files, g_cv.get(), g_bbox));
   g_recons.emplace_back(new kinect::ReconIntegration(*g_calib_files, g_cv.get(), g_bbox));
+  g_recons.emplace_back(new kinect::ReconMVT(*g_calib_files, g_cv.get(), g_bbox)); 
 
   g_calibvis = std::unique_ptr<kinect::ReconCalibs>(new kinect::ReconCalibs(*g_calib_files, g_cv.get(), g_bbox));
 
@@ -281,7 +283,8 @@ void draw3d(void)
   g_bbox.draw();
 
   if (g_draw_textures) {
-    TextureBlitter::blit(g_nka->getStartTextureUnit() + g_texture_type, g_num_texture, g_nka->getDepthResolution());
+    TextureBlitter::blit(40, g_num_texture, g_nka->getDepthResolution());
+    // TextureBlitter::blit(g_nka->getStartTextureUnit() + g_texture_type, g_num_texture, g_nka->getDepthResolution());
   }
 }
 

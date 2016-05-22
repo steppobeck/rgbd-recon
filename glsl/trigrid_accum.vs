@@ -20,7 +20,7 @@ out float geo_lateral_quality;
 
 void main() {
 
-  vec3 coords = vec3(in_Position,layer);
+  vec3 coords = vec3(in_Position, layer);
   float depth = texture2DArray(kinect_depths, coords).r;
 
   // lookup from calibvolume
