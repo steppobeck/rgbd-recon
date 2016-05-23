@@ -190,6 +190,8 @@ inline void swap(double_pbo& a, double_pbo& b) {
     bool m_running;
     bool m_filter_textures;
     std::string m_serverport;
+    std::size_t m_num_frame;
+    double m_curr_frametime;
 
     unsigned m_start_texture_unit;
     CalibrationFiles const* m_calib_files;

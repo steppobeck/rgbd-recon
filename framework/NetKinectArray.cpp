@@ -35,7 +35,7 @@
 #include <sstream>
 
 namespace kinect{
-
+  static const std::size_t s_num_bg_frames = 20;
   NetKinectArray::NetKinectArray(std::string const& serverport, CalibrationFiles const* calibs, CalibVolumes const* vols, bool readfromfile)
     : m_width(0),
       m_widthc(0),
@@ -65,6 +65,8 @@ namespace kinect{
       m_running(true),
       m_filter_textures(true),
       m_serverport(serverport),
+      m_num_frame{0},
+      m_curr_frametime{0.0},
       m_start_texture_unit(0),
       m_calib_files{calibs},
       m_calib_vols{vols},
@@ -148,7 +150,8 @@ namespace kinect{
 
     m_textures_quality->image3D(0, GL_LUMINANCE32F_ARB, m_width, m_height, m_numLayers, 0, GL_RED, GL_FLOAT, (void*)nullptr);
     m_textures_normal->image3D(0, GL_RGB32F, m_width, m_height, m_numLayers, 0, GL_RGB, GL_FLOAT, (void*)nullptr);
-    m_textures_bg->image3D(0, GL_RG32F, m_width, m_height, m_numLayers, 0, GL_RG, GL_FLOAT, (void*)nullptr);
+    std::vector<glm::fvec2> empty_bg_tex(m_width * m_height * m_numLayers, glm::fvec2{0.0f});
+    m_textures_bg->image3D(0, GL_RG32F, m_width, m_height, m_numLayers, 0, GL_RG, GL_FLOAT, empty_bg_tex.data());
     m_textures_bg_back->image3D(0, GL_RG32F, m_width, m_height, m_numLayers, 0, GL_RG, GL_FLOAT, (void*)nullptr);
     m_textures_silhouette->image3D(0, GL_R32F, m_width, m_height, m_numLayers, 0, GL_RED, GL_FLOAT, (void*)nullptr);
 
@@ -225,7 +228,9 @@ void NetKinectArray::processBackground() {
   }
   m_program_bg->release();
   std::swap(m_textures_bg, m_textures_bg_back);
-  m_textures_bg->bindActive(m_start_texture_unit + 4);
+  m_textures_bg->bindActive(m_start_texture_unit + 5);
+
+  ++m_num_frame;
 }
 
 void NetKinectArray::processTextures(){
@@ -243,7 +248,7 @@ void NetKinectArray::processTextures(){
   m_program_filter->use();
 
   m_fbo->bind();
-  m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1});
+  m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2});
 
   m_program_filter->setUniform("filter_textures", m_filter_textures);
 // depth and old quality
@@ -253,6 +258,7 @@ void NetKinectArray::processTextures(){
 
     m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT0, m_depthArray_back->getTexture(), 0, i);
     m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT1, m_textures_quality, 0, i);
+    m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT2, m_textures_silhouette, 0, i);
     m_program_filter->setUniform("layer", i);
     m_program_filter->setUniform("compress", m_calib_files->getCalibs()[i].isCompressedDepth());
     const float near = m_calib_files->getCalibs()[i].getNear();
@@ -295,8 +301,9 @@ void NetKinectArray::processTextures(){
   }
   
   m_program_quality->release();
-
-  processBackground();
+  if(m_num_frame < s_num_bg_frames && m_curr_frametime < 0.5) {
+    processBackground();
+  }
 
   m_fbo->unbind();
   
@@ -316,6 +323,8 @@ void NetKinectArray::setStartTextureUnit(unsigned start_texture_unit) {
   m_program_normal->setUniform("kinect_depths", GLint(m_start_texture_unit + 1));
   m_program_quality->setUniform("kinect_depths", GLint(m_start_texture_unit + 1));
   m_program_bg->setUniform("kinect_depths", GLint(m_start_texture_unit + 1));
+  m_program_bg->setUniform("kinect_depths", 40);
+  m_program_filter->setUniform("bg_depths", GLint(m_start_texture_unit + 5));
 }
 
 void NetKinectArray::bindToTextureUnits() const {
@@ -323,14 +332,10 @@ void NetKinectArray::bindToTextureUnits() const {
   m_colorArray->bind();
   glActiveTexture(GL_TEXTURE0 + m_start_texture_unit + 1);
   m_depthArray_back->bind();
-  glActiveTexture(GL_TEXTURE0 + m_start_texture_unit + 2);
-  m_textures_quality->bind();
-  glActiveTexture(GL_TEXTURE0 + m_start_texture_unit + 3);
-  m_textures_normal->bind();
-  glActiveTexture(GL_TEXTURE0 + m_start_texture_unit + 4);
-  m_textures_bg->bind();
-  glActiveTexture(GL_TEXTURE0 + 42);
-  m_textures_bg_back->bind();
+  m_textures_quality->bindActive(m_start_texture_unit + 2);
+  m_textures_normal->bindActive(m_start_texture_unit + 3);
+  m_textures_silhouette->bindActive(m_start_texture_unit + 4);
+  m_textures_bg->bindActive(m_start_texture_unit + 5);
   glActiveTexture(GL_TEXTURE0 + 40);
   m_depthArray->bind();
 }
@@ -390,6 +395,7 @@ NetKinectArray::getDepthArray(){
 
     	  memcpy(&current_time, (byte*)zmqm.data(), sizeof(double));
         std::cout << "time " << current_time << std::endl;
+        m_curr_frametime = current_time;
         unsigned offset = 0;
         // receive data
         const unsigned number_of_kinects = m_calib_files->num(); // is 5 in the current example

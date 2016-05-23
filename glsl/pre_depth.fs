@@ -5,6 +5,7 @@ noperspective in vec2 pass_TexCoord;
 
 uniform sampler2D gauss;
 uniform sampler2DArray kinect_depths;
+uniform sampler2DArray bg_depths;
 //uniform sampler2DArray kinect_colors;
 uniform vec2 texSizeInv;
 uniform bool filter_textures;
@@ -24,6 +25,7 @@ const int kernel_end = kernel_size + 1;
 
 layout(location = 0) out float out_Depth;
 layout(location = 1) out float out_Quality;
+layout(location = 2) out float out_Silhouette;
 
 float dist_space_max_inv = 1.0/float(kernel_size);
 float computeGaussSpace(float dist_space){
@@ -140,4 +142,12 @@ void main(void) {
 
   out_Depth = normalize_depth(res.x);
   out_Quality = res.y;
+  float bg_depth = texture(bg_depths, coords).r;
+  const float min_bg_dist = 0.1f;
+  if(bg_depth - out_Depth > min_bg_dist && out_Depth > 0.0f) {
+    out_Silhouette = 1.0f;
+  }
+  else {
+    out_Silhouette = 0.0f;
+  }
 }

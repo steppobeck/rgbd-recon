@@ -63,6 +63,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
   m_program_integration->setUniform("kinect_depths",2);
   m_program_integration->setUniform("kinect_qualities",3);
   m_program_integration->setUniform("kinect_normals",4);
+  m_program_integration->setUniform("kinect_silhouettes",5);
   m_program_integration->setUniform("camera_positions", m_cv->getCameraPositions());
 
   m_program_integration->setUniform("num_kinects", m_num_kinects);
