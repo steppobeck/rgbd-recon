@@ -20,9 +20,12 @@ void main() {
    	  gl_FragColor = vec4(1.0f -inverted_dist, 0.0f, 0.0f, 1.0f);	
 	}
 	else {
-   	  gl_FragColor = vec4(0.0f, 1.0f - inverted_dist, 0.0f, 1.0f);	
-	}
-	vec3 color = texture(cv_xyz_inv[layer],geo_pos_volume).rgb;
+        gl_FragColor = vec4(0.0f, 1.0f - inverted_dist, 0.0f, 1.0f); 
+   }
+   vec3 color = texture(cv_xyz_inv[layer],geo_pos_volume).rgb;
+   if(geo_texcoord.r >= limit) {
+	  gl_FragColor = vec4(0.0f, 0.0f, 1.0f, 1.0f);	   
+   }
    	 // if(!clip(color)) discard;
    	 // if(color.z <= 0.0f) discard;
    	  // gl_FragColor = vec4(color, 1.0f);	
@@ -31,5 +34,5 @@ void main() {
    // if (geo_texcoord.r < -10.0f) discard;
    // if (geo_texcoord.r > 9.0f) discard;
    // if (geo_texcoord.r > 0.0f) discard;
-   if (abs(geo_texcoord.r) >= limit) discard;
+   if (geo_texcoord.r <= -limit) discard;
 }

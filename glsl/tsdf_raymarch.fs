@@ -56,7 +56,7 @@ void main() {
     float density = sample(sample_pos);
 
     // check if cell is inside contour
-    if (density < IsoValue && prev_density >= IsoValue) {
+    if (density > IsoValue && prev_density <= IsoValue) {
       // approximate ray-cell intersection
       sample_pos = (sample_pos - sampleStep) - sampleStep * (prev_density / (density - prev_density));
 

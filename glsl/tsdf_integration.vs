@@ -6,6 +6,8 @@ uniform sampler2DArray kinect_colors;
 uniform sampler2DArray kinect_depths;
 uniform sampler2DArray kinect_qualities;
 uniform sampler2DArray kinect_normals;
+uniform sampler2DArray kinect_silhouettes;
+
 // calibration
 uniform sampler3D[5] cv_xyz_inv;
 
@@ -33,21 +35,22 @@ void main() {
   for (uint i = 0u; i < num_kinects; ++i) {
     vec3 pos_calib = texture(cv_xyz_inv[i], in_Position).xyz;
     float depth = texture(kinect_depths, vec3(pos_calib.xy, float(i))).r;
-    // if (is_outside(depth)) {
-    //   // no write yet -> voxel outside of surface
-    //   if (weighted_tsd >= limit) {
-    //     weighted_tsd = -limit;
-    //     continue;
-    //   }
-    //   // tsd = 10.0f;
-    //   // break;
-    // }
-    float sdist = depth - pos_calib.z;
-    if (sdist <= -limit ) {
-      // weighted_tsd = -limit;
+    float silhouette = texture(kinect_silhouettes, vec3(pos_calib.xy, float(i))).r;
+    if (silhouette < 1.0f) {
+      // no write yet -> voxel outside of surface
+      if (weighted_tsd >= limit) {
+        weighted_tsd = -limit;
+        continue;
+      }
+      // tsd = 10.0f;
       // break;
     }
-    else if (sdist >= limit ) {
+    float sdist = pos_calib.z - depth;
+    // if (sdist <= -limit ) {
+    //   // weighted_tsd = -limit;
+    //   // break;
+    // }
+    if (sdist >= limit ) {
       // do nothing
     }
     else {
