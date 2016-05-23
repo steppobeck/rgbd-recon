@@ -1,6 +1,6 @@
 #version 140
 #extension GL_ARB_shading_language_include : require
-
+#extension GL_ARB_gpu_shader5 : enable
 uniform uint stage;
 // used by accumulation pass
 uniform sampler2DArray kinect_colors;
