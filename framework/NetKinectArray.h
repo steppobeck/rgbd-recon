@@ -130,7 +130,6 @@ inline void swap(double_pbo& a, double_pbo& b) {
     virtual void update();
 
     void processTextures();
-
     void setStartTextureUnit(unsigned m_start_texture_unit);
 
     unsigned getStartTextureUnit() const;
@@ -153,10 +152,12 @@ inline void swap(double_pbo& a, double_pbo& b) {
   protected:
     void bindToFramebuffer(GLuint array_handle, GLuint layer);
 
+    void processBackground();
 
     void readLoop();
     void readFromFiles();
     bool init();
+
     unsigned m_width;
     unsigned m_widthc;
     unsigned m_height;
@@ -165,15 +166,19 @@ inline void swap(double_pbo& a, double_pbo& b) {
     unsigned m_numLayers;
     mvt::TextureArray* m_colorArray;
     mvt::TextureArray* m_depthArray;
-    globjects::Texture* m_textures_quality;
-    globjects::Texture* m_textures_normal;
-    globjects::Framebuffer* m_fbo;
+    globjects::ref_ptr<globjects::Texture> m_textures_quality;
+    globjects::ref_ptr<globjects::Texture> m_textures_normal;
+    globjects::ref_ptr<globjects::Texture> m_textures_bg;
+    globjects::ref_ptr<globjects::Texture> m_textures_bg_back;
+    globjects::ref_ptr<globjects::Texture> m_textures_silhouette;
+    globjects::ref_ptr<globjects::Framebuffer> m_fbo;
     mvt::TextureArray*  m_colorArray_back;
     mvt::TextureArray*  m_depthArray_back;
 
-    globjects::Program* m_program_filter;
-    globjects::Program* m_program_normal;
-    globjects::Program* m_program_quality;
+    globjects::ref_ptr<globjects::Program> m_program_filter;
+    globjects::ref_ptr<globjects::Program> m_program_normal;
+    globjects::ref_ptr<globjects::Program> m_program_quality;
+    globjects::ref_ptr<globjects::Program> m_program_bg;
 
     unsigned m_colorsize; // per frame
     unsigned m_depthsize; // per frame

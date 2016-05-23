@@ -1,10 +1,11 @@
 #ifndef MVT_TEXTUREARRAY_H
 #define MVT_TEXTUREARRAY_H
 
-
 #include <glbinding/gl/gl.h>
 using namespace gl;
+
 #include <globjects/Texture.h>
+#include <globjects/base/ref_ptr.h>
 
 #include <vector>
 
@@ -19,7 +20,6 @@ class TextureArray{
 /* opengl depth: GL_DEPTH_COMPONENT32, GL_DEPTH_COMPONENT, GL_FLOAT*/
   TextureArray(unsigned width, unsigned height, unsigned depth,
     	 GLenum internalFormat/* = GL_RGBA*/, GLenum pixelFormat /* = GL_RGBA*/, GLenum pixelType /* = GL_FLOAT*/, unsigned storage = 0);
-  ~TextureArray();
 
   // void fillLayer(unsigned layer, void* data);
   // void fillLayers(void* data);
@@ -45,7 +45,7 @@ class TextureArray{
   GLenum m_pixelFormat;
   GLenum m_pixelType;
 
-  globjects::Texture* m_texture;
+  globjects::ref_ptr<globjects::Texture> m_texture;
   unsigned m_storage;
 };
 

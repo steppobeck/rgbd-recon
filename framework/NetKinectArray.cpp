@@ -18,6 +18,7 @@
 
 #include <glbinding/gl/functions-patches.h>
 #include <globjects/Shader.h>
+#include <globjects/logging.h>
 
 #include "squish/squish.h"
 #include <zmq.hpp>
@@ -45,12 +46,16 @@ namespace kinect{
       m_depthArray(0),
       m_textures_quality{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
       m_textures_normal{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
+      m_textures_bg{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
+      m_textures_bg_back{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
+      m_textures_silhouette{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
       m_fbo{new globjects::Framebuffer()},
       m_colorArray_back(0),
       m_depthArray_back(0),
       m_program_filter{new globjects::Program()},
       m_program_normal{new globjects::Program()},
       m_program_quality{new globjects::Program()},
+      m_program_bg{new globjects::Program()},
       m_colorsize(0),
       m_depthsize(0),
       m_pbo_colors(),
@@ -86,6 +91,10 @@ namespace kinect{
     m_program_quality->attach(
      globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/texture_passthrough.vs")
     ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/pre_quality.fs")
+    );
+    m_program_bg->attach(
+     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/texture_passthrough.vs")
+    ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/pre_background.fs")
     );
   }
 
@@ -139,6 +148,9 @@ namespace kinect{
 
     m_textures_quality->image3D(0, GL_LUMINANCE32F_ARB, m_width, m_height, m_numLayers, 0, GL_RED, GL_FLOAT, (void*)nullptr);
     m_textures_normal->image3D(0, GL_RGB32F, m_width, m_height, m_numLayers, 0, GL_RGB, GL_FLOAT, (void*)nullptr);
+    m_textures_bg->image3D(0, GL_RG32F, m_width, m_height, m_numLayers, 0, GL_RG, GL_FLOAT, (void*)nullptr);
+    m_textures_bg_back->image3D(0, GL_RG32F, m_width, m_height, m_numLayers, 0, GL_RG, GL_FLOAT, (void*)nullptr);
+    m_textures_silhouette->image3D(0, GL_R32F, m_width, m_height, m_numLayers, 0, GL_RED, GL_FLOAT, (void*)nullptr);
 
     m_depthArray = new mvt::TextureArray(m_width, m_height, m_numLayers, GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT);
 
@@ -151,10 +163,15 @@ namespace kinect{
     m_depthArray->setMAGMINFilter(GL_NEAREST);
     m_depthArray_back->setMAGMINFilter(GL_NEAREST);
 
-    m_program_filter->setUniform("kinect_depths",40);
-    m_program_filter->setUniform("texSizeInv", glm::fvec2(1.0f/m_width, 1.0f/m_height));
-    m_program_normal->setUniform("texSizeInv", glm::fvec2(1.0f/m_width, 1.0f/m_height));
-    m_program_quality->setUniform("texSizeInv", glm::fvec2(1.0f/m_width, 1.0f/m_height));
+    m_program_filter->setUniform("kinect_depths", 40);
+    glm::fvec2 tex_size_inv{1.0f/m_width, 1.0f/m_height};
+    m_program_filter->setUniform("texSizeInv", tex_size_inv);
+    m_program_normal->setUniform("texSizeInv", tex_size_inv);
+    m_program_quality->setUniform("texSizeInv", tex_size_inv);
+    m_program_bg->setUniform("texSizeInv", tex_size_inv);
+    m_program_bg->setUniform("bg_depths", 41);
+    // use reference counting or detaching from fbo kills textures
+
 
     std::cout << "NetKinectArray::NetKinectArray: " << this << std::endl;
 
@@ -171,13 +188,6 @@ namespace kinect{
     m_readThread->join();
     delete m_readThread;
     delete m_mutex;
-
-    m_fbo->destroy();
-    m_textures_quality->destroy();
-    m_textures_normal->destroy();
-    m_program_filter->destroy();
-    m_program_normal->destroy();
-    m_program_quality->destroy();
   }
 
   void
@@ -201,8 +211,24 @@ glm::uvec2 NetKinectArray::getDepthResolution() const {
 glm::uvec2 NetKinectArray::getColorResolution() const {
   return glm::uvec2{m_widthc, m_heightc};
 }
-void
-NetKinectArray::processTextures(){
+
+void NetKinectArray::processBackground() {
+  m_textures_bg->bindActive(41);
+  m_program_bg->use();
+
+  for(unsigned i = 0; i < m_calib_files->num(); ++i){
+    m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT0, m_textures_bg_back, 0, i);
+
+    m_program_bg->setUniform("layer", i);
+
+    ScreenQuad::draw();
+  }
+  m_program_bg->release();
+  std::swap(m_textures_bg, m_textures_bg_back);
+  m_textures_bg->bindActive(m_start_texture_unit + 4);
+}
+
+void NetKinectArray::processTextures(){
 
   glPushAttrib(GL_ALL_ATTRIB_BITS);
 
@@ -220,7 +246,7 @@ NetKinectArray::processTextures(){
   m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1});
 
   m_program_filter->setUniform("filter_textures", m_filter_textures);
-  
+// depth and old quality
   for(unsigned i = 0; i < m_calib_files->num(); ++i){
     m_program_filter->setUniform("cv_min_ds", m_calib_vols->getDepthLimits(i).x);
     m_program_filter->setUniform("cv_max_ds", m_calib_vols->getDepthLimits(i).y);
@@ -240,16 +266,15 @@ NetKinectArray::processTextures(){
   }
   
   m_program_filter->release();
-
+// normals
   m_program_normal->use();
   m_program_normal->setUniform("cv_xyz", m_calib_vols->getXYZVolumeUnits());
   m_program_normal->setUniform("cv_uv", m_calib_vols->getUVVolumeUnits());
-  m_program_normal->setUniform("kinect_depths", GLint(m_start_texture_unit + 1));
 
-  m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT2});
+  m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT0});
 
   for(unsigned i = 0; i < m_calib_files->num(); ++i){
-    m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT2, m_textures_normal, 0, i);
+    m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT0, m_textures_normal, 0, i);
 
     m_program_normal->setUniform("layer", i);
 
@@ -257,17 +282,12 @@ NetKinectArray::processTextures(){
   }
   
   m_program_normal->release();
-
+// quality
   m_program_quality->use();
-  // m_program_quality->setUniform("cv_xyz", m_calib_vols->getXYZVolumeUnits());
-  // m_program_quality->setUniform("cv_uv", m_calib_vols->getUVVolumeUnits());
   m_program_quality->setUniform("camera_positions", m_calib_vols->getCameraPositions());
-  m_program_quality->setUniform("kinect_depths", GLint(m_start_texture_unit + 1));
-
-  m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT3});
 
   for(unsigned i = 0; i < m_calib_files->num(); ++i){
-    m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT3, m_textures_quality, 0, i);
+    m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT0, m_textures_quality, 0, i);
 
     m_program_quality->setUniform("layer", i);
 
@@ -275,6 +295,8 @@ NetKinectArray::processTextures(){
   }
   
   m_program_quality->release();
+
+  processBackground();
 
   m_fbo->unbind();
   
@@ -290,6 +312,10 @@ void NetKinectArray::setStartTextureUnit(unsigned start_texture_unit) {
   m_start_texture_unit = start_texture_unit;
 
   bindToTextureUnits();
+
+  m_program_normal->setUniform("kinect_depths", GLint(m_start_texture_unit + 1));
+  m_program_quality->setUniform("kinect_depths", GLint(m_start_texture_unit + 1));
+  m_program_bg->setUniform("kinect_depths", GLint(m_start_texture_unit + 1));
 }
 
 void NetKinectArray::bindToTextureUnits() const {
@@ -301,6 +327,10 @@ void NetKinectArray::bindToTextureUnits() const {
   m_textures_quality->bind();
   glActiveTexture(GL_TEXTURE0 + m_start_texture_unit + 3);
   m_textures_normal->bind();
+  glActiveTexture(GL_TEXTURE0 + m_start_texture_unit + 4);
+  m_textures_bg->bind();
+  glActiveTexture(GL_TEXTURE0 + 42);
+  m_textures_bg_back->bind();
   glActiveTexture(GL_TEXTURE0 + 40);
   m_depthArray->bind();
 }
@@ -346,22 +376,26 @@ NetKinectArray::getDepthArray(){
     bool drop = false;
     sensor::timevalue ts(sensor::clock::time());
 
+    double current_time = 0.0;
+
     while(m_running){
       zmq::message_t zmqm((colorsize + depthsize) * m_calib_files->num());
       
       socket.recv(&zmqm); // blocking
       
       if(!drop){
-      	while(m_pbo_colors.needSwap || m_pbo_depths.needSwap){
+      	while(m_pbo_colors.needSwap || m_pbo_depths.needSwap) {
       	  ;
       	}
 
-      	unsigned offset = 0;
-      	// receive data
+    	  memcpy(&current_time, (byte*)zmqm.data(), sizeof(double));
+        std::cout << "time " << current_time << std::endl;
+        unsigned offset = 0;
+        // receive data
         const unsigned number_of_kinects = m_calib_files->num(); // is 5 in the current example
         // this loop goes over each kinect like K1_frame_1 K2_frame_1 K3_frame_1 
-      	for(unsigned i = 0; i < number_of_kinects; ++i){
-      	  memcpy((byte*) m_pbo_colors.pointer() + i*colorsize , (byte*) zmqm.data() + offset, colorsize);
+        for(unsigned i = 0; i < number_of_kinects; ++i){
+          memcpy((byte*) m_pbo_colors.pointer() + i*colorsize , (byte*) zmqm.data() + offset, colorsize);
       	  offset += colorsize;
       	  memcpy((byte*) m_pbo_depths.pointer() + i*depthsize , (byte*) zmqm.data() + offset, depthsize);
 

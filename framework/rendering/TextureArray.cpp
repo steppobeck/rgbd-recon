@@ -37,11 +37,6 @@ TextureArray::TextureArray(unsigned width, unsigned height, unsigned depth,
     m_texture->image3D(0, m_internalFormat, m_width, m_height, m_depth, 0, m_pixelFormat, m_pixelType, (void*)nullptr);
   }
 }
-
-TextureArray::~TextureArray() {
-  m_texture->destroy();
-}
-
 // void
 // TextureArray::fillLayer(unsigned layer, void* data){
 
