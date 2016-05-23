@@ -173,6 +173,7 @@ inline void swap(double_pbo& a, double_pbo& b) {
 
     globjects::Program* m_program_filter;
     globjects::Program* m_program_normal;
+    globjects::Program* m_program_quality;
 
     unsigned m_colorsize; // per frame
     unsigned m_depthsize; // per frame

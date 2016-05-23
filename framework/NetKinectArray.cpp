@@ -50,6 +50,7 @@ namespace kinect{
       m_depthArray_back(0),
       m_program_filter{new globjects::Program()},
       m_program_normal{new globjects::Program()},
+      m_program_quality{new globjects::Program()},
       m_colorsize(0),
       m_depthsize(0),
       m_pbo_colors(),
@@ -76,11 +77,15 @@ namespace kinect{
 
     m_program_filter->attach(
      globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/texture_passthrough.vs")
-    ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/depth_process.fs")
+    ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/pre_depth.fs")
     );
     m_program_normal->attach(
      globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/texture_passthrough.vs")
-    ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/normal_computation.fs")
+    ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/pre_normal.fs")
+    );
+    m_program_quality->attach(
+     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/texture_passthrough.vs")
+    ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/pre_quality.fs")
     );
   }
 
@@ -149,6 +154,7 @@ namespace kinect{
     m_program_filter->setUniform("kinect_depths",40);
     m_program_filter->setUniform("texSizeInv", glm::fvec2(1.0f/m_width, 1.0f/m_height));
     m_program_normal->setUniform("texSizeInv", glm::fvec2(1.0f/m_width, 1.0f/m_height));
+    m_program_quality->setUniform("texSizeInv", glm::fvec2(1.0f/m_width, 1.0f/m_height));
 
     std::cout << "NetKinectArray::NetKinectArray: " << this << std::endl;
 
@@ -171,6 +177,7 @@ namespace kinect{
     m_textures_normal->destroy();
     m_program_filter->destroy();
     m_program_normal->destroy();
+    m_program_quality->destroy();
   }
 
   void
@@ -250,6 +257,24 @@ NetKinectArray::processTextures(){
   }
   
   m_program_normal->release();
+
+  m_program_quality->use();
+  // m_program_quality->setUniform("cv_xyz", m_calib_vols->getXYZVolumeUnits());
+  // m_program_quality->setUniform("cv_uv", m_calib_vols->getUVVolumeUnits());
+  m_program_quality->setUniform("camera_positions", m_calib_vols->getCameraPositions());
+  m_program_quality->setUniform("kinect_depths", GLint(m_start_texture_unit + 1));
+
+  m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT3});
+
+  for(unsigned i = 0; i < m_calib_files->num(); ++i){
+    m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT3, m_textures_quality, 0, i);
+
+    m_program_quality->setUniform("layer", i);
+
+    ScreenQuad::draw();
+  }
+  
+  m_program_quality->release();
 
   m_fbo->unbind();
   
