@@ -35,7 +35,7 @@ bool is_valid(float depth) {
 
 const int kernel_size = 1; // in pixel
 const int kernel_end = kernel_size + 1;
-
+const float max_dist = 0.08f;
 float erode(const in vec3 coords, int kernel_size) {
   float depth = sample(coords);
   if (depth <= min_depth) {
@@ -46,7 +46,7 @@ float erode(const in vec3 coords, int kernel_size) {
       // if(abs(x))
       vec3 coords_s = coords + vec3(vec2(x, y) * texSizeInv, 0.0f);
       float depth_s = sample(coords_s);
-      if (!is_valid(depth_s)) {
+      if (!is_valid(depth_s) || distance(depth, depth_s) > max_dist) {
         return 0.0f;
       }
     }
@@ -55,6 +55,7 @@ float erode(const in vec3 coords, int kernel_size) {
 }
 
 float dilate(const in vec3 coords, int kernel_size) {
+  float depth = sample(coords);
   float average_depth = 0.0f;
   float num_samples = 0.0f;
   bool valid = false;
@@ -62,7 +63,7 @@ float dilate(const in vec3 coords, int kernel_size) {
     for(int x = -kernel_size; x < kernel_size + 1; ++x){
       vec3 coords_s = coords + vec3(vec2(x, y) * texSizeInv, 0.0f);
       float depth_s = texture(eroded_depths, coords_s).r;
-      if (is_valid(depth_s)) {
+      if (is_valid(depth_s) && distance(depth, depth_s) < max_dist) {
         valid = true;
         average_depth += depth_s;
         num_samples += 1.0f;
