@@ -288,9 +288,9 @@ void draw3d(void)
 
     glEnd();
     glPopAttrib();
+    g_bbox.draw();
   }
-
-  g_bbox.draw();
+  
 
   if (g_draw_textures) {
     TextureBlitter::blit(g_nka->getStartTextureUnit() + g_texture_type, g_num_texture, g_nka->getDepthResolution());

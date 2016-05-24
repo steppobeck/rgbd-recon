@@ -33,7 +33,7 @@ bool is_valid(float depth) {
   return depth > min_depth && depth <= max_depth;
 }
 
-const int kernel_size = 1; // in pixel
+const int kernel_size = 3; // in pixel
 const int kernel_end = kernel_size + 1;
 
 float erode(const in vec3 coords) {

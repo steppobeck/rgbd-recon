@@ -5,11 +5,13 @@ noperspective in vec2 pass_TexCoord;
 
 // uniform sampler2D gauss;
 uniform sampler2DArray kinect_depths;
-//uniform sampler2DArray kinect_colors;
+uniform sampler2DArray kinect_normals;
 uniform vec2 texSizeInv;
 uniform vec3[5] camera_positions;
 
 uniform uint layer;
+uniform bool processed_depth;
+uniform sampler3D[5] cv_xyz;
 
 const int kernel_size = 6; // in pixel
 const int kernel_end = kernel_size + 1;
@@ -35,6 +37,13 @@ float sample(vec3 coords) {
 
 bool is_outside(float d){
   return (d < 0.0f) || (d > 1.0f);
+}
+
+float normal_angle(vec3 position, uint layer) {
+  vec3 world_normal = texture(kinect_normals, vec3(position.xy, float(layer))).xyz;
+  vec3 world_pos = texture(cv_xyz[layer], position).xyz;
+  float angle = dot(normalize(camera_positions[layer] - world_pos), world_normal);
+  return angle;
 }
 
 float bilateral_filter(vec3 coords){
@@ -82,21 +91,18 @@ float bilateral_filter(vec3 coords){
   float lateral_quality  = 1.0f - border_samples/num_samples;
   // float lateral_quality  = 1.0f - border_samples/num_samples * w_range / 40.0f;
   // lateral_quality  = 1.0f - weight_border_samples/weight_samples;
-  float quality_strong = pow(lateral_quality,3.0);
-  quality_strong /= depth * 4.5f;
-  float filtered_depth = 0.0f;
-  if(w > 0.0)
-    filtered_depth = depth_bf/w;
-  else
-    filtered_depth = -1.0f;
-
-#if 1
-  if(w_range < (num_samples * 0.65)){
-    filtered_depth = -1.0f;
+  float exponent = 3.0f;
+  if(processed_depth) {
+    exponent = 10.0f;
   }
-#endif
-
-  return quality_strong;
+  float quality_strong = pow(lateral_quality, exponent);
+  quality_strong /= depth * 4.5f;
+  // float fdiltered_depth = 0.0f;
+  //float filtered_depth = depth_bf/w;
+  float angle = normal_angle(vec3(coords.xy, depth), uint(coords.z));
+  // quality_strong *= angle;
+  // return angle;
+  return quality_strong * angle;
 }
 
 void main(void) {

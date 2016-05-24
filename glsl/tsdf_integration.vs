@@ -14,19 +14,13 @@ uniform sampler3D[5] cv_xyz_inv;
 layout(r32f) uniform image3D volume_tsdf;
 
 uniform float limit;
+uniform mat4 vol_to_world;
 uniform uint num_kinects;
 uniform uvec3 res_tsdf;
 uniform uvec2 res_depth;
-uniform vec3[5] camera_positions;
 
 bool is_outside(float depth) {
   return depth < 0.0f || depth > 1.0f;
-}
-
-float normal_angle(vec3 position, uint layer) {
-  vec3 world_normal = texture(kinect_normals, vec3(position.xy, float(layer))).xyz;
-  float angle = dot(normalize(camera_positions[layer] - position), world_normal);
-  return angle;
 }
 
 void main() {
@@ -59,8 +53,7 @@ void main() {
       }
       float tsd = clamp(sdist, -limit, limit);
       float quality = texture(kinect_qualities, vec3(pos_calib.xy, float(i))).r;
-      float angle = normal_angle(vec3(in_Position.xy, depth), i);
-      quality *= angle;
+
       weighted_tsd = (weighted_tsd * weight + quality * tsd) / (weight + quality);
       weight += quality;
     }
