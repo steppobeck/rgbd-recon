@@ -54,6 +54,9 @@ void main() {
       // do nothing
     }
     else {
+      if(weighted_tsd >= limit) {
+        weighted_tsd = 0.0f;
+      }
       float tsd = clamp(sdist, -limit, limit);
       float quality = texture(kinect_qualities, vec3(pos_calib.xy, float(i))).r;
       float angle = normal_angle(vec3(in_Position.xy, depth), i);

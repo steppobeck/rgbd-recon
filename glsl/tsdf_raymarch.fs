@@ -27,7 +27,7 @@ uniform vec3 Dimensions;
 
 float sampleDistance = limit * 0.5f;
 const float IsoValue = 0.0f;
-
+const int refinement_num = 4;
 out vec4 out_Color;
 out float gl_FragDepth;
 
@@ -57,8 +57,19 @@ void main() {
 
     // check if cell is inside contour
     if (density > IsoValue && prev_density <= IsoValue) {
+       bool in_surface = true;
+      for (float i = 1; i <= refinement_num; ++i) {
+        if (in_surface) {
+          sample_pos -= sampleStep * pow(0.5, i);
+        }
+        else {
+          sample_pos += sampleStep * pow(0.5, i);
+        }
+        in_surface = sample(sample_pos) >= IsoValue;
+      }
+
       // approximate ray-cell intersection
-      sample_pos = (sample_pos - sampleStep) - sampleStep * (prev_density / (density - prev_density));
+      // sample_pos = (sample_pos - sampleStep) - sampleStep * (prev_density / (density - prev_density));
 
       float final_density = sample(sample_pos);
       #ifdef GRAD_NORMALS

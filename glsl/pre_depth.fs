@@ -135,13 +135,17 @@ vec2 bilateral_filter(vec3 coords){
 
 void main(void) {
   vec3 coords = vec3(pass_TexCoord, layer);
+  float raw_depth = normalize_depth(sample(coords));
+
   vec2 res = bilateral_filter(coords);
   if(!filter_textures) {
-    res.x = sample(coords);
+    out_Depth = raw_depth;
   }
-
-  out_Depth = normalize_depth(res.x);
+  else {
+    out_Depth = normalize_depth(res.x);
+  }
   out_Quality = res.y;
+
   float bg_depth = texture(bg_depths, coords).r;
   const float min_bg_dist = 0.1f;
   if(bg_depth - out_Depth > min_bg_dist && out_Depth > 0.0f) {
