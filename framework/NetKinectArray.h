@@ -1,14 +1,12 @@
 #ifndef KINECT_NETKINECTARRAY_H
 #define KINECT_NETKINECTARRAY_H
 
+#include "DataTypes.h"
+
 #include <glm/gtc/type_precision.hpp>
 
 #include <glbinding/gl/gl.h>
 using namespace gl;
-
-#include <Matrix.h>
-#include "DataTypes.h"
-
 
 #include <globjects/Program.h>
 #include <globjects/Texture.h>
@@ -36,7 +34,7 @@ namespace kinect{
      ,ptr{nullptr}
      ,front{nullptr}
      ,back{nullptr}
-     ,needSwap{false}
+     ,dirty{false}
     {}
 
     double_pbo(std::size_t s)
@@ -44,7 +42,7 @@ namespace kinect{
      ,ptr{nullptr}
      ,front{new globjects::Buffer()}
      ,back{new globjects::Buffer()}
-     ,needSwap{false}
+     ,dirty{false}
     {
       front->setData(size, nullptr, GL_DYNAMIC_DRAW);
       front->bind(GL_PIXEL_PACK_BUFFER);
@@ -56,13 +54,15 @@ namespace kinect{
       map();
     }
 
+    globjects::Buffer const* get() {
+      if(dirty) {
+        swapBuffers();
+      }
+      return front.get();
+    }    
+
     byte* pointer() {
       return ptr;
-    }
-
-    ~double_pbo() {
-      front->destroy();
-      back->destroy();
     }
 
     double_pbo& operator =(double_pbo&& pbo) {
@@ -72,9 +72,9 @@ namespace kinect{
 
     std::size_t size;
     byte* ptr;
-    globjects::Buffer* front;
-    globjects::Buffer* back;
-    std::atomic<bool> needSwap;
+    globjects::ref_ptr<globjects::Buffer> front;
+    globjects::ref_ptr<globjects::Buffer> back;
+    bool dirty;
 
     void swapBuffers(){
       unmap();
@@ -83,7 +83,7 @@ namespace kinect{
 
       map();
 
-      needSwap = false;
+      dirty = false;
     }
 
     void swap(double_pbo& b) {
@@ -91,16 +91,9 @@ namespace kinect{
       std::swap(ptr, b.ptr);
       std::swap(front, b.front);
       std::swap(back, b.back);
-
-      bool a_swap = needSwap;
-      if(b.needSwap) {
-        needSwap = true;
-      }
-      else {
-        needSwap = false;
-      }
-      b.needSwap = a_swap;
+      std::swap(dirty, b.dirty);
     }
+
   private:
     void unmap() {
       back->unmap();
@@ -156,10 +149,8 @@ inline void swap(double_pbo& a, double_pbo& b) {
     void readFromFiles();
     bool init();
 
-    unsigned m_width;
-    unsigned m_widthc;
-    unsigned m_height;
-    unsigned m_heightc;
+    glm::uvec2 m_resolution_color;
+    glm::uvec2 m_resolution_depth;
 
     unsigned m_numLayers;
     std::unique_ptr<mvt::TextureArray> m_colorArray;
@@ -183,7 +174,7 @@ inline void swap(double_pbo& a, double_pbo& b) {
     double_pbo m_pbo_colors;
     double_pbo m_pbo_depths;
 
-    std::mutex m_mutex;
+    std::mutex m_mutex_pbo;
     std::unique_ptr<std::thread> m_readThread;
     bool m_running;
     bool m_filter_textures;
@@ -194,9 +185,6 @@ inline void swap(double_pbo& a, double_pbo& b) {
     unsigned m_start_texture_unit;
     CalibrationFiles const* m_calib_files;
     CalibVolumes const* m_calib_vols;
-  public:
-    bool depth_compression_lex;
-    float depth_compression_ratio;
   };
 
 }

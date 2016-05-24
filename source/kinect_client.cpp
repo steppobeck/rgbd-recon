@@ -382,11 +382,6 @@ void key(unsigned char key, int x, int y)
     num_kinect = (num_kinect+ 1) % g_calib_files->num();
     g_calibvis->setActiveKinect(num_kinect);
     break;
-  case '#':
-    for(unsigned i = 0; i < g_calib_files->num(); ++i){
-      g_nka->depth_compression_lex = !g_nka->depth_compression_lex;
-    }
-    break;
   default:
     break;
   }
