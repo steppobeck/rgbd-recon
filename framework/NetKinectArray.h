@@ -139,9 +139,6 @@ inline void swap(double_pbo& a, double_pbo& b) {
 
     void writeCurrentTexture(std::string prefix);
     void writeBMP(std::string, std::vector<std::uint8_t> const&, unsigned int offset, unsigned int bytesPerPixel);
-    
-    mvt::TextureArray* getDepthArrayBack();
-    mvt::TextureArray* getDepthArray();
 
     void filterTextures(bool filter);
 
@@ -166,7 +163,8 @@ inline void swap(double_pbo& a, double_pbo& b) {
 
     unsigned m_numLayers;
     std::unique_ptr<mvt::TextureArray> m_colorArray;
-    std::unique_ptr<mvt::TextureArray> m_depthArray;
+    std::unique_ptr<mvt::TextureArray> m_depthArray_raw;
+    globjects::ref_ptr<globjects::Texture> m_textures_depth;
     globjects::ref_ptr<globjects::Texture> m_textures_quality;
     globjects::ref_ptr<globjects::Texture> m_textures_normal;
     globjects::ref_ptr<globjects::Texture> m_textures_bg;
@@ -174,7 +172,6 @@ inline void swap(double_pbo& a, double_pbo& b) {
     globjects::ref_ptr<globjects::Texture> m_textures_silhouette;
     globjects::ref_ptr<globjects::Framebuffer> m_fbo;
     std::unique_ptr<mvt::TextureArray>  m_colorArray_back;
-    std::unique_ptr<mvt::TextureArray>  m_depthArray_back;
 
     globjects::ref_ptr<globjects::Program> m_program_filter;
     globjects::ref_ptr<globjects::Program> m_program_normal;

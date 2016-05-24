@@ -39,7 +39,8 @@ namespace kinect{
       m_heightc(0),
       m_numLayers(0),
       m_colorArray(),
-      m_depthArray(),
+      m_depthArray_raw(),
+      m_textures_depth{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
       m_textures_quality{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
       m_textures_normal{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
       m_textures_bg{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
@@ -47,7 +48,6 @@ namespace kinect{
       m_textures_silhouette{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
       m_fbo{new globjects::Framebuffer()},
       m_colorArray_back(),
-      m_depthArray_back(),
       m_program_filter{new globjects::Program()},
       m_program_normal{new globjects::Program()},
       m_program_quality{new globjects::Program()},
@@ -153,16 +153,20 @@ namespace kinect{
     m_textures_bg_back->image3D(0, GL_RG32F, m_width, m_height, m_numLayers, 0, GL_RG, GL_FLOAT, (void*)nullptr);
     m_textures_silhouette->image3D(0, GL_R32F, m_width, m_height, m_numLayers, 0, GL_RED, GL_FLOAT, (void*)nullptr);
 
-    m_depthArray = std::unique_ptr<mvt::TextureArray>{new mvt::TextureArray(m_width, m_height, m_numLayers, GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT)};
-
     if(m_calib_files->isCompressedDepth()){
-      m_depthArray_back = std::unique_ptr<mvt::TextureArray>{new mvt::TextureArray(m_width, m_height, m_numLayers, GL_LUMINANCE, GL_RED, GL_UNSIGNED_BYTE)};
+      m_depthArray_raw = std::unique_ptr<mvt::TextureArray>{new mvt::TextureArray(m_width, m_height, m_numLayers, GL_LUMINANCE, GL_RED, GL_UNSIGNED_BYTE)};
     }
     else{
-      m_depthArray_back = std::unique_ptr<mvt::TextureArray>{new mvt::TextureArray(m_width, m_height, m_numLayers, GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT)};
+      m_depthArray_raw = std::unique_ptr<mvt::TextureArray>{new mvt::TextureArray(m_width, m_height, m_numLayers, GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT)};
     }
-    m_depthArray->setMAGMINFilter(GL_NEAREST);
-    m_depthArray_back->setMAGMINFilter(GL_NEAREST);
+    m_textures_depth->image3D(0, GL_LUMINANCE32F_ARB, m_width, m_height, m_numLayers, 0, GL_RED, GL_FLOAT, (void*)nullptr);
+    // m_depthArray_back = std::unique_ptr<mvt::TextureArray>{new mvt::TextureArray(m_width, m_height, m_numLayers, GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT)};
+    // m_textures_depth_raw->setParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    // m_textures_depth_raw->setParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    m_depthArray_raw->setMAGMINFilter(GL_NEAREST);
+    m_textures_depth->setParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    m_textures_depth->setParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
 
     m_program_filter->setUniform("kinect_depths", 40);
     glm::fvec2 tex_size_inv{1.0f/m_width, 1.0f/m_height};
@@ -192,7 +196,7 @@ namespace kinect{
   	m_pbo_depths.swapBuffers();
 
     m_colorArray->fillLayersFromPBO(m_pbo_colors.front->id());
-    m_depthArray->fillLayersFromPBO(m_pbo_depths.front->id());
+    m_depthArray_raw->fillLayersFromPBO(m_pbo_depths.front->id());
 
     processTextures();
   }
@@ -233,7 +237,7 @@ void NetKinectArray::processTextures(){
   glViewport(0, 0, m_width, m_height);
 
 	glActiveTexture(GL_TEXTURE0 + 40);
-	m_depthArray->bind();
+	m_depthArray_raw->bind();
   m_program_filter->use();
 
   m_fbo->bind();
@@ -245,7 +249,7 @@ void NetKinectArray::processTextures(){
     m_program_filter->setUniform("cv_min_ds", m_calib_vols->getDepthLimits(i).x);
     m_program_filter->setUniform("cv_max_ds", m_calib_vols->getDepthLimits(i).y);
 
-    m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT0, m_depthArray_back->getTexture(), 0, i);
+    m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT0, m_textures_depth, 0, i);
     m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT1, m_textures_quality, 0, i);
     m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT2, m_textures_silhouette, 0, i);
     m_program_filter->setUniform("layer", i);
@@ -319,14 +323,13 @@ void NetKinectArray::setStartTextureUnit(unsigned start_texture_unit) {
 void NetKinectArray::bindToTextureUnits() const {
   glActiveTexture(GL_TEXTURE0 + m_start_texture_unit);
   m_colorArray->bind();
-  glActiveTexture(GL_TEXTURE0 + m_start_texture_unit + 1);
-  m_depthArray_back->bind();
+  m_textures_depth->bindActive(m_start_texture_unit + 1);
   m_textures_quality->bindActive(m_start_texture_unit + 2);
   m_textures_normal->bindActive(m_start_texture_unit + 3);
   m_textures_silhouette->bindActive(m_start_texture_unit + 4);
   m_textures_bg->bindActive(m_start_texture_unit + 5);
   glActiveTexture(GL_TEXTURE0 + 40);
-  m_depthArray->bind();
+  m_depthArray_raw->bind();
 }
 
 unsigned NetKinectArray::getStartTextureUnit() const {
@@ -337,16 +340,6 @@ void NetKinectArray::filterTextures(bool filter) {
   m_filter_textures = filter;
   // process with new settings
   processTextures();
-}
-
-mvt::TextureArray*
-NetKinectArray::getDepthArrayBack(){
-  return m_depthArray_back.get();
-}
-
-mvt::TextureArray*
-NetKinectArray::getDepthArray(){
-  return m_depthArray.get();
 }
 
   void
@@ -413,7 +406,7 @@ NetKinectArray::getDepthArray(){
     {
       glPixelStorei(GL_PACK_ALIGNMENT, 1);
       
-      glBindTexture(GL_TEXTURE_2D_ARRAY,m_depthArray->getGLHandle());
+      glBindTexture(GL_TEXTURE_2D_ARRAY,m_depthArray_raw->getGLHandle());
       int width, height, depth;
       glGetTexLevelParameteriv (GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_WIDTH, &width);
       glGetTexLevelParameteriv (GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_HEIGHT, &height);
@@ -443,7 +436,7 @@ NetKinectArray::getDepthArray(){
     {
       glPixelStorei(GL_PACK_ALIGNMENT, 1);
       
-      glBindTexture(GL_TEXTURE_2D_ARRAY,m_depthArray->getGLHandle());
+      glBindTexture(GL_TEXTURE_2D_ARRAY,m_depthArray_raw->getGLHandle());
       int width, height, depth;
       glGetTexLevelParameteriv (GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_WIDTH, &width);
       glGetTexLevelParameteriv (GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_HEIGHT, &height);
