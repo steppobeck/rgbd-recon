@@ -23,16 +23,12 @@
 #include "squish/squish.h"
 #include <zmq.hpp>
 
-#include <boost/thread/thread.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/bind.hpp>
-#include <boost/interprocess/ipc/message_queue.hpp>
-
 #include <iostream>
 #include <vector>
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <thread>
 
 namespace kinect{
   static const std::size_t s_num_bg_frames = 20;
@@ -42,16 +38,16 @@ namespace kinect{
       m_height(0),
       m_heightc(0),
       m_numLayers(0),
-      m_colorArray(0),
-      m_depthArray(0),
+      m_colorArray(),
+      m_depthArray(),
       m_textures_quality{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
       m_textures_normal{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
       m_textures_bg{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
       m_textures_bg_back{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
       m_textures_silhouette{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
       m_fbo{new globjects::Framebuffer()},
-      m_colorArray_back(0),
-      m_depthArray_back(0),
+      m_colorArray_back(),
+      m_depthArray_back(),
       m_program_filter{new globjects::Program()},
       m_program_normal{new globjects::Program()},
       m_program_quality{new globjects::Program()},
@@ -60,8 +56,8 @@ namespace kinect{
       m_depthsize(0),
       m_pbo_colors(),
       m_pbo_depths(),
-      m_mutex(new boost::mutex),
-      m_readThread(0),
+      m_mutex(),
+      m_readThread(),
       m_running(true),
       m_filter_textures(true),
       m_serverport(serverport),
@@ -79,7 +75,7 @@ namespace kinect{
       readFromFiles();
     }
     else{
-      m_readThread = new boost::thread(boost::bind(&NetKinectArray::readLoop, this));
+      m_readThread = std::unique_ptr<std::thread>{new std::thread(std::bind(&NetKinectArray::readLoop, this))};
     }
 
     m_program_filter->attach(
@@ -138,15 +134,17 @@ namespace kinect{
     /* kinect depth: GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT*/
     //m_colorArray = new mvt::TextureArray(m_width, m_height, m_numLayers, GL_RGB32F, GL_RGB, GL_FLOAT);
     if(m_calib_files->isCompressedRGB() == 1){
-      m_colorArray = new mvt::TextureArray(m_widthc, m_heightc, m_numLayers, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, GL_UNSIGNED_BYTE, m_colorsize);
+      std::cout << "Color DXT 1 compressed" << std::endl;
+      m_colorArray = std::unique_ptr<mvt::TextureArray>{new mvt::TextureArray(m_widthc, m_heightc, m_numLayers, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, GL_UNSIGNED_BYTE, m_colorsize)};
     }
     else if(m_calib_files->isCompressedRGB() == 5){
-      m_colorArray = new mvt::TextureArray(m_widthc, m_heightc, m_numLayers, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, GL_UNSIGNED_BYTE, m_colorsize);
+      std::cout << "Color DXT 5 compressed" << std::endl;
+      m_colorArray = std::unique_ptr<mvt::TextureArray>{new mvt::TextureArray(m_widthc, m_heightc, m_numLayers, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, GL_UNSIGNED_BYTE, m_colorsize)};
     }
     else{
-      m_colorArray = new mvt::TextureArray(m_widthc, m_heightc, m_numLayers, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE);
+      m_colorArray = std::unique_ptr<mvt::TextureArray>{new mvt::TextureArray(m_widthc, m_heightc, m_numLayers, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE)};
     }
-    m_colorArray_back = new mvt::TextureArray(m_widthc, m_heightc, m_numLayers, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE);
+    m_colorArray_back = std::unique_ptr<mvt::TextureArray>{new mvt::TextureArray(m_widthc, m_heightc, m_numLayers, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE)};
 
     m_textures_quality->image3D(0, GL_LUMINANCE32F_ARB, m_width, m_height, m_numLayers, 0, GL_RED, GL_FLOAT, (void*)nullptr);
     m_textures_normal->image3D(0, GL_RGB32F, m_width, m_height, m_numLayers, 0, GL_RGB, GL_FLOAT, (void*)nullptr);
@@ -155,13 +153,13 @@ namespace kinect{
     m_textures_bg_back->image3D(0, GL_RG32F, m_width, m_height, m_numLayers, 0, GL_RG, GL_FLOAT, (void*)nullptr);
     m_textures_silhouette->image3D(0, GL_R32F, m_width, m_height, m_numLayers, 0, GL_RED, GL_FLOAT, (void*)nullptr);
 
-    m_depthArray = new mvt::TextureArray(m_width, m_height, m_numLayers, GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT);
+    m_depthArray = std::unique_ptr<mvt::TextureArray>{new mvt::TextureArray(m_width, m_height, m_numLayers, GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT)};
 
     if(m_calib_files->isCompressedDepth()){
-      m_depthArray_back = new mvt::TextureArray(m_width, m_height, m_numLayers, GL_LUMINANCE, GL_RED, GL_UNSIGNED_BYTE);
+      m_depthArray_back = std::unique_ptr<mvt::TextureArray>{new mvt::TextureArray(m_width, m_height, m_numLayers, GL_LUMINANCE, GL_RED, GL_UNSIGNED_BYTE)};
     }
     else{
-      m_depthArray_back = new mvt::TextureArray(m_width, m_height, m_numLayers, GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT);
+      m_depthArray_back = std::unique_ptr<mvt::TextureArray>{new mvt::TextureArray(m_width, m_height, m_numLayers, GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT)};
     }
     m_depthArray->setMAGMINFilter(GL_NEAREST);
     m_depthArray_back->setMAGMINFilter(GL_NEAREST);
@@ -173,8 +171,6 @@ namespace kinect{
     m_program_quality->setUniform("texSizeInv", tex_size_inv);
     m_program_bg->setUniform("texSizeInv", tex_size_inv);
     m_program_bg->setUniform("bg_depths", 41);
-    // use reference counting or detaching from fbo kills textures
-
 
     std::cout << "NetKinectArray::NetKinectArray: " << this << std::endl;
 
@@ -182,20 +178,13 @@ namespace kinect{
   }
 
   NetKinectArray::~NetKinectArray(){
-    delete m_colorArray;
-    delete m_depthArray;
-    delete m_colorArray_back;
-    delete m_depthArray_back;
-
     m_running = false;
     m_readThread->join();
-    delete m_readThread;
-    delete m_mutex;
   }
 
   void
   NetKinectArray::update() {
-    boost::mutex::scoped_lock lock(*m_mutex);
+    std::unique_lock<std::mutex> lock(m_mutex);
     // skip if no new frame was received
     if(!m_pbo_colors.needSwap || !m_pbo_depths.needSwap) return;
 
@@ -352,12 +341,12 @@ void NetKinectArray::filterTextures(bool filter) {
 
 mvt::TextureArray*
 NetKinectArray::getDepthArrayBack(){
-  return m_depthArray_back;
+  return m_depthArray_back.get();
 }
 
 mvt::TextureArray*
 NetKinectArray::getDepthArray(){
-  return m_depthArray;
+  return m_depthArray.get();
 }
 
   void
@@ -410,7 +399,7 @@ NetKinectArray::getDepthArray(){
       }
 
       if(!drop){ // swap
-      	boost::mutex::scoped_lock lock(*m_mutex);
+      	std::unique_lock<std::mutex> lock(m_mutex);
         m_pbo_colors.needSwap = true;
       	m_pbo_depths.needSwap = true;
       }
@@ -634,7 +623,7 @@ NetKinectArray::getDepthArray(){
     }
 
     { // swap
-      boost::mutex::scoped_lock lock(*m_mutex);
+      std::unique_lock<std::mutex> lock(m_mutex);
       m_pbo_colors.needSwap = true;
       m_pbo_depths.needSwap = true;
     }

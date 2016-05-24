@@ -7,20 +7,21 @@
 using namespace gl;
 
 #include <Matrix.h>
-
-#include <string>
-#include <vector>
-#include <atomic>
 #include "DataTypes.h"
+
 
 #include <globjects/Program.h>
 #include <globjects/Texture.h>
 #include <globjects/Framebuffer.h>
 #include <globjects/Buffer.h>
 
-namespace boost{
+#include <string>
+#include <vector>
+#include <atomic>
+#include <mutex>
+
+namespace std{
   class thread;
-  class mutex;
 }
 
 namespace mvt{
@@ -164,16 +165,16 @@ inline void swap(double_pbo& a, double_pbo& b) {
     unsigned m_heightc;
 
     unsigned m_numLayers;
-    mvt::TextureArray* m_colorArray;
-    mvt::TextureArray* m_depthArray;
+    std::unique_ptr<mvt::TextureArray> m_colorArray;
+    std::unique_ptr<mvt::TextureArray> m_depthArray;
     globjects::ref_ptr<globjects::Texture> m_textures_quality;
     globjects::ref_ptr<globjects::Texture> m_textures_normal;
     globjects::ref_ptr<globjects::Texture> m_textures_bg;
     globjects::ref_ptr<globjects::Texture> m_textures_bg_back;
     globjects::ref_ptr<globjects::Texture> m_textures_silhouette;
     globjects::ref_ptr<globjects::Framebuffer> m_fbo;
-    mvt::TextureArray*  m_colorArray_back;
-    mvt::TextureArray*  m_depthArray_back;
+    std::unique_ptr<mvt::TextureArray>  m_colorArray_back;
+    std::unique_ptr<mvt::TextureArray>  m_depthArray_back;
 
     globjects::ref_ptr<globjects::Program> m_program_filter;
     globjects::ref_ptr<globjects::Program> m_program_normal;
@@ -185,8 +186,8 @@ inline void swap(double_pbo& a, double_pbo& b) {
     double_pbo m_pbo_colors;
     double_pbo m_pbo_depths;
 
-    boost::mutex* m_mutex;
-    boost::thread* m_readThread;
+    std::mutex m_mutex;
+    std::unique_ptr<std::thread> m_readThread;
     bool m_running;
     bool m_filter_textures;
     std::string m_serverport;
