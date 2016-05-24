@@ -11,19 +11,34 @@ uniform uint mode;
 
 layout(location = 0) out float out_Depth;
 
+// #define NORMALIZE
+
 float sample(vec3 coords) {
   float depth = texture(kinect_depths, coords).r;
-  return (depth - 0.5f) / 4.0f;
+  #ifdef NORMALIZE
+    return (depth - 0.5f) / 4.0f;
+  #else
+    return depth;
+  #endif
 }
 
-const float max_depth = 0.9f;
+#ifdef NORMALIZE
+  const float min_depth = 0.0f;
+  const float max_depth = 0.9f;
+#else
+  const float min_depth = 0.5f;
+  const float max_depth = 0.9f * 4.0f + 0.5f;
+#endif
+bool is_valid(float depth) {
+  return depth > min_depth && depth <= max_depth;
+}
 
 const int kernel_size = 1; // in pixel
 const int kernel_end = kernel_size + 1;
 
 float erode(const in vec3 coords) {
   float depth = sample(coords);
-  if (depth <= 0.0f) {
+  if (depth <= min_depth) {
     return 0.0f;
   }
   for(int y = -kernel_size; y < kernel_end; ++y){
@@ -31,7 +46,7 @@ float erode(const in vec3 coords) {
       // if(abs(x))
       vec3 coords_s = coords + vec3(vec2(x, y) * texSizeInv, 0.0f);
       float depth_s = sample(coords_s);
-      if (depth_s <= 0.0f || depth_s >= max_depth) {
+      if (!is_valid(depth_s)) {
         return 0.0f;
       }
     }
@@ -47,7 +62,7 @@ float dilate(const in vec3 coords) {
     for(int x = -kernel_size; x < kernel_end; ++x){
       vec3 coords_s = coords + vec3(vec2(x, y) * texSizeInv, 0.0f);
       float depth_s = texture(eroded_depths, coords_s).r;
-      if (depth_s > 0.0f && depth_s < max_depth) {
+      if (is_valid(depth_s)) {
         valid = true;
         average_depth += depth_s;
         num_samples += 1.0f;

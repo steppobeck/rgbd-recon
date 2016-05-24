@@ -55,6 +55,7 @@ namespace kinect{
       m_serverport(serverport),
       m_num_frame{0},
       m_curr_frametime{0.0},
+      m_use_processed_depth{false},
       m_start_texture_unit(0),
       m_calib_files{calibs},
       m_calib_vols{vols}
@@ -243,6 +244,10 @@ void NetKinectArray::processDepth() {
 
   m_textures_depth2.swapBuffers();
   m_textures_depth2.front->bindActive(m_start_texture_unit + 6);
+
+  if(m_use_processed_depth) {
+    m_textures_depth2.front->bindActive(40);
+  }
 }
 
 void NetKinectArray::processBackground() {
@@ -293,6 +298,7 @@ void NetKinectArray::processTextures(){
     m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT0, m_textures_depth, 0, i);
     m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT1, m_textures_quality, 0, i);
     m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT2, m_textures_silhouette, 0, i);
+    m_programs.at("filter")->setUniform("processed_depth", m_use_processed_depth);
     m_programs.at("filter")->setUniform("layer", i);
     m_programs.at("filter")->setUniform("compress", m_calib_files->getCalibs()[i].isCompressedDepth());
     const float near = m_calib_files->getCalibs()[i].getNear();
@@ -379,6 +385,17 @@ unsigned NetKinectArray::getStartTextureUnit() const {
 void NetKinectArray::filterTextures(bool filter) {
   m_filter_textures = filter;
   // process with new settings
+  processTextures();
+}
+void NetKinectArray::useProcessedDepths(bool filter) {
+  m_use_processed_depth = filter;
+  if(m_use_processed_depth) {
+    m_textures_depth2.front->bindActive(40);
+  }
+  else {
+    glActiveTexture(GL_TEXTURE0 + 40);
+    m_depthArray_raw->bind();
+  }
   processTextures();
 }
 

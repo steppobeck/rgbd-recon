@@ -136,6 +136,7 @@ inline void swap(double_pbo& a, double_pbo& b) {
     void writeBMP(std::string, std::vector<std::uint8_t> const&, unsigned int offset, unsigned int bytesPerPixel);
 
     void filterTextures(bool filter);
+    void useProcessedDepths(bool filter);
 
     void bindToTextureUnits() const;
 
@@ -181,7 +182,7 @@ inline void swap(double_pbo& a, double_pbo& b) {
     std::string m_serverport;
     std::size_t m_num_frame;
     double m_curr_frametime;
-
+    bool m_use_processed_depth;
     unsigned m_start_texture_unit;
     CalibrationFiles const* m_calib_files;
     CalibVolumes const* m_calib_vols;

@@ -19,6 +19,7 @@ uniform float scaled_near;
 uniform float cv_min_ds;
 uniform float cv_max_ds;
 uniform int mode;
+uniform bool processed_depth;
 
 const int kernel_size = 6; // in pixel
 const int kernel_end = kernel_size + 1;
@@ -121,12 +122,17 @@ vec2 bilateral_filter(vec3 coords){
   float filtered_depth = 0.0f;
   if(w > 0.0)
     filtered_depth = depth_bf/w;
-  else
-    filtered_depth = -1.0f;
+  else {
+    if (!processed_depth) {
+      filtered_depth = -1.0f;
+    }
+  }
 
 #if 1
-  if(w_range < (num_samples * 0.65)){
-    filtered_depth = -1.0f;
+  if(!processed_depth) {
+    if(w_range < (num_samples * 0.65)){
+      filtered_depth = -1.0f;
+    }
   }
 #endif
 

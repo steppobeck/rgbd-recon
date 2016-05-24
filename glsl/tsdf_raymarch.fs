@@ -56,17 +56,17 @@ void main() {
     float density = sample(sample_pos);
 
     // check if cell is inside contour
-    if (density > IsoValue && prev_density <= IsoValue) {
-       bool in_surface = true;
-      for (float i = 1; i <= refinement_num; ++i) {
-        if (in_surface) {
-          sample_pos -= sampleStep * pow(0.5, i);
-        }
-        else {
-          sample_pos += sampleStep * pow(0.5, i);
-        }
-        in_surface = sample(sample_pos) >= IsoValue;
-      }
+    if (density > IsoValue) {
+      //  bool in_surface = true;
+      // for (float i = 1; i <= refinement_num; ++i) {
+      //   if (in_surface) {
+      //     sample_pos -= sampleStep * pow(0.5, i);
+      //   }
+      //   else {
+      //     sample_pos += sampleStep * pow(0.5, i);
+      //   }
+      //   in_surface = sample(sample_pos) >= IsoValue;
+      // }
 
       // approximate ray-cell intersection
       // sample_pos = (sample_pos - sampleStep) - sampleStep * (prev_density / (density - prev_density));
@@ -114,7 +114,7 @@ vec3 get_gradient(const vec3 pos) {
   vec3 y_offset = vec3(0, sampleDistance, 0);
   vec3 z_offset = vec3(0, 0, sampleDistance);
   // invert direction because it points to bigger density
-  return normalize(vec3(
+  return -normalize(vec3(
    sample(pos + x_offset) - sample(pos - x_offset),
    sample(pos + y_offset) - sample(pos - y_offset),
    sample(pos + z_offset) - sample(pos - z_offset)));
@@ -156,8 +156,8 @@ vec3 blendColors(const in vec3 sample_pos) {
     total_color += color * weights[i];
     total_weight += weights[i];
   }
-
   total_color /= total_weight;
+  if(total_weight <= 0.0f) total_color = vec3(1.0f, 0.0f, 0.0f);
   return total_color;
 }
 

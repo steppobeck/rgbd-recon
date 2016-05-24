@@ -339,6 +339,11 @@ void key(unsigned char key, int x, int y)
     g_bilateral = !g_bilateral;
     g_nka->filterTextures(g_bilateral);
     break;
+  case 'd':
+    static bool processed = false;
+    processed = !processed;
+    g_nka->useProcessedDepths(processed);
+    break;
   case 'g':
     g_draw_grid = !g_draw_grid;
     break;
