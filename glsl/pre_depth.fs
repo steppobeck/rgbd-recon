@@ -123,13 +123,15 @@ vec2 bilateral_filter(vec3 coords){
   if(w > 0.0)
     filtered_depth = depth_bf/w;
   else {
-    if (!processed_depth) {
+    if (!processed_depth) 
+    {
       filtered_depth = -1.0f;
     }
   }
 
 #if 1
-  if(!processed_depth) {
+  if(!processed_depth) 
+  {
     if(w_range < (num_samples * 0.65)){
       filtered_depth = -1.0f;
     }

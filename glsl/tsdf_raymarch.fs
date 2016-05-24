@@ -55,7 +55,7 @@ void main() {
     float density = sample(sample_pos);
 
     // check if cell is inside contour
-    if (density > IsoValue) {
+    if (density > IsoValue && prev_density <= IsoValue) {
       //  bool in_surface = true;
       // for (float i = 1; i <= refinement_num; ++i) {
       //   if (in_surface) {
@@ -68,7 +68,7 @@ void main() {
       // }
 
       // approximate ray-cell intersection
-      // sample_pos = (sample_pos - sampleStep) - sampleStep * (prev_density / (density - prev_density));
+      sample_pos = (sample_pos - sampleStep) - sampleStep * (prev_density / (density - prev_density));
 
       float final_density = sample(sample_pos);
       #ifdef GRAD_NORMALS
@@ -181,5 +181,6 @@ vec3 blendCameras(const in vec3 sample_pos) {
   }
 
   total_color /= total_weight;
+  if(total_weight <= 0.0f) total_color = vec3(1.0f);
   return total_color;
 }

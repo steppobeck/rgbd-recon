@@ -33,16 +33,16 @@ bool is_valid(float depth) {
   return depth > min_depth && depth <= max_depth;
 }
 
-const int kernel_size = 3; // in pixel
+const int kernel_size = 1; // in pixel
 const int kernel_end = kernel_size + 1;
 
-float erode(const in vec3 coords) {
+float erode(const in vec3 coords, int kernel_size) {
   float depth = sample(coords);
   if (depth <= min_depth) {
     return 0.0f;
   }
-  for(int y = -kernel_size; y < kernel_end; ++y){
-    for(int x = -kernel_size; x < kernel_end; ++x){
+  for(int y = -kernel_size; y < kernel_size + 1; ++y){
+    for(int x = -kernel_size; x < kernel_size + 1; ++x){
       // if(abs(x))
       vec3 coords_s = coords + vec3(vec2(x, y) * texSizeInv, 0.0f);
       float depth_s = sample(coords_s);
@@ -54,12 +54,12 @@ float erode(const in vec3 coords) {
   return depth;
 }
 
-float dilate(const in vec3 coords) {
+float dilate(const in vec3 coords, int kernel_size) {
   float average_depth = 0.0f;
   float num_samples = 0.0f;
   bool valid = false;
-  for(int y = -kernel_size; y < kernel_end; ++y){
-    for(int x = -kernel_size; x < kernel_end; ++x){
+  for(int y = -kernel_size; y < kernel_size + 1; ++y){
+    for(int x = -kernel_size; x < kernel_size + 1; ++x){
       vec3 coords_s = coords + vec3(vec2(x, y) * texSizeInv, 0.0f);
       float depth_s = texture(eroded_depths, coords_s).r;
       if (is_valid(depth_s)) {
@@ -77,10 +77,10 @@ void main(void) {
   vec3 coords = vec3(pass_TexCoord, layer);
   // erode
   if(mode == 0u) {
-    out_Depth = erode(coords);
+    out_Depth = erode(coords, 3);
   }
   // dilate
   else {
-    out_Depth = dilate(coords);
+    out_Depth = dilate(coords, 1);
   }
 }

@@ -340,7 +340,7 @@ void key(unsigned char key, int x, int y)
     g_nka->filterTextures(g_bilateral);
     break;
   case 'd':
-    static bool processed = false;
+    static bool processed = true;
     processed = !processed;
     g_nka->useProcessedDepths(processed);
     break;

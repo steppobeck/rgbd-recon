@@ -90,19 +90,19 @@ float bilateral_filter(vec3 coords){
 
   float lateral_quality  = 1.0f - border_samples/num_samples;
   // float lateral_quality  = 1.0f - border_samples/num_samples * w_range / 40.0f;
-  // lateral_quality  = 1.0f - weight_border_samples/weight_samples;
+  lateral_quality  = 1.0f - weight_border_samples/weight_samples;
   float exponent = 3.0f;
   if(processed_depth) {
-    exponent = 10.0f;
+    exponent = 3.0f;
   }
   float quality_strong = pow(lateral_quality, exponent);
   quality_strong /= depth * 4.5f;
   // float fdiltered_depth = 0.0f;
   //float filtered_depth = depth_bf/w;
   float angle = normal_angle(vec3(coords.xy, depth), uint(coords.z));
-  // quality_strong *= angle;
+  quality_strong *= angle * angle;
   // return angle;
-  return quality_strong * angle;
+  return quality_strong;
 }
 
 void main(void) {
