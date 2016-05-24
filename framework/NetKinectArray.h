@@ -2,6 +2,7 @@
 #define KINECT_NETKINECTARRAY_H
 
 #include "DataTypes.h"
+#include "double_buffer.hpp"
 
 #include <glm/gtc/type_precision.hpp>
 
@@ -17,6 +18,7 @@ using namespace gl;
 #include <vector>
 #include <atomic>
 #include <mutex>
+#include <map>
 
 namespace std{
   class thread;
@@ -158,16 +160,13 @@ inline void swap(double_pbo& a, double_pbo& b) {
     globjects::ref_ptr<globjects::Texture> m_textures_depth;
     globjects::ref_ptr<globjects::Texture> m_textures_quality;
     globjects::ref_ptr<globjects::Texture> m_textures_normal;
-    globjects::ref_ptr<globjects::Texture> m_textures_bg;
-    globjects::ref_ptr<globjects::Texture> m_textures_bg_back;
+    double_buffer<globjects::ref_ptr<globjects::Texture>> m_textures_depth2;
+    double_buffer<globjects::ref_ptr<globjects::Texture>> m_textures_bg;
     globjects::ref_ptr<globjects::Texture> m_textures_silhouette;
     globjects::ref_ptr<globjects::Framebuffer> m_fbo;
     std::unique_ptr<mvt::TextureArray>  m_colorArray_back;
 
-    globjects::ref_ptr<globjects::Program> m_program_filter;
-    globjects::ref_ptr<globjects::Program> m_program_normal;
-    globjects::ref_ptr<globjects::Program> m_program_quality;
-    globjects::ref_ptr<globjects::Program> m_program_bg;
+    std::map<std::string, globjects::ref_ptr<globjects::Program>> m_programs;
 
     unsigned m_colorsize; // per frame
     unsigned m_depthsize; // per frame
