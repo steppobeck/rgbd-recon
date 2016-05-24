@@ -63,6 +63,7 @@ namespace kinect{
     m_programs.emplace("normal", new globjects::Program());
     m_programs.emplace("quality", new globjects::Program());
     m_programs.emplace("bg", new globjects::Program());
+    m_programs.emplace("morph", new globjects::Program());
     // must happen before thread launching
     init();
 
@@ -88,6 +89,10 @@ namespace kinect{
     m_programs.at("bg")->attach(
      globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/texture_passthrough.vs")
     ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/pre_background.fs")
+    );
+    m_programs.at("morph")->attach(
+     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/texture_passthrough.vs")
+    ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/pre_morph.fs")
     );
   }
 
@@ -170,8 +175,13 @@ namespace kinect{
     m_programs.at("filter")->setUniform("texSizeInv", tex_size_inv);
     m_programs.at("normal")->setUniform("texSizeInv", tex_size_inv);
     m_programs.at("quality")->setUniform("texSizeInv", tex_size_inv);
+    m_programs.at("morph")->setUniform("texSizeInv", tex_size_inv);
+    m_programs.at("morph")->setUniform("kinect_depths", 40);
+    m_programs.at("morph")->setUniform("eroded_depths", 42);
+    m_programs.at("bg")->setUniform("kinect_depths", 40);
     m_programs.at("bg")->setUniform("texSizeInv", tex_size_inv);
     m_programs.at("bg")->setUniform("bg_depths", 41);
+
 
     std::cout << "NetKinectArray::NetKinectArray: " << this << std::endl;
 
@@ -201,6 +211,38 @@ glm::uvec2 NetKinectArray::getDepthResolution() const {
 }
 glm::uvec2 NetKinectArray::getColorResolution() const {
   return m_resolution_color;
+}
+
+void NetKinectArray::processDepth() {
+  m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT0});
+
+  m_programs.at("morph")->use();
+  // erode
+  m_programs.at("morph")->setUniform("mode", 0u);
+  for(unsigned i = 0; i < m_calib_files->num(); ++i){
+    m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT0, m_textures_depth2.back, 0, i);
+
+    m_programs.at("morph")->setUniform("layer", i);
+
+    ScreenQuad::draw();
+  }
+  // dilate
+  m_programs.at("morph")->setUniform("mode", 1u);
+
+  m_textures_depth2.swapBuffers();
+  m_textures_depth2.front->bindActive(42);
+  for(unsigned i = 0; i < m_calib_files->num(); ++i){
+    m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT0, m_textures_depth2.back, 0, i);
+
+    m_programs.at("morph")->setUniform("layer", i);
+
+    ScreenQuad::draw();
+  }
+
+  m_programs.at("morph")->release();
+
+  m_textures_depth2.swapBuffers();
+  m_textures_depth2.front->bindActive(m_start_texture_unit + 6);
 }
 
 void NetKinectArray::processBackground() {
@@ -234,11 +276,14 @@ void NetKinectArray::processTextures(){
 
 	glActiveTexture(GL_TEXTURE0 + 40);
 	m_depthArray_raw->bind();
-  m_programs.at("filter")->use();
 
   m_fbo->bind();
+
+  processDepth();
+
   m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2});
 
+  m_programs.at("filter")->use();
   m_programs.at("filter")->setUniform("filter_textures", m_filter_textures);
 // depth and old quality
   for(unsigned i = 0; i < m_calib_files->num(); ++i){
@@ -311,8 +356,6 @@ void NetKinectArray::setStartTextureUnit(unsigned start_texture_unit) {
 
   m_programs.at("normal")->setUniform("kinect_depths", GLint(m_start_texture_unit + 1));
   m_programs.at("quality")->setUniform("kinect_depths", GLint(m_start_texture_unit + 1));
-  m_programs.at("bg")->setUniform("kinect_depths", GLint(m_start_texture_unit + 1));
-  m_programs.at("bg")->setUniform("kinect_depths", 40);
   m_programs.at("filter")->setUniform("bg_depths", GLint(m_start_texture_unit + 5));
 }
 
@@ -324,6 +367,7 @@ void NetKinectArray::bindToTextureUnits() const {
   m_textures_normal->bindActive(m_start_texture_unit + 3);
   m_textures_silhouette->bindActive(m_start_texture_unit + 4);
   m_textures_bg.front->bindActive(m_start_texture_unit + 5);
+  m_textures_depth2.front->bindActive(m_start_texture_unit + 6);
   glActiveTexture(GL_TEXTURE0 + 40);
   m_depthArray_raw->bind();
 }
@@ -369,7 +413,7 @@ void NetKinectArray::readLoop(){
       std::unique_lock<std::mutex> lock(m_mutex_pbo);
 
       memcpy(&current_time, (byte*)zmqm.data(), sizeof(double));
-      std::cout << "time " << current_time << std::endl;
+      // std::cout << "time " << current_time << std::endl;
       m_curr_frametime = current_time;
       unsigned offset = 0;
       // receive data
