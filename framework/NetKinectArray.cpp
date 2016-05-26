@@ -176,6 +176,9 @@ namespace kinect{
     m_texture_unit_offsets.emplace("bg_depth", 41);
 
 
+    m_programs.at("filter")->setUniform("bbox_min", m_calib_vols->getBBox().getPMin());
+    m_programs.at("filter")->setUniform("bbox_max", m_calib_vols->getBBox().getPMax());
+
     m_programs.at("filter")->setUniform("kinect_depths", getTextureUnit("raw_depth"));
     glm::fvec2 tex_size_inv{1.0f/m_resolution_depth.x, 1.0f/m_resolution_depth.y};
     m_programs.at("filter")->setUniform("texSizeInv", tex_size_inv);
@@ -300,6 +303,8 @@ void NetKinectArray::processTextures(){
   m_programs.at("filter")->use();
   m_programs.at("filter")->setUniform("filter_textures", m_filter_textures);
   m_programs.at("filter")->setUniform("processed_depth", m_use_processed_depth);
+  m_programs.at("filter")->setUniform("cv_xyz", m_calib_vols->getXYZVolumeUnits());
+  
 // depth and old quality
   for(unsigned i = 0; i < m_calib_files->num(); ++i){
     m_programs.at("filter")->setUniform("cv_min_ds", m_calib_vols->getDepthLimits(i).x);

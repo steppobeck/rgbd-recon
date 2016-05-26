@@ -219,4 +219,8 @@ std::vector<glm::fvec3> CalibVolumes::getCameraPositions() const {
   return cam_positions;
 }
 
+gloost::BoundingBox const& CalibVolumes::getBBox() const {
+  return m_bbox;
+}
+
 }

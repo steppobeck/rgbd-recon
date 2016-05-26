@@ -47,6 +47,8 @@ public:
   Frustum const& getFrustum(unsigned i) const;
   std::vector<glm::fvec3> getCameraPositions() const;
 
+  gloost::BoundingBox const& getBBox() const;
+
 private:
   void bindToTextureUnits();
   void bindToTextureUnitsInv();

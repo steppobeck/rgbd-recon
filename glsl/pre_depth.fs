@@ -10,6 +10,8 @@ uniform sampler2DArray bg_depths;
 uniform vec2 texSizeInv;
 uniform bool filter_textures;
 
+uniform sampler3D[5] cv_xyz;
+
 uniform uint layer;
 uniform bool compress;
 uniform float scale;
@@ -27,6 +29,20 @@ const int kernel_end = kernel_size + 1;
 layout(location = 0) out float out_Depth;
 layout(location = 1) out float out_Quality;
 layout(location = 2) out float out_Silhouette;
+
+uniform vec3 bbox_min;
+uniform vec3 bbox_max;
+bool in_bbox(vec3 p){
+  if(p.x >= bbox_min.x &&
+     p.y >= bbox_min.y &&
+     p.z >= bbox_min.z &&
+     p.x <= bbox_max.x &&
+     p.y <= bbox_max.y &&
+     p.z <= bbox_max.z){
+    return true;
+  }
+  return false;
+}
 
 float dist_space_max_inv = 1.0/float(kernel_size);
 float computeGaussSpace(float dist_space){
@@ -72,6 +88,7 @@ bool is_outside(float d){
 float normalize_depth(float depth) {
   return (depth - cv_min_ds)/(cv_max_ds - cv_min_ds);
 }
+
 vec2 bilateral_filter(vec3 coords){
 
   float depth = sample(coords);
@@ -123,7 +140,7 @@ vec2 bilateral_filter(vec3 coords){
   if(w > 0.0)
     filtered_depth = depth_bf/w;
   else {
-    if (!processed_depth) 
+    // if (!processed_depth) 
     {
       filtered_depth = -1.0f;
     }
@@ -143,10 +160,14 @@ vec2 bilateral_filter(vec3 coords){
 
 void main(void) {
   vec3 coords = vec3(pass_TexCoord, layer);
-  float raw_depth = normalize_depth(sample(coords));
+  float depth = sample(coords);
+  float depth_norm = normalize_depth(depth);
+  vec3 pos_world = texture(cv_xyz[layer], vec3(pass_TexCoord, depth_norm)).xyz;
+  bool is_in_box = in_bbox(pos_world);
 
   vec2 res = bilateral_filter(coords);
   if(!filter_textures) {
+    float raw_depth = normalize_depth(sample(coords));
     out_Depth = raw_depth;
   }
   else {
@@ -155,8 +176,8 @@ void main(void) {
   out_Quality = res.y;
 
   float bg_depth = texture(bg_depths, coords).r;
-  const float min_bg_dist = 0.1f;
-  if(bg_depth - out_Depth > min_bg_dist && out_Depth > 0.0f) {
+  const float min_bg_dist = 0.05f;
+  if(bg_depth - out_Depth > min_bg_dist && out_Depth > 0.0f && is_in_box) {
     out_Silhouette = 1.0f;
   }
   else {
