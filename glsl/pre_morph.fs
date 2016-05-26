@@ -5,24 +5,23 @@ noperspective in vec2 pass_TexCoord;
 
 uniform uint layer;
 uniform sampler2DArray kinect_depths;
-uniform sampler2DArray eroded_depths;
 uniform vec2 texSizeInv;
 uniform uint mode;
 
 layout(location = 0) out float out_Depth;
 
-// #define NORMALIZE
+// #define NORMALIZED
 
 float sample(vec3 coords) {
   float depth = texture(kinect_depths, coords).r;
-  #ifdef NORMALIZE
+  #ifdef NORMALIZED
     return (depth - 0.5f) / 4.0f;
   #else
     return depth;
   #endif
 }
 
-#ifdef NORMALIZE
+#ifdef NORMALIZED
   const float min_depth = 0.0f;
   const float max_depth = 0.9f;
 #else
@@ -62,7 +61,7 @@ float dilate(const in vec3 coords, int kernel_size) {
   for(int y = -kernel_size; y < kernel_size + 1; ++y){
     for(int x = -kernel_size; x < kernel_size + 1; ++x){
       vec3 coords_s = coords + vec3(vec2(x, y) * texSizeInv, 0.0f);
-      float depth_s = texture(eroded_depths, coords_s).r;
+      float depth_s = sample(coords_s);
       if (is_valid(depth_s) && distance(depth, depth_s) < max_dist) {
         valid = true;
         average_depth += depth_s;
@@ -81,7 +80,7 @@ void main(void) {
     out_Depth = erode(coords, 3);
   }
   // dilate
-  else {
+  else if (mode == 1u) {
     out_Depth = dilate(coords, 1);
   }
 }

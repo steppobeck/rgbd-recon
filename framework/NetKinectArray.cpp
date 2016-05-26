@@ -179,8 +179,7 @@ namespace kinect{
     m_programs.at("quality")->setUniform("camera_positions", m_calib_vols->getCameraPositions());
 
     m_programs.at("morph")->setUniform("texSizeInv", tex_size_inv);
-    m_programs.at("morph")->setUniform("kinect_depths", 40);
-    m_programs.at("morph")->setUniform("eroded_depths", 42);
+    m_programs.at("morph")->setUniform("kinect_depths", 42);
     m_programs.at("bg")->setUniform("kinect_depths", 40);
     m_programs.at("bg")->setUniform("texSizeInv", tex_size_inv);
     m_programs.at("bg")->setUniform("bg_depths", 41);
@@ -219,6 +218,8 @@ glm::uvec2 NetKinectArray::getColorResolution() const {
 void NetKinectArray::processDepth() {
   m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT0});
 
+  glActiveTexture(GL_TEXTURE0 + 42);
+  m_depthArray_raw->bind();
   m_programs.at("morph")->use();
   // erode
   m_programs.at("morph")->setUniform("mode", 0u);
@@ -393,13 +394,6 @@ void NetKinectArray::filterTextures(bool filter) {
 }
 void NetKinectArray::useProcessedDepths(bool filter) {
   m_use_processed_depth = filter;
-  if(m_use_processed_depth) {
-    m_textures_depth2.front->bindActive(40);
-  }
-  else {
-    glActiveTexture(GL_TEXTURE0 + 40);
-    m_depthArray_raw->bind();
-  }
   processTextures();
 }
 
