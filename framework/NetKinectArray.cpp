@@ -171,7 +171,12 @@ namespace kinect{
     m_textures_depth2.back->setParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     m_textures_depth2.back->setParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-    m_programs.at("filter")->setUniform("kinect_depths", 40);
+    m_texture_unit_offsets.emplace("morph_input", 42);
+    m_texture_unit_offsets.emplace("raw_depth", 40);
+    m_texture_unit_offsets.emplace("bg_depth", 41);
+
+
+    m_programs.at("filter")->setUniform("kinect_depths", getTextureUnit("raw_depth"));
     glm::fvec2 tex_size_inv{1.0f/m_resolution_depth.x, 1.0f/m_resolution_depth.y};
     m_programs.at("filter")->setUniform("texSizeInv", tex_size_inv);
     m_programs.at("normal")->setUniform("texSizeInv", tex_size_inv);
@@ -179,13 +184,10 @@ namespace kinect{
     m_programs.at("quality")->setUniform("camera_positions", m_calib_vols->getCameraPositions());
 
     m_programs.at("morph")->setUniform("texSizeInv", tex_size_inv);
-    m_programs.at("morph")->setUniform("kinect_depths", 42);
-    m_programs.at("bg")->setUniform("kinect_depths", 40);
+    m_programs.at("morph")->setUniform("kinect_depths", getTextureUnit("morph_input"));
+    m_programs.at("bg")->setUniform("kinect_depths", getTextureUnit("raw_depth"));
     m_programs.at("bg")->setUniform("texSizeInv", tex_size_inv);
-    m_programs.at("bg")->setUniform("bg_depths", 41);
-
-
-    std::cout << "NetKinectArray::NetKinectArray: " << this << std::endl;
+    m_programs.at("bg")->setUniform("bg_depths", getTextureUnit("bg_depth"));
 
     return true;
   }
@@ -215,10 +217,14 @@ glm::uvec2 NetKinectArray::getColorResolution() const {
   return m_resolution_color;
 }
 
+int NetKinectArray::getTextureUnit(std::string const& name) const {
+  return m_texture_unit_offsets.at(name);
+} 
+
 void NetKinectArray::processDepth() {
   m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT0});
 
-  glActiveTexture(GL_TEXTURE0 + 42);
+  glActiveTexture(GL_TEXTURE0 + getTextureUnit("morph_input"));
   m_depthArray_raw->bind();
   m_programs.at("morph")->use();
   // erode
@@ -234,7 +240,7 @@ void NetKinectArray::processDepth() {
   m_programs.at("morph")->setUniform("mode", 1u);
 
   m_textures_depth2.swapBuffers();
-  m_textures_depth2.front->bindActive(42);
+  m_textures_depth2.front->bindActive(getTextureUnit("morph_input"));
   for(unsigned i = 0; i < m_calib_files->num(); ++i){
     m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT0, m_textures_depth2.back, 0, i);
 
@@ -246,15 +252,15 @@ void NetKinectArray::processDepth() {
   m_programs.at("morph")->release();
 
   m_textures_depth2.swapBuffers();
-  m_textures_depth2.front->bindActive(m_start_texture_unit + 6);
+  m_textures_depth2.front->bindActive(getTextureUnit("morph_depth"));
 
   if(m_use_processed_depth) {
-    m_textures_depth2.front->bindActive(40);
+    m_textures_depth2.front->bindActive(getTextureUnit("raw_depth"));
   }
 }
 
 void NetKinectArray::processBackground() {
-  m_textures_bg.front->bindActive(41);
+  m_textures_bg.front->bindActive(getTextureUnit("bg_depth"));
   m_programs.at("bg")->use();
 
   for(unsigned i = 0; i < m_calib_files->num(); ++i){
@@ -267,7 +273,7 @@ void NetKinectArray::processBackground() {
   m_programs.at("bg")->release();
 
   m_textures_bg.swapBuffers();
-  m_textures_bg.front->bindActive(m_start_texture_unit + 5);
+  m_textures_bg.front->bindActive(getTextureUnit("bg"));
 
   ++m_num_frame;
 }
@@ -282,7 +288,7 @@ void NetKinectArray::processTextures(){
   glGetIntegerv(GL_VIEWPORT, old_vp_params);
   glViewport(0, 0, m_resolution_depth.x, m_resolution_depth.y);
 
-	glActiveTexture(GL_TEXTURE0 + 40);
+	glActiveTexture(GL_TEXTURE0 + getTextureUnit("raw_depth"));
 	m_depthArray_raw->bind();
 
   m_fbo->bind();
@@ -361,25 +367,32 @@ void NetKinectArray::processTextures(){
 
 void NetKinectArray::setStartTextureUnit(unsigned start_texture_unit) {
   m_start_texture_unit = start_texture_unit;
+  m_texture_unit_offsets["color"] = m_start_texture_unit;
+  m_texture_unit_offsets["depth"] = m_start_texture_unit + 1;
+  m_texture_unit_offsets["quality"] = m_start_texture_unit + 2;
+  m_texture_unit_offsets["normal"] = m_start_texture_unit + 3;
+  m_texture_unit_offsets["silhouette"] = m_start_texture_unit + 4;
+  m_texture_unit_offsets["bg"] = m_start_texture_unit + 5;
+  m_texture_unit_offsets["morph_depth"] = m_start_texture_unit + 6;
 
   bindToTextureUnits();
 
-  m_programs.at("normal")->setUniform("kinect_depths", GLint(m_start_texture_unit + 1));
-  m_programs.at("quality")->setUniform("kinect_depths", GLint(m_start_texture_unit + 1));
-  m_programs.at("quality")->setUniform("kinect_normals", GLint(m_start_texture_unit + 3));
-  m_programs.at("filter")->setUniform("bg_depths", GLint(m_start_texture_unit + 5));
+  m_programs.at("normal")->setUniform("kinect_depths", getTextureUnit("depth"));
+  m_programs.at("quality")->setUniform("kinect_depths", getTextureUnit("depth"));
+  m_programs.at("quality")->setUniform("kinect_normals", getTextureUnit("normal"));
+  m_programs.at("filter")->setUniform("bg_depths", getTextureUnit("bg"));
 }
 
 void NetKinectArray::bindToTextureUnits() const {
-  glActiveTexture(GL_TEXTURE0 + m_start_texture_unit);
+  glActiveTexture(GL_TEXTURE0 + getTextureUnit("color"));
   m_colorArray->bind();
-  m_textures_depth->bindActive(m_start_texture_unit + 1);
-  m_textures_quality->bindActive(m_start_texture_unit + 2);
-  m_textures_normal->bindActive(m_start_texture_unit + 3);
-  m_textures_silhouette->bindActive(m_start_texture_unit + 4);
-  m_textures_bg.front->bindActive(m_start_texture_unit + 5);
-  m_textures_depth2.front->bindActive(m_start_texture_unit + 6);
-  glActiveTexture(GL_TEXTURE0 + 40);
+  m_textures_depth->bindActive(getTextureUnit("depth"));
+  m_textures_quality->bindActive(getTextureUnit("quality"));
+  m_textures_normal->bindActive(getTextureUnit("normal"));
+  m_textures_silhouette->bindActive(getTextureUnit("silhouette"));
+  m_textures_bg.front->bindActive(getTextureUnit("bg"));
+  m_textures_depth2.front->bindActive(getTextureUnit("morph_depth"));
+  glActiveTexture(GL_TEXTURE0 + getTextureUnit("raw_depth"));
   m_depthArray_raw->bind();
 }
 

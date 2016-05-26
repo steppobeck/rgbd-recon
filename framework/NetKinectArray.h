@@ -143,6 +143,8 @@ inline void swap(double_pbo& a, double_pbo& b) {
     glm::uvec2 getDepthResolution() const;
     glm::uvec2 getColorResolution() const;
 
+    int getTextureUnit(std::string const& name) const; 
+
   protected:
     void bindToFramebuffer(GLuint array_handle, GLuint layer);
 
@@ -169,6 +171,7 @@ inline void swap(double_pbo& a, double_pbo& b) {
     std::unique_ptr<mvt::TextureArray>  m_colorArray_back;
 
     std::map<std::string, globjects::ref_ptr<globjects::Program>> m_programs;
+    std::map<std::string, unsigned> m_texture_unit_offsets;
 
     unsigned m_colorsize; // per frame
     unsigned m_depthsize; // per frame
