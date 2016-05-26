@@ -40,8 +40,6 @@ ReconTrigrid::ReconTrigrid(CalibrationFiles const& cfs, CalibVolumes const* cv, 
   m_program_accum->setUniform("kinect_qualities",3);
   m_program_accum->setUniform("kinect_normals", 4);
   m_program_accum->setUniform("depth_map_curr",14);
-  m_program_accum->setUniform("bbox_min",m_bbox.getPMin());
-  m_program_accum->setUniform("bbox_max",m_bbox.getPMax());
   m_program_accum->setUniform("epsilon"    , 0.075f);
   m_program_accum->setUniform("min_length", m_min_length);
   m_program_accum->setUniform("cv_xyz", m_cv->getXYZVolumeUnits());

@@ -15,10 +15,9 @@ uniform float epsilon;
 uniform mat4 gl_NormalMatrix;
 
 uniform vec3[5] camera_positions;
-uniform vec3 bbox_min;
-uniform vec3 bbox_max;
 
 #include </shading.glsl>
+#include </inc_bbox_test.glsl>
 ///////////////////////////////////////////////////////////////////////////////
 // input
 ///////////////////////////////////////////////////////////////////////////////
@@ -33,23 +32,12 @@ in vec3  pass_normal_es;
 out vec4 gl_FragColor;
 // methods 
 
-bool clip(vec3 p){
-  if(p.x < bbox_min.x ||
-     p.y < bbox_min.y ||
-     p.z < bbox_min.z ||
-     p.x > bbox_max.x ||
-     p.y > bbox_max.y ||
-     p.z > bbox_max.z){
-    return true;
-  }
-  return false;
-}
 ///////////////////////////////////////////////////////////////////////////////
 // main
 ///////////////////////////////////////////////////////////////////////////////
 void main() {
 
-  if(clip(pass_pos_cs)) {
+  if(!in_bbox(pass_pos_cs)) {
     discard;
   }
 

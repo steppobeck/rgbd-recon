@@ -23,33 +23,17 @@ flat out float pass_quality;
 flat out vec3  pass_normal_es;
 flat out vec4  pass_glpos;
 
-uniform vec3 bbox_max;
-uniform vec3 bbox_min;
-
 layout (std140, binding = 1) uniform Settings {
   uint g_shade_mode;
 };
-///////////////////////////////////////////////////////////////////////////////
-// methods 
-///////////////////////////////////////////////////////////////////////////////
 
-bool clip(vec3 p){
-  if(p.x < bbox_min.x ||
-     p.y < bbox_min.y ||
-     p.z < bbox_min.z ||
-     p.x > bbox_max.x ||
-     p.y > bbox_max.y ||
-     p.z > bbox_max.z){
-    return true;
-  }
-  return false;
-}
+#include </inc_bbox_test.glsl>
 ///////////////////////////////////////////////////////////////////////////////
 // main
 ///////////////////////////////////////////////////////////////////////////////
 void main() {
 
-  if(clip(geo_pos_cs[0]) || geo_depth[0] <= -1.0f) {
+  if(!in_bbox(geo_pos_cs[0]) || geo_depth[0] <= -1.0f) {
     return;
   }
 

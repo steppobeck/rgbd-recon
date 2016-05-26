@@ -40,8 +40,6 @@ ReconMVT::ReconMVT(CalibrationFiles const& cfs, CalibVolumes const* cv, gloost::
   m_program_accum->setUniform("kinect_depths",40);
   m_program_accum->setUniform("kinect_normals", 4);
   m_program_accum->setUniform("depth_map_curr",14);
-  m_program_accum->setUniform("bbox_min", m_bbox.getPMin());
-  m_program_accum->setUniform("bbox_max", m_bbox.getPMax());
   m_program_accum->setUniform("cv_min_d", 0.5f);
   m_program_accum->setUniform("cv_max_d", 4.5f);
   m_program_accum->setUniform("epsilon", 0.075f);
