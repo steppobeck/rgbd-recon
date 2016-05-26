@@ -19,6 +19,8 @@
 #include <glbinding/gl/functions-patches.h>
 #include <globjects/Shader.h>
 #include <globjects/logging.h>
+#include <globjects/NamedString.h>
+#include <globjects/base/File.h>
 
 #include "squish/squish.h"
 #include <zmq.hpp>
@@ -175,10 +177,6 @@ namespace kinect{
     m_texture_unit_offsets.emplace("raw_depth", 40);
     m_texture_unit_offsets.emplace("bg_depth", 41);
 
-
-    m_programs.at("filter")->setUniform("bbox_min", m_calib_vols->getBBox().getPMin());
-    m_programs.at("filter")->setUniform("bbox_max", m_calib_vols->getBBox().getPMax());
-
     m_programs.at("filter")->setUniform("kinect_depths", getTextureUnit("raw_depth"));
     glm::fvec2 tex_size_inv{1.0f/m_resolution_depth.x, 1.0f/m_resolution_depth.y};
     m_programs.at("filter")->setUniform("texSizeInv", tex_size_inv);
@@ -191,6 +189,8 @@ namespace kinect{
     m_programs.at("bg")->setUniform("kinect_depths", getTextureUnit("raw_depth"));
     m_programs.at("bg")->setUniform("texSizeInv", tex_size_inv);
     m_programs.at("bg")->setUniform("bg_depths", getTextureUnit("bg_depth"));
+
+    globjects::NamedString::create("/inc_bbox_test.glsl", new globjects::File("glsl/inc_bbox_test.glsl"));
 
     return true;
   }
@@ -230,6 +230,8 @@ void NetKinectArray::processDepth() {
   glActiveTexture(GL_TEXTURE0 + getTextureUnit("morph_input"));
   m_depthArray_raw->bind();
   m_programs.at("morph")->use();
+  m_programs.at("morph")->setUniform("cv_xyz", m_calib_vols->getXYZVolumeUnits());
+
   // erode
   m_programs.at("morph")->setUniform("mode", 0u);
   for(unsigned i = 0; i < m_calib_files->num(); ++i){
@@ -304,7 +306,7 @@ void NetKinectArray::processTextures(){
   m_programs.at("filter")->setUniform("filter_textures", m_filter_textures);
   m_programs.at("filter")->setUniform("processed_depth", m_use_processed_depth);
   m_programs.at("filter")->setUniform("cv_xyz", m_calib_vols->getXYZVolumeUnits());
-  
+
 // depth and old quality
   for(unsigned i = 0; i < m_calib_files->num(); ++i){
     m_programs.at("filter")->setUniform("cv_min_ds", m_calib_vols->getDepthLimits(i).x);

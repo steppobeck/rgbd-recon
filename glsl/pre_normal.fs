@@ -12,8 +12,15 @@ uniform sampler3D[5] cv_uv;
 
 layout(location = 0) out vec3 out_Normal;
 
+bool is_outside(float d){
+  return (d <= 0.0f) || (d >= 1.0f);
+}
+
 vec3 calculate_normal(const in vec2 tex_pos) {
   float depth = texture(kinect_depths, vec3(tex_pos, layer)).r;
+  if(is_outside(depth)) {
+    return vec3(0.0f);
+  }
   // the valid range scales with depth
   // float dist_range_max = 1.0f / depth;
   float dist_range_max = 0.009f;

@@ -30,19 +30,7 @@ layout(location = 0) out float out_Depth;
 layout(location = 1) out float out_Quality;
 layout(location = 2) out float out_Silhouette;
 
-uniform vec3 bbox_min;
-uniform vec3 bbox_max;
-bool in_bbox(vec3 p){
-  if(p.x >= bbox_min.x &&
-     p.y >= bbox_min.y &&
-     p.z >= bbox_min.z &&
-     p.x <= bbox_max.x &&
-     p.y <= bbox_max.y &&
-     p.z <= bbox_max.z){
-    return true;
-  }
-  return false;
-}
+#include </inc_bbox_test.glsl>
 
 float dist_space_max_inv = 1.0/float(kernel_size);
 float computeGaussSpace(float dist_space){
@@ -153,6 +141,9 @@ vec2 bilateral_filter(vec3 coords){
       filtered_depth = -1.0f;
     }
   }
+  else {
+
+  }
 #endif
 
   return vec2(filtered_depth, quality_strong);
@@ -164,7 +155,11 @@ void main(void) {
   float depth_norm = normalize_depth(depth);
   vec3 pos_world = texture(cv_xyz[layer], vec3(pass_TexCoord, depth_norm)).xyz;
   bool is_in_box = in_bbox(pos_world);
-
+  if (!is_in_box) {
+    out_Depth = 0.0f;
+    out_Silhouette = 0.0f;
+    return;
+  }
   vec2 res = bilateral_filter(coords);
   if(!filter_textures) {
     float raw_depth = normalize_depth(sample(coords));
@@ -176,7 +171,7 @@ void main(void) {
   out_Quality = res.y;
 
   float bg_depth = texture(bg_depths, coords).r;
-  const float min_bg_dist = 0.05f;
+  const float min_bg_dist = 0.01f;
   if(bg_depth - out_Depth > min_bg_dist && out_Depth > 0.0f && is_in_box) {
     out_Silhouette = 1.0f;
   }

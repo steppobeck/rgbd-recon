@@ -69,6 +69,7 @@ private:
   std::vector<CalibrationVolume<uv>>    m_data_volumes_uv;
   std::vector<CalibrationVolume<glm::fvec4>>    m_data_volumes_xyz_inv;
 
+  globjects::ref_ptr<globjects::Buffer> m_buffer_bbox;
   std::vector<Frustum>    m_frustums;
   gloost::BoundingBox m_bbox;
 

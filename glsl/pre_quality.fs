@@ -36,7 +36,7 @@ float sample(vec3 coords) {
 }
 
 bool is_outside(float d){
-  return (d < 0.0f) || (d > 1.0f);
+  return (d <= 0.0f) || (d >= 1.0f);
 }
 
 float normal_angle(vec3 position, uint layer) {

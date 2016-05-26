@@ -8,8 +8,11 @@ uniform sampler2DArray kinect_depths;
 uniform vec2 texSizeInv;
 uniform uint mode;
 
+uniform sampler3D[5] cv_xyz;
+
 layout(location = 0) out float out_Depth;
 
+#include </inc_bbox_test.glsl>
 // #define NORMALIZED
 
 float sample(vec3 coords) {
@@ -75,12 +78,24 @@ float dilate(const in vec3 coords, int kernel_size) {
 // average depth with new value
 void main(void) {
   vec3 coords = vec3(pass_TexCoord, layer);
+  float depth = sample(coords);
+  float depth_norm = (depth - 0.5f) / 4.0f;
+  vec3 pos_world = texture(cv_xyz[layer], vec3(pass_TexCoord, depth_norm)).xyz;
+  bool is_in_box = in_bbox(pos_world);
+  if (!is_in_box) {
+    out_Depth = 0.0f;
+    return;
+  }
   // erode
   if(mode == 0u) {
-    out_Depth = erode(coords, 3);
+    out_Depth = erode(coords, 1);
   }
   // dilate
   else if (mode == 1u) {
     out_Depth = dilate(coords, 1);
+  }
+  // dilate
+  else {
+    out_Depth = 0.5f;
   }
 }
