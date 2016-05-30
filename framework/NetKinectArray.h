@@ -165,6 +165,7 @@ inline void swap(double_pbo& a, double_pbo& b) {
     double_buffer<globjects::ref_ptr<globjects::Texture>> m_textures_depth2;
     globjects::ref_ptr<globjects::Texture> m_textures_quality;
     globjects::ref_ptr<globjects::Texture> m_textures_normal;
+    globjects::ref_ptr<globjects::Texture> m_textures_color;
     double_buffer<globjects::ref_ptr<globjects::Texture>> m_textures_bg;
     globjects::ref_ptr<globjects::Texture> m_textures_silhouette;
     globjects::ref_ptr<globjects::Framebuffer> m_fbo;
