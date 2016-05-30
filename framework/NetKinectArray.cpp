@@ -231,7 +231,6 @@ void NetKinectArray::processDepth() {
   m_depthArray_raw->bind();
   m_programs.at("morph")->use();
   m_programs.at("morph")->setUniform("cv_xyz", m_calib_vols->getXYZVolumeUnits());
-
   // erode
   m_programs.at("morph")->setUniform("mode", 0u);
   for(unsigned i = 0; i < m_calib_files->num(); ++i){
@@ -241,9 +240,9 @@ void NetKinectArray::processDepth() {
 
     ScreenQuad::draw();
   }
+  glMemoryBarrier(GL_ALL_BARRIER_BITS);
   // dilate
   m_programs.at("morph")->setUniform("mode", 1u);
-
   m_textures_depth2.swapBuffers();
   m_textures_depth2.front->bindActive(getTextureUnit("morph_input"));
   for(unsigned i = 0; i < m_calib_files->num(); ++i){
@@ -253,6 +252,8 @@ void NetKinectArray::processDepth() {
 
     ScreenQuad::draw();
   }
+  glMemoryBarrier(GL_ALL_BARRIER_BITS);
+  m_textures_depth2.front->unbindActive(getTextureUnit("morph_input"));
 
   m_programs.at("morph")->release();
 
