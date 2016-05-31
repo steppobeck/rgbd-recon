@@ -118,7 +118,7 @@ float bilateral_filter(vec3 coords){
   float angle = normal_angle(vec3(coords.xy, depth), uint(coords.z));
   quality_strong *= angle * angle;
   float color_diff = get_color_diff(coords.xy);
-  quality_strong *= color_diff;
+  // quality_strong *= color_diff;
   // return angle;
   return quality_strong;
 }

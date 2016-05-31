@@ -136,7 +136,7 @@ vec2 bilateral_filter(vec3 coords){
   }
 
 // #if 1
-  if(!processed_depth) 
+  // if(!processed_depth) 
   {
     if(w_range < (num_samples * 0.65)){
       // filtered_depth = -1.0f;
@@ -166,10 +166,10 @@ void main(void) {
     res.y = 0.0f;
   }
   else {
-    if(res.y > 0.0f) {
-      res.x = -1.0f;
-    }
-    else 
+    // if(res.y > 0.1f) {
+    //   res.x = -1.0f;
+    // }
+    // else 
       res.x = normalize_depth(res.x);
   }
   out_Depth = res;

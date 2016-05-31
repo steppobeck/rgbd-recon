@@ -34,7 +34,7 @@ float sample(vec3 coords) {
 #endif
 
 bool is_valid(float depth) {
-  return true;
+  // return true;
   return depth > min_depth && depth < max_depth;
 }
 
@@ -79,7 +79,7 @@ float dilate(const in vec3 coords, int kernel_size) {
     for(int x = -kernel_size; x < kernel_size + 1; ++x){
       vec3 coords_s = coords + vec3(vec2(x, y) * texSizeInv, 0.0f);
       float depth_s = sample(coords_s);
-      if (is_valid(depth_s) && distance(depth, depth_s) > max_dist && in_bbox(coords_s.xy, depth_s) ) {
+      if (is_valid(depth_s) && distance(depth, depth_s) < max_dist && in_bbox(coords_s.xy, depth_s) ) {
         valid = true;
         average_depth += depth_s;
         num_samples += 1.0f;
@@ -88,6 +88,7 @@ float dilate(const in vec3 coords, int kernel_size) {
   }
 
   if(!valid) return 0.0f;
+  // if (in_bbox(coords.xy, depth)) return depth;
   return average_depth / num_samples;
 }
 // average depth with new value
@@ -102,14 +103,14 @@ void main(void) {
   // erode
   if(mode == 0u) {
     out_Depth = sample(coords);
-    out_Depth = erode(coords, 1);
-    // out_Depth = dilate(coords, 1);
+    // out_Depth = erode(coords, 1);
+    out_Depth = dilate(coords, 1);
     // out_Depth = 0.75f;
   }
   // dilate
   else if (mode == 1u) {
     out_Depth = sample(coords);
-    // out_Depth = erode(coords, 1);
+    // out_Depth = erode(coords, 2);
     // out_Depth = dilate(coords, 1);
     // out_Depth = 0.25f;
   }
