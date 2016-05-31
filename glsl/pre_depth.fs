@@ -27,10 +27,9 @@ uniform bool processed_depth;
 const int kernel_size = 6; // in pixel
 const int kernel_end = kernel_size + 1;
 
-layout(location = 0) out float out_Depth;
-layout(location = 1) out float out_Quality;
-layout(location = 2) out float out_Silhouette;
-layout(location = 3) out vec3 out_Color;
+layout(location = 0) out vec2 out_Depth;
+layout(location = 1) out float out_Silhouette;
+layout(location = 2) out vec3 out_Color;
 
 #include </inc_bbox_test.glsl>
 ////////////////////////////////////////////////////////////////////////
@@ -219,29 +218,31 @@ void main(void) {
   vec3 pos_world = texture(cv_xyz[layer], vec3(pass_TexCoord, depth_norm)).xyz;
   bool is_in_box = in_bbox(pos_world);
   if (!is_in_box) {
-    out_Depth = 0.0f;
+    out_Depth.x = 0.0f;
     out_Silhouette = 0.0f;
-    out_Color = rgb_to_lab(get_color(vec3(coords.xy, (out_Depth <= 0.0f) ? 0.0f : 1.0f)));
+    out_Color = rgb_to_lab(get_color(vec3(coords.xy, (depth_norm <= 0.0f) ? 0.0f : 1.0f)));
     return;
   }
   vec2 res = bilateral_filter(coords);
   if(!filter_textures) {
-    float raw_depth = normalize_depth(sample(coords));
-    out_Depth = raw_depth;
+    res.x = depth;
   }
-  else {
-    out_Depth = normalize_depth(res.x);
-  }
-  out_Quality = res.y;
+  res.x = normalize_depth(res.x);
+  out_Depth.x = res.x;
 
   float bg_depth = texture(bg_depths, coords).r;
   const float min_bg_dist = 0.01f;
-  if(bg_depth - out_Depth > min_bg_dist && out_Depth > 0.0f && is_in_box) {
+  if(bg_depth - res.x > min_bg_dist && res.x > 0.0f && is_in_box) {
     out_Silhouette = 1.0f;
   }
   else {
     out_Silhouette = 0.0f;
   }
 
-  out_Color = rgb_to_lab(get_color(vec3(coords.xy, (out_Depth <= 0.0f) ? 0.0f : 1.0f)));
+  if(res.x < 0.0f) {
+    out_Color = vec3(0.0f, 1.0f, 0.0f);
+  }
+  else {
+    out_Color = rgb_to_lab(get_color(vec3(coords.xy, (res.x <= 0.0f) ? 0.0f : 1.0f)));  
+  }
 }

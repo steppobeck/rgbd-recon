@@ -163,7 +163,7 @@ namespace kinect{
     else{
       m_depthArray_raw = std::unique_ptr<mvt::TextureArray>{new mvt::TextureArray(m_resolution_depth.x, m_resolution_depth.y, m_numLayers, GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT)};
     }
-    m_textures_depth->image3D(0, GL_LUMINANCE32F_ARB, m_resolution_depth.x, m_resolution_depth.y, m_numLayers, 0, GL_RED, GL_FLOAT, (void*)nullptr);
+    m_textures_depth->image3D(0, GL_RG32F, m_resolution_depth.x, m_resolution_depth.y, m_numLayers, 0, GL_RG, GL_FLOAT, (void*)nullptr);
     m_textures_depth2.front->image3D(0, GL_LUMINANCE32F_ARB, m_resolution_depth.x, m_resolution_depth.y, m_numLayers, 0, GL_RED, GL_FLOAT, (void*)nullptr);
     m_textures_depth2.back->image3D(0, GL_LUMINANCE32F_ARB, m_resolution_depth.x, m_resolution_depth.y, m_numLayers, 0, GL_RED, GL_FLOAT, (void*)nullptr);
 
@@ -303,7 +303,7 @@ void NetKinectArray::processTextures(){
 
   processDepth();
 
-  m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3});
+  m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2});
 
   m_programs.at("filter")->use();
   m_programs.at("filter")->setUniform("filter_textures", m_filter_textures);
@@ -317,9 +317,8 @@ void NetKinectArray::processTextures(){
     m_programs.at("filter")->setUniform("cv_max_ds", m_calib_vols->getDepthLimits(i).y);
 
     m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT0, m_textures_depth, 0, i);
-    m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT1, m_textures_quality, 0, i);
-    m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT2, m_textures_silhouette, 0, i);
-    m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT3, m_textures_color, 0, i);
+    m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT1, m_textures_silhouette, 0, i);
+    m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT2, m_textures_color, 0, i);
     m_programs.at("filter")->setUniform("layer", i);
     m_programs.at("filter")->setUniform("compress", m_calib_files->getCalibs()[i].isCompressedDepth());
     const float near = m_calib_files->getCalibs()[i].getNear();
