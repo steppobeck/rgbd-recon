@@ -5,12 +5,13 @@ noperspective in vec2 pass_TexCoord;
 
 uniform sampler2D gauss;
 uniform sampler2DArray kinect_depths;
+uniform sampler2DArray kinect_colors;
 uniform sampler2DArray bg_depths;
-//uniform sampler2DArray kinect_colors;
 uniform vec2 texSizeInv;
 uniform bool filter_textures;
 
 uniform sampler3D[5] cv_xyz;
+uniform sampler3D[5] cv_uv;
 
 uniform uint layer;
 uniform bool compress;
@@ -29,8 +30,66 @@ const int kernel_end = kernel_size + 1;
 layout(location = 0) out float out_Depth;
 layout(location = 1) out float out_Quality;
 layout(location = 2) out float out_Silhouette;
+layout(location = 3) out vec3 out_Color;
 
 #include </inc_bbox_test.glsl>
+////////////////////////////////////////////////////////////////////////
+const vec3 white_reference = vec3(95.047, 100.000, 108.883);
+const float epsilon = 0.008856f;
+const float kappa   = 903.3f;
+
+float pivot_RGB(float n) {
+  return (n > 0.04045 ? pow((n + 0.055) / 1.055, 2.4) : n / 12.92) * 100.0;
+}
+
+vec3 rgb_to_xyz(vec3 rgbCol) {
+
+  float r = pivot_RGB(rgbCol[0] / 255.0f);
+  float g = pivot_RGB(rgbCol[1] / 255.0f);
+  float b = pivot_RGB(rgbCol[2] / 255.0f);
+
+  vec3 xyz_col;
+
+  xyz_col[0] = r * 0.4124 + g * 0.3576 + b * 0.1805;
+  xyz_col[1] = r * 0.2126 + g * 0.7152 + b * 0.0722;
+  xyz_col[2] = r * 0.0193 + g * 0.1192 + b * 0.9505;
+  
+  return xyz_col; 
+}
+
+float pivot_XYZ(float n) {
+        return n > epsilon ? pow(n, 1.0/3.0) : (kappa * n + 16) / 116;
+}
+
+vec3 xyz_to_lab(vec3 xyzCol) {
+  float x = pivot_XYZ(xyzCol[0] / white_reference[0]);
+  float y = pivot_XYZ(xyzCol[1] / white_reference[1]);
+  float z = pivot_XYZ(xyzCol[2] / white_reference[2]);
+
+  vec3 lab_col;
+  
+  lab_col[0] = max(0.0, 116*y -16);
+  lab_col[1] = 500 * (x - y);
+  lab_col[2] = 200 * (y - z);
+
+  return lab_col;
+}
+
+vec3 rgb_to_lab(vec3 rgb) {
+  return xyz_to_lab(rgb_to_xyz(rgb));
+}
+
+float calc_delta_E(vec3 c1, vec3 c2) {
+  return sqrt(
+        pow(c1[0]-c2[0],2) + 
+        pow(c1[1]-c2[1],2) +
+        pow(c1[2]-c2[2],2) 
+       ); 
+}
+
+///////////////////////////////////////////////////////////////////////
+
+
 
 float dist_space_max_inv = 1.0/float(kernel_size);
 float computeGaussSpace(float dist_space){
@@ -75,6 +134,10 @@ bool is_outside(float d){
 
 float normalize_depth(float depth) {
   return (depth - cv_min_ds)/(cv_max_ds - cv_min_ds);
+}
+vec3 get_color(vec3 coords) {
+  vec2 coords_c = texture(cv_uv[layer], coords).xy;
+  return texture(kinect_colors, vec3(coords_c, layer)).rgb;
 }
 
 vec2 bilateral_filter(vec3 coords){
@@ -178,4 +241,6 @@ void main(void) {
   else {
     out_Silhouette = 0.0f;
   }
+
+  out_Color = rgb_to_lab(get_color(vec3(coords.xy, out_Depth)));
 }
