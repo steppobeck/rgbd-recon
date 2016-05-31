@@ -357,7 +357,7 @@ void key(unsigned char key, int x, int y)
     g_num_texture = (g_num_texture + 1) % g_calib_files->num();
     break;
   case 'u':
-    g_texture_type = (g_texture_type + 1) % 8;
+    g_texture_type = (g_texture_type + 1) % 7;
     break;
   case 't':
     g_draw_textures = !g_draw_textures;

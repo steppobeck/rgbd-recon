@@ -105,13 +105,13 @@ float uncompress(float d_c){
     }
 }
 
-float sample(vec3 coords) {
+float sample(vec2 coords) {
   float depth = 0.0f;
   if(compress){
-    depth = uncompress(texture(kinect_depths, coords).r);
+    depth = uncompress(texture(kinect_depths, vec3(coords, layer)).r);
   }
   else{
-    depth = texture(kinect_depths, coords).r;
+    depth = texture(kinect_depths, vec3(coords, layer)).r;
   }
   return depth;
 }
@@ -130,10 +130,7 @@ vec3 get_color(vec3 coords) {
 
 vec2 bilateral_filter(vec3 coords){
 
-  float depth = sample(coords);
-  if(is_outside(depth)){
-    return vec2(-1.0,0.0);
-  }
+  float depth = coords.z;
   // the valid range scales with depth
   const float max_depth = 4.5f; // Kinect V2
   float d_dmax = depth / max_depth;
@@ -152,7 +149,7 @@ vec2 bilateral_filter(vec3 coords){
     for(int x = -kernel_size; x < kernel_end; ++x){
       num_samples += 1.0f;
       weight_samples +=  1.0f - length(vec2(x,y)) / length(vec2(0,6));
-      vec3 coords_s = coords + vec3(vec2(x, y) * texSizeInv, 0.0f);
+      vec2 coords_s = coords.xy + vec2(x, y) * texSizeInv;
       
       float depth_s = sample(coords_s);
       float depth_range = abs(depth_s - depth);
@@ -170,18 +167,15 @@ vec2 bilateral_filter(vec3 coords){
     }
   }
 
-  float lateral_quality  = 1.0f - border_samples/num_samples;
-  // float lateral_quality  = 1.0f - border_samples/num_samples * w_range / 40.0f;
-  // lateral_quality  = 1.0f - weight_border_samples/weight_samples;
-  float quality_strong = pow(lateral_quality,30.0);
-  quality_strong /= depth;
+  float discarded = 0.0f;
   float filtered_depth = 0.0f;
   if(w > 0.0)
     filtered_depth = depth_bf/w;
   else {
     // if (!processed_depth) 
     {
-      filtered_depth = -1.0f;
+      // filtered_depth = -1.0f;
+      discarded = 1.0f;
     }
   }
 
@@ -189,47 +183,44 @@ vec2 bilateral_filter(vec3 coords){
   if(!processed_depth) 
   {
     if(w_range < (num_samples * 0.65)){
-      filtered_depth = -1.0f;
+      // filtered_depth = -1.0f;
+      discarded = 1.0f;
     }
-  }
-  else {
-
   }
 #endif
 
-  return vec2(filtered_depth, quality_strong);
+  return vec2(filtered_depth, discarded);
 }
 
 void main(void) {
-  vec3 coords = vec3(pass_TexCoord, layer);
-  float depth = sample(coords);
+  out_Depth = vec2(0.0f);
+  out_Silhouette = 0.0f;
+
+  float depth = sample(pass_TexCoord);
   float depth_norm = normalize_depth(depth);
   vec3 pos_world = texture(cv_xyz[layer], vec3(pass_TexCoord, depth_norm)).xyz;
   bool is_in_box = in_bbox(pos_world);
   if (!is_in_box) {
-    out_Depth.x = 0.0f;
-    out_Silhouette = 0.0f;
-    out_Color = rgb_to_lab(get_color(vec3(coords.xy, (depth_norm <= 0.0f) ? 0.0f : 1.0f)));
+    out_Color = rgb_to_lab(get_color(vec3(pass_TexCoord, (depth_norm <= 0.0f) ? 0.0f : 1.0f)));
     return;
   }
-  vec2 res = bilateral_filter(coords);
+  vec2 res = bilateral_filter(vec3(pass_TexCoord, depth));
   if(!filter_textures) {
-    res.x = depth;
+    res.x = depth_norm;
+    res.y = 0.0f;
   }
-  res.x = normalize_depth(res.x);
-  out_Depth.x = res.x;
+  else {
+    if(res.y > 0.0f) {
+      res.x = -1.0f;
+    }
+    else {
+      res.x = normalize_depth(res.x);
+    }
+  }
+  out_Depth = res;
 
-  if(res.x > 0.0f) {
+  if(res.y < 1.0f) {
     out_Silhouette = 1.0f;
   }
-  else {
-    out_Silhouette = 0.0f;
-  }
-
-  if(res.x < 0.0f) {
-    out_Color = vec3(0.0f, 1.0f, 0.0f);
-  }
-  else {
-    out_Color = rgb_to_lab(get_color(vec3(coords.xy, (res.x <= 0.0f) ? 0.0f : 1.0f)));  
-  }
+  out_Color = rgb_to_lab(get_color(vec3(pass_TexCoord, (res.x <= 0.0f) ? 0.0f : 1.0f)));  
 }
