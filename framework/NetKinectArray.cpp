@@ -39,6 +39,7 @@ namespace kinect{
       m_colorArray(),
       m_depthArray_raw(),
       m_textures_depth{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
+      m_textures_depth_b{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
       m_textures_depth2{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY), globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
       m_textures_quality{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
       m_textures_normal{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
@@ -66,7 +67,7 @@ namespace kinect{
     m_programs.emplace("filter", new globjects::Program());
     m_programs.emplace("normal", new globjects::Program());
     m_programs.emplace("quality", new globjects::Program());
-    // m_programs.emplace("bg", new globjects::Program());
+    m_programs.emplace("boundary", new globjects::Program());
     m_programs.emplace("morph", new globjects::Program());
     // must happen before thread launching
     init();
@@ -90,10 +91,10 @@ namespace kinect{
      globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/texture_passthrough.vs")
     ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/pre_quality.fs")
     );
-    // m_programs.at("bg")->attach(
-    //  globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/texture_passthrough.vs")
-    // ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/pre_background.fs")
-    // );
+    m_programs.at("boundary")->attach(
+     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/texture_passthrough.vs")
+    ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/pre_boundary.fs")
+    );
     m_programs.at("morph")->attach(
      globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/texture_passthrough.vs")
     ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/pre_morph.fs")
@@ -164,10 +165,13 @@ namespace kinect{
       m_depthArray_raw = std::unique_ptr<mvt::TextureArray>{new mvt::TextureArray(m_resolution_depth.x, m_resolution_depth.y, m_numLayers, GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT)};
     }
     m_textures_depth->image3D(0, GL_RG32F, m_resolution_depth.x, m_resolution_depth.y, m_numLayers, 0, GL_RG, GL_FLOAT, (void*)nullptr);
+    m_textures_depth_b->image3D(0, GL_RG32F, m_resolution_depth.x, m_resolution_depth.y, m_numLayers, 0, GL_RG, GL_FLOAT, (void*)nullptr);
     m_textures_depth2.front->image3D(0, GL_LUMINANCE32F_ARB, m_resolution_depth.x, m_resolution_depth.y, m_numLayers, 0, GL_RED, GL_FLOAT, (void*)nullptr);
     m_textures_depth2.back->image3D(0, GL_LUMINANCE32F_ARB, m_resolution_depth.x, m_resolution_depth.y, m_numLayers, 0, GL_RED, GL_FLOAT, (void*)nullptr);
 
     m_depthArray_raw->setMAGMINFilter(GL_NEAREST);
+    m_textures_depth_b->setParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    m_textures_depth_b->setParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     m_textures_depth->setParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     m_textures_depth->setParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     m_textures_depth2.front->setParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -188,8 +192,7 @@ namespace kinect{
 
     m_programs.at("morph")->setUniform("texSizeInv", tex_size_inv);
     m_programs.at("morph")->setUniform("kinect_depths", getTextureUnit("morph_input"));
-    // m_programs.at("bg")->setUniform("kinect_depths", getTextureUnit("raw_depth"));
-    // m_programs.at("bg")->setUniform("texSizeInv", tex_size_inv);
+    m_programs.at("boundary")->setUniform("texSizeInv", tex_size_inv);
     // m_programs.at("bg")->setUniform("bg_depths", getTextureUnit("bg_depth"));
 
     globjects::NamedString::create("/inc_bbox_test.glsl", new globjects::File("glsl/inc_bbox_test.glsl"));
@@ -332,6 +335,23 @@ void NetKinectArray::processTextures(){
   }
   
   m_programs.at("filter")->release();
+// boundary
+  m_programs.at("boundary")->use();
+  m_programs.at("boundary")->setUniform("kinect_depths", getTextureUnit("depth"));
+  m_textures_depth->bindActive(getTextureUnit("depth"));
+
+  m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT0});
+
+  for(unsigned i = 0; i < m_calib_files->num(); ++i){
+    m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT0, m_textures_depth_b, 0, i);
+
+    m_programs.at("boundary")->setUniform("layer", i);
+
+    ScreenQuad::draw();
+  }
+  m_programs.at("boundary")->release();
+
+  m_textures_depth_b->bindActive(getTextureUnit("depth"));
 // normals
   m_programs.at("normal")->use();
   m_programs.at("normal")->setUniform("cv_xyz", m_calib_vols->getXYZVolumeUnits());
@@ -395,7 +415,8 @@ void NetKinectArray::setStartTextureUnit(unsigned start_texture_unit) {
   m_programs.at("quality")->setUniform("kinect_depths", getTextureUnit("depth"));
   m_programs.at("quality")->setUniform("kinect_normals", getTextureUnit("normal"));
   m_programs.at("quality")->setUniform("kinect_colors_lab", getTextureUnit("color_lab"));
-  // m_programs.at("filter")->setUniform("bg_depths", getTextureUnit("bg"));
+  m_programs.at("boundary")->setUniform("kinect_colors_lab", getTextureUnit("color_lab"));
+  m_programs.at("boundary")->setUniform("kinect_depths", getTextureUnit("depth"));
 }
 
 void NetKinectArray::bindToTextureUnits() const {

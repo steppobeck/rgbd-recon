@@ -162,6 +162,7 @@ inline void swap(double_pbo& a, double_pbo& b) {
     std::unique_ptr<mvt::TextureArray> m_colorArray;
     std::unique_ptr<mvt::TextureArray> m_depthArray_raw;
     globjects::ref_ptr<globjects::Texture> m_textures_depth;
+    globjects::ref_ptr<globjects::Texture> m_textures_depth_b;
     double_buffer<globjects::ref_ptr<globjects::Texture>> m_textures_depth2;
     globjects::ref_ptr<globjects::Texture> m_textures_quality;
     globjects::ref_ptr<globjects::Texture> m_textures_normal;
