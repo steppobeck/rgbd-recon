@@ -14,6 +14,7 @@ uniform float epsilon;
 uniform mat4 gl_NormalMatrix;
 
 #include </shading.glsl>
+
 #include </inc_bbox_test.glsl>
 ///////////////////////////////////////////////////////////////////////////////
 // input

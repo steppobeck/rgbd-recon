@@ -17,6 +17,7 @@ uniform mat4 gl_NormalMatrix;
 uniform vec3[5] camera_positions;
 
 #include </shading.glsl>
+
 #include </inc_bbox_test.glsl>
 ///////////////////////////////////////////////////////////////////////////////
 // input

@@ -8,10 +8,11 @@ ScreenQuad::ScreenQuad()
  :m_quad{new globjects::VertexArray()}
  ,m_tri_buffer{new globjects::Buffer()}
 {
-  std::vector<float> data = {-1.0f, -1.0f, 0.0f, 0.0f,
-                             1.0f, -1.0f, 1.0f, 0.0f,
-                             -1.0f, 1.0f, 0.0f, 1.0f,
-                             1.0f, 1.0f, 1.0f, 1.0f};
+  std::vector<float> data = {
+    -1.0f, -1.0f, 0.0f, 0.0f,
+     3.0f, -1.0f, 2.0f, 0.0f,
+    -1.0f, 3.0f, 0.0f, 2.0f
+  };
 
   m_tri_buffer->setData(data, GL_STATIC_DRAW);
 
@@ -28,13 +29,7 @@ ScreenQuad::ScreenQuad()
   m_tri_buffer->ref();
 }
 
-ScreenQuad::~ScreenQuad() {
-  // if destroyed before context, free resources
-  m_quad->unref();
-  m_tri_buffer->unref();
-}
-
 void ScreenQuad::draw() {
   static ScreenQuad instance{};
-  instance.m_quad->drawArrays(GL_TRIANGLE_STRIP, 0, 4);
+  instance.m_quad->drawArrays(GL_TRIANGLES, 0, 3);
 }
