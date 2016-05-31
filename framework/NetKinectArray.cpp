@@ -196,6 +196,7 @@ namespace kinect{
     // m_programs.at("bg")->setUniform("bg_depths", getTextureUnit("bg_depth"));
 
     globjects::NamedString::create("/inc_bbox_test.glsl", new globjects::File("glsl/inc_bbox_test.glsl"));
+    globjects::NamedString::create("/inc_color.glsl", new globjects::File("glsl/inc_color.glsl"));
 
     return true;
   }
@@ -290,17 +291,14 @@ void NetKinectArray::processBackground() {
 }
 
 void NetKinectArray::processTextures(){
-
-  glPushAttrib(GL_ALL_ATTRIB_BITS);
-
   GLint current_fbo;
   glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &current_fbo);
   GLsizei old_vp_params[4];
   glGetIntegerv(GL_VIEWPORT, old_vp_params);
   glViewport(0, 0, m_resolution_depth.x, m_resolution_depth.y);
 
-	glActiveTexture(GL_TEXTURE0 + getTextureUnit("raw_depth"));
-	m_depthArray_raw->bind();
+  glActiveTexture(GL_TEXTURE0 + getTextureUnit("raw_depth"));
+  m_depthArray_raw->bind();
 
   m_fbo->bind();
 
@@ -338,6 +336,8 @@ void NetKinectArray::processTextures(){
 // boundary
   m_programs.at("boundary")->use();
   m_programs.at("boundary")->setUniform("kinect_depths", getTextureUnit("depth"));
+  m_programs.at("boundary")->setUniform("kinect_colors", getTextureUnit("color"));
+  m_programs.at("boundary")->setUniform("cv_uv", m_calib_vols->getUVVolumeUnits());
   m_textures_depth->bindActive(getTextureUnit("depth"));
 
   m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT0});
@@ -394,7 +394,6 @@ void NetKinectArray::processTextures(){
               (GLsizei)old_vp_params[2],
               (GLsizei)old_vp_params[3]);
 
-  glPopAttrib();
 }
 
 void NetKinectArray::setStartTextureUnit(unsigned start_texture_unit) {
@@ -417,12 +416,12 @@ void NetKinectArray::setStartTextureUnit(unsigned start_texture_unit) {
   m_programs.at("quality")->setUniform("kinect_colors_lab", getTextureUnit("color_lab"));
   m_programs.at("boundary")->setUniform("kinect_colors_lab", getTextureUnit("color_lab"));
   m_programs.at("boundary")->setUniform("kinect_depths", getTextureUnit("depth"));
+
 }
 
 void NetKinectArray::bindToTextureUnits() const {
   glActiveTexture(GL_TEXTURE0 + getTextureUnit("color"));
   m_colorArray->bind();
-  m_textures_depth->bindActive(getTextureUnit("depth"));
   m_textures_quality->bindActive(getTextureUnit("quality"));
   m_textures_normal->bindActive(getTextureUnit("normal"));
   m_textures_silhouette->bindActive(getTextureUnit("silhouette"));
