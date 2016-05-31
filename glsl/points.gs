@@ -1,4 +1,5 @@
 #version 420
+#extension GL_ARB_shading_language_include : require
 
 layout(points) in;
 layout(points, max_vertices = 1) out;

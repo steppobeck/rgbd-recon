@@ -1,5 +1,6 @@
 #version 130
 #extension GL_ARB_explicit_attrib_location : enable
+#extension GL_ARB_shading_language_include : require
 
 noperspective in vec2 pass_TexCoord;
 
@@ -31,6 +32,7 @@ layout(location = 1) out float out_Silhouette;
 layout(location = 2) out vec3 out_Color;
 
 #include </inc_bbox_test.glsl>
+
 #include </inc_color.glsl>
 
 float dist_space_max_inv = 1.0/float(kernel_size);
@@ -133,7 +135,7 @@ vec2 bilateral_filter(vec3 coords){
     }
   }
 
-#if 1
+// #if 1
   if(!processed_depth) 
   {
     if(w_range < (num_samples * 0.65)){
@@ -141,7 +143,7 @@ vec2 bilateral_filter(vec3 coords){
       discarded = 1.0f;
     }
   }
-#endif
+// #endif
 
   return vec2(filtered_depth, discarded);
 }

@@ -1,5 +1,6 @@
 #ifndef COLOR_GLSL
 #define COLOR_GLSL
+
 const vec3 white_reference = vec3(95.047, 100.000, 108.883);
 const float epsilon = 0.008856f;
 const float kappa   = 903.3f;
