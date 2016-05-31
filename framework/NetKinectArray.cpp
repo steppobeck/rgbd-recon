@@ -66,7 +66,7 @@ namespace kinect{
     m_programs.emplace("filter", new globjects::Program());
     m_programs.emplace("normal", new globjects::Program());
     m_programs.emplace("quality", new globjects::Program());
-    m_programs.emplace("bg", new globjects::Program());
+    // m_programs.emplace("bg", new globjects::Program());
     m_programs.emplace("morph", new globjects::Program());
     // must happen before thread launching
     init();
@@ -90,10 +90,10 @@ namespace kinect{
      globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/texture_passthrough.vs")
     ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/pre_quality.fs")
     );
-    m_programs.at("bg")->attach(
-     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/texture_passthrough.vs")
-    ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/pre_background.fs")
-    );
+    // m_programs.at("bg")->attach(
+    //  globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/texture_passthrough.vs")
+    // ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/pre_background.fs")
+    // );
     m_programs.at("morph")->attach(
      globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/texture_passthrough.vs")
     ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/pre_morph.fs")
@@ -177,7 +177,7 @@ namespace kinect{
 
     m_texture_unit_offsets.emplace("morph_input", 42);
     m_texture_unit_offsets.emplace("raw_depth", 40);
-    m_texture_unit_offsets.emplace("bg_depth", 41);
+    // m_texture_unit_offsets.emplace("bg_depth", 41);
 
     m_programs.at("filter")->setUniform("kinect_depths", getTextureUnit("raw_depth"));
     glm::fvec2 tex_size_inv{1.0f/m_resolution_depth.x, 1.0f/m_resolution_depth.y};
@@ -188,9 +188,9 @@ namespace kinect{
 
     m_programs.at("morph")->setUniform("texSizeInv", tex_size_inv);
     m_programs.at("morph")->setUniform("kinect_depths", getTextureUnit("morph_input"));
-    m_programs.at("bg")->setUniform("kinect_depths", getTextureUnit("raw_depth"));
-    m_programs.at("bg")->setUniform("texSizeInv", tex_size_inv);
-    m_programs.at("bg")->setUniform("bg_depths", getTextureUnit("bg_depth"));
+    // m_programs.at("bg")->setUniform("kinect_depths", getTextureUnit("raw_depth"));
+    // m_programs.at("bg")->setUniform("texSizeInv", tex_size_inv);
+    // m_programs.at("bg")->setUniform("bg_depths", getTextureUnit("bg_depth"));
 
     globjects::NamedString::create("/inc_bbox_test.glsl", new globjects::File("glsl/inc_bbox_test.glsl"));
 
@@ -364,7 +364,7 @@ void NetKinectArray::processTextures(){
   
   m_programs.at("quality")->release();
   if(m_num_frame < s_num_bg_frames && m_curr_frametime < 0.5) {
-    processBackground();
+    // processBackground();
   }
 
   m_fbo->unbind();
@@ -384,9 +384,9 @@ void NetKinectArray::setStartTextureUnit(unsigned start_texture_unit) {
   m_texture_unit_offsets["quality"] = m_start_texture_unit + 2;
   m_texture_unit_offsets["normal"] = m_start_texture_unit + 3;
   m_texture_unit_offsets["silhouette"] = m_start_texture_unit + 4;
-  m_texture_unit_offsets["bg"] = m_start_texture_unit + 5;
-  m_texture_unit_offsets["morph_depth"] = m_start_texture_unit + 6;
-  m_texture_unit_offsets["color_lab"] = m_start_texture_unit + 7;
+  // m_texture_unit_offsets["bg"] = m_start_texture_unit + 5;
+  m_texture_unit_offsets["morph_depth"] = m_start_texture_unit + 5;
+  m_texture_unit_offsets["color_lab"] = m_start_texture_unit + 6;
 
   bindToTextureUnits();
 
@@ -395,7 +395,7 @@ void NetKinectArray::setStartTextureUnit(unsigned start_texture_unit) {
   m_programs.at("quality")->setUniform("kinect_depths", getTextureUnit("depth"));
   m_programs.at("quality")->setUniform("kinect_normals", getTextureUnit("normal"));
   m_programs.at("quality")->setUniform("kinect_colors_lab", getTextureUnit("color_lab"));
-  m_programs.at("filter")->setUniform("bg_depths", getTextureUnit("bg"));
+  // m_programs.at("filter")->setUniform("bg_depths", getTextureUnit("bg"));
 }
 
 void NetKinectArray::bindToTextureUnits() const {
@@ -405,7 +405,7 @@ void NetKinectArray::bindToTextureUnits() const {
   m_textures_quality->bindActive(getTextureUnit("quality"));
   m_textures_normal->bindActive(getTextureUnit("normal"));
   m_textures_silhouette->bindActive(getTextureUnit("silhouette"));
-  m_textures_bg.front->bindActive(getTextureUnit("bg"));
+  // m_textures_bg.front->bindActive(getTextureUnit("bg"));
   m_textures_depth2.front->bindActive(getTextureUnit("morph_depth"));
   m_textures_color->bindActive(getTextureUnit("color_lab"));
   glActiveTexture(GL_TEXTURE0 + getTextureUnit("raw_depth"));

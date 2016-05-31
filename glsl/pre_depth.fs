@@ -6,7 +6,6 @@ noperspective in vec2 pass_TexCoord;
 uniform sampler2D gauss;
 uniform sampler2DArray kinect_depths;
 uniform sampler2DArray kinect_colors;
-uniform sampler2DArray bg_depths;
 uniform vec2 texSizeInv;
 uniform bool filter_textures;
 
@@ -78,17 +77,7 @@ vec3 rgb_to_lab(vec3 rgb) {
   return xyz_to_lab(rgb_to_xyz(rgb));
 }
 
-float calc_delta_E(vec3 c1, vec3 c2) {
-  return sqrt(
-        pow(c1[0]-c2[0],2) + 
-        pow(c1[1]-c2[1],2) +
-        pow(c1[2]-c2[2],2) 
-       ); 
-}
-
 ///////////////////////////////////////////////////////////////////////
-
-
 
 float dist_space_max_inv = 1.0/float(kernel_size);
 float computeGaussSpace(float dist_space){
@@ -230,9 +219,7 @@ void main(void) {
   res.x = normalize_depth(res.x);
   out_Depth.x = res.x;
 
-  float bg_depth = texture(bg_depths, coords).r;
-  const float min_bg_dist = 0.01f;
-  if(bg_depth - res.x > min_bg_dist && res.x > 0.0f && is_in_box) {
+  if(res.x > 0.0f) {
     out_Silhouette = 1.0f;
   }
   else {
