@@ -9,6 +9,7 @@ uniform sampler2DArray kinect_depths;
 uniform sampler2DArray kinect_colors;
 uniform sampler2DArray kinect_colors_lab;
 uniform sampler3D[5] cv_uv;
+uniform bool refine;
 
 uniform vec2 texSizeInv;
 
@@ -43,7 +44,7 @@ float get_color_diff(vec2 coords) {
   }
   // atleas one neighbour must be valid
   if(num_samples < total_samples * 0.5f) return 1.0f;
-  return dist;
+  return total_dist / num_samples;
 }
 // average depth with new value
 void main(void) {
@@ -52,12 +53,10 @@ void main(void) {
   if(depth.y > 0.1f) {
     float color_dist = get_color_diff(pass_TexCoord);
     const float max_color_dist = 0.05f;
-    if(color_dist > max_color_dist) {
+    if(color_dist > max_color_dist || !refine) {
       depth.x = -1.0f;
       depth.y = 0.0f;
     }
-    // depth.x = get_depth(pass_TexCoord);
   }
-  // depth.y = get_color_diff(pass_TexCoord);
   out_Depth = vec2(depth);
 }

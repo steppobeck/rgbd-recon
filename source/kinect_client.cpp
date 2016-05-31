@@ -343,6 +343,11 @@ void key(unsigned char key, int x, int y)
     processed = !processed;
     g_nka->useProcessedDepths(processed);
     break;
+  case 'n':
+    static bool refine = true;
+    refine = !refine;
+    g_nka->refineBoundary(refine);
+    break;
   case 'g':
     g_draw_grid = !g_draw_grid;
     break;

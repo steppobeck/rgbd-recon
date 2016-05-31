@@ -105,18 +105,15 @@ float bilateral_filter(vec3 coords){
   }
 
   float lateral_quality  = 1.0f - border_samples/num_samples;
-  // float lateral_quality  = 1.0f - border_samples/num_samples * w_range / 40.0f;
-  lateral_quality  = 1.0f - weight_border_samples/weight_samples;
-  float exponent = 3.0f;
-  if(processed_depth) {
-    exponent = 3.0f;
-  }
+  // lateral_quality  = 1.0f - weight_border_samples/weight_samples;
+  lateral_quality  = w_range / num_samples;
+  float exponent = 6.0f;
   float quality_strong = pow(lateral_quality, exponent);
   quality_strong /= depth * 4.5f;
   // float fdiltered_depth = 0.0f;
   //float filtered_depth = depth_bf/w;
   float angle = normal_angle(vec3(coords.xy, depth), uint(coords.z));
-  quality_strong *= angle * angle;
+  quality_strong *= pow(angle, 2.0f);
   float color_diff = get_color_diff(coords.xy);
   // quality_strong *= color_diff;
   // return angle;

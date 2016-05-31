@@ -56,10 +56,11 @@ namespace kinect{
       m_readThread(),
       m_running(true),
       m_filter_textures(true),
+      m_refine_bound(false),
       m_serverport(serverport),
       m_num_frame{0},
       m_curr_frametime{0.0},
-      m_use_processed_depth{false},
+      m_use_processed_depth{true},
       m_start_texture_unit(0),
       m_calib_files{calibs},
       m_calib_vols{vols}
@@ -338,6 +339,7 @@ void NetKinectArray::processTextures(){
   m_programs.at("boundary")->setUniform("kinect_depths", getTextureUnit("depth"));
   m_programs.at("boundary")->setUniform("kinect_colors", getTextureUnit("color"));
   m_programs.at("boundary")->setUniform("cv_uv", m_calib_vols->getUVVolumeUnits());
+  m_programs.at("boundary")->setUniform("refine", m_refine_bound);
   m_textures_depth->bindActive(getTextureUnit("depth"));
 
   m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT0});
@@ -443,6 +445,10 @@ void NetKinectArray::filterTextures(bool filter) {
 }
 void NetKinectArray::useProcessedDepths(bool filter) {
   m_use_processed_depth = filter;
+  processTextures();
+}
+void NetKinectArray::refineBoundary(bool filter) {
+  m_refine_bound = filter;
   processTextures();
 }
 

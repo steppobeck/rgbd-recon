@@ -137,6 +137,7 @@ inline void swap(double_pbo& a, double_pbo& b) {
 
     void filterTextures(bool filter);
     void useProcessedDepths(bool filter);
+    void refineBoundary(bool filter);
 
     void bindToTextureUnits() const;
 
@@ -184,6 +185,7 @@ inline void swap(double_pbo& a, double_pbo& b) {
     std::unique_ptr<std::thread> m_readThread;
     bool m_running;
     bool m_filter_textures;
+    bool m_refine_bound;
     std::string m_serverport;
     std::size_t m_num_frame;
     double m_curr_frametime;
