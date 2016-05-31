@@ -151,7 +151,7 @@ void init(std::vector<std::string> args){
   // binds to unit 1 to 3
   g_nka->setStartTextureUnit(1);
   // bind calubration volumes from 4 - 13
-  g_cv->setStartTextureUnit(8);
+  g_cv->setStartTextureUnit(9);
   g_cv->loadInverseCalibs(resource_path);
   g_cv->setStartTextureUnitInv(30);
 

@@ -221,6 +221,7 @@ void main(void) {
   if (!is_in_box) {
     out_Depth = 0.0f;
     out_Silhouette = 0.0f;
+    out_Color = rgb_to_lab(get_color(vec3(coords.xy, (out_Depth <= 0.0f) ? 0.0f : 1.0f)));
     return;
   }
   vec2 res = bilateral_filter(coords);
@@ -242,5 +243,5 @@ void main(void) {
     out_Silhouette = 0.0f;
   }
 
-  out_Color = rgb_to_lab(get_color(vec3(coords.xy, out_Depth)));
+  out_Color = rgb_to_lab(get_color(vec3(coords.xy, (out_Depth <= 0.0f) ? 0.0f : 1.0f)));
 }

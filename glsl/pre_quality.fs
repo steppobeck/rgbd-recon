@@ -47,7 +47,7 @@ float normal_angle(vec3 position, uint layer) {
   return angle;
 }
 
-float color_diff(vec2 coords) {
+float get_color_diff(vec2 coords) {
   vec3 color = texture(kinect_colors_lab, vec3(coords, layer)).rgb;
   float total_dist = 0.0f;
   float num_samples = 0.0f;
@@ -116,7 +116,9 @@ float bilateral_filter(vec3 coords){
   // float fdiltered_depth = 0.0f;
   //float filtered_depth = depth_bf/w;
   float angle = normal_angle(vec3(coords.xy, depth), uint(coords.z));
-  // quality_strong *= angle * angle;
+  quality_strong *= angle * angle;
+  float color_diff = get_color_diff(coords.xy);
+  quality_strong *= color_diff;
   // return angle;
   return quality_strong;
 }
@@ -124,5 +126,4 @@ float bilateral_filter(vec3 coords){
 void main(void) {
   vec3 coords = vec3(pass_TexCoord, layer);
   out_Quality = bilateral_filter(coords);
-  out_Quality = color_diff(coords.xy);
 }

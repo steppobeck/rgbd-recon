@@ -151,8 +151,8 @@ namespace kinect{
 
     m_textures_quality->image3D(0, GL_LUMINANCE32F_ARB, m_resolution_depth.x, m_resolution_depth.y, m_numLayers, 0, GL_RED, GL_FLOAT, (void*)nullptr);
     m_textures_normal->image3D(0, GL_RGB32F, m_resolution_depth.x, m_resolution_depth.y, m_numLayers, 0, GL_RGB, GL_FLOAT, (void*)nullptr);
-    std::vector<glm::fvec2> empty_bg_tex(m_resolution_depth.x * m_resolution_depth.y * m_numLayers, glm::fvec2{0.0f});
 
+    std::vector<glm::fvec2> empty_bg_tex(m_resolution_depth.x * m_resolution_depth.y * m_numLayers, glm::fvec2{0.0f});
     m_textures_bg.front->image3D(0, GL_RG32F, m_resolution_depth.x, m_resolution_depth.y, m_numLayers, 0, GL_RG, GL_FLOAT, empty_bg_tex.data());
     m_textures_bg.back->image3D(0, GL_RG32F, m_resolution_depth.x, m_resolution_depth.y, m_numLayers, 0, GL_RG, GL_FLOAT, empty_bg_tex.data());
     m_textures_silhouette->image3D(0, GL_R32F, m_resolution_depth.x, m_resolution_depth.y, m_numLayers, 0, GL_RED, GL_FLOAT, (void*)nullptr);
@@ -350,14 +350,13 @@ void NetKinectArray::processTextures(){
   
   m_programs.at("normal")->release();
 // quality
-  m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1});
+  m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT0});
   m_programs.at("quality")->use();
   m_programs.at("quality")->setUniform("cv_xyz", m_calib_vols->getXYZVolumeUnits());
   m_programs.at("quality")->setUniform("processed_depth", m_use_processed_depth);
 
   for(unsigned i = 0; i < m_calib_files->num(); ++i){
     m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT0, m_textures_quality, 0, i);
-    // m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT1, m_textures_color, 0, i);
 
     m_programs.at("quality")->setUniform("layer", i);
 
