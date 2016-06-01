@@ -22,7 +22,6 @@ uniform mat4 vol_to_world;
 
 uniform sampler3D volume_tsdf;
 uniform vec3 CameraPos;
-uniform vec3 Dimensions;
 
 float sampleDistance = limit * 0.5f;
 const float IsoValue = 0.0f;
@@ -32,6 +31,8 @@ out float gl_FragDepth;
 
 #include </shading.glsl>
 
+#include </inc_bbox_test.glsl>
+
 #define GRAD_NORMALS
 
 vec3 get_gradient(const vec3 pos);
@@ -40,12 +41,22 @@ float sample(const vec3 pos);
 vec3 blendColors(const in vec3 sample_pos);
 vec3 blendNormals(const in vec3 sample_pos);
 vec3 blendCameras(const in vec3 sample_pos);
+// cube-ray intersection from http://prideout.net/blog/?p=64
+bool intersectBox(const vec3 origin, const vec3 dir, out float t0, out float t1);
+void submitFragment(const in vec3 sample_pos);
 
 void main() {
   // multiply with dimensions to scale direction by dimension relation
   vec3 sampleStep = normalize(pass_Position - CameraPos) * sampleDistance;
+  // get ray beginning in volume cube
+  float t0, t1 = 0.0f;
+  bool is_t0 = intersectBox(CameraPos, sampleStep, t0, t1);
+  float t_near = (is_t0 ? t0 : t1);
+  // if camera is within cube, start from camera, else move inside a little
+  t_near = (t_near < 0.0f ? 0.0f : t_near * 1.0000001f);
 
-  vec3 sample_pos = pass_Position;
+  vec3 sample_pos = CameraPos + sampleStep * t_near;
+
   bool inside = isInside(sample_pos);  
   // cache value of previous sample
   float prev_density = sample(sample_pos); 
@@ -70,23 +81,7 @@ void main() {
       // approximate ray-cell intersection
       sample_pos = (sample_pos - sampleStep) - sampleStep * (prev_density / (density - prev_density));
 
-      float final_density = sample(sample_pos);
-      #ifdef GRAD_NORMALS
-      vec3 view_normal = normalize((NormalMatrix * vec4(get_gradient(sample_pos), 0.0f)).xyz);
-      #else
-      vec3 view_normal = normalize((NormalMatrix * vec4(blendNormals(sample_pos), 0.0f)).xyz);
-      #endif
-      vec3 view_pos = (gl_ModelViewMatrix * vol_to_world * vec4(sample_pos, 1.0f)).xyz;
-
-      if (g_shade_mode == 3u) {
-        out_Color = vec4(blendCameras(sample_pos), 1.0f);
-      }
-      else {
-        vec3 diffuseColor = blendColors(sample_pos);
-        out_Color = vec4(shade(view_pos, view_normal, diffuseColor), 1.0f);
-      }
-      // apply projection matrix on z component of view-space position
-      gl_FragDepth = (gl_ProjectionMatrix[2].z *view_pos.z + gl_ProjectionMatrix[3].z) / -view_pos.z * 0.5f + 0.5f;
+      submitFragment(sample_pos);
       return;
     }
 
@@ -96,6 +91,26 @@ void main() {
   }
   // no surface found 
   discard;
+}
+
+void submitFragment(const in vec3 sample_pos) {
+  float final_density = sample(sample_pos);
+  #ifdef GRAD_NORMALS
+  vec3 view_normal = normalize((NormalMatrix * vec4(get_gradient(sample_pos), 0.0f)).xyz);
+  #else
+  vec3 view_normal = normalize((NormalMatrix * vec4(blendNormals(sample_pos), 0.0f)).xyz);
+  #endif
+  vec3 view_pos = (gl_ModelViewMatrix * vol_to_world * vec4(sample_pos, 1.0f)).xyz;
+
+  if (g_shade_mode == 3u) {
+    out_Color = vec4(blendCameras(sample_pos), 1.0f);
+  }
+  else {
+    vec3 diffuseColor = blendColors(sample_pos);
+    out_Color = vec4(shade(view_pos, view_normal, diffuseColor), 1.0f);
+  }
+  // apply projection matrix on z component of view-space position
+  gl_FragDepth = (gl_ProjectionMatrix[2].z *view_pos.z + gl_ProjectionMatrix[3].z) / -view_pos.z * 0.5f + 0.5f;
 }
 
 bool isInside(const vec3 pos) {
@@ -183,4 +198,17 @@ vec3 blendCameras(const in vec3 sample_pos) {
   total_color /= total_weight;
   if(total_weight <= 0.0f) total_color = vec3(1.0f);
   return total_color;
+}
+
+bool intersectBox(const vec3 origin, const vec3 dir, out float t0, out float t1) {
+    vec3 invR = 1.0f / dir;
+    vec3 tbot = invR * (vec3(0.0f) - origin);
+    vec3 ttop = invR * (vec3(1.0f) - origin);
+    vec3 tmin = min(ttop, tbot);
+    vec3 tmax = max(ttop, tbot);
+    vec2 t = max(tmin.xx, tmin.yz);
+    t0 = max(t.x, t.y);
+    t = min(tmax.xx, tmax.yz);
+    t1 = min(t.x, t.y);
+    return t0 <= t1;
 }
