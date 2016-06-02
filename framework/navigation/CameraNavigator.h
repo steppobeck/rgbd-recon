@@ -3,7 +3,7 @@
 
 #include <glbinding/gl/gl.h>
 using namespace gl;
-#include <GL/glut.h>
+
 #include <stdlib.h>
 #include <math.h>
 

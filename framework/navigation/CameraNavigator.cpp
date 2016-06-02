@@ -1,5 +1,9 @@
 #include "CameraNavigator.h"
 
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
+#include <GL/glut.h>
+
 #include <string.h> // memcpy
 
 namespace pmd{
@@ -20,12 +24,12 @@ namespace pmd{
 
   void
   CameraNavigator::mouse(int button, int state, int mouse_h, int mouse_v){
-    if (button == GLUT_LEFT_BUTTON) {
+    if (button == GLFW_MOUSE_BUTTON_LEFT) {
       m_arcball.set_cur(mouse_h, mouse_v);
-      if ( state == GLUT_DOWN) {
-	m_arcball.begin_drag();
-      } else {
-	m_arcball.end_drag();
+      if ( state == GLFW_PRESS) {
+	       m_arcball.begin_drag();
+      } else if (state == GLFW_RELEASE){
+	       m_arcball.end_drag();
       }
       
     }

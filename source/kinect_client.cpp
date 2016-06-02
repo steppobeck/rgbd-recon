@@ -1,23 +1,30 @@
-#include <CMDParser.h>
-#include "texture_blitter.hpp"
-#include "screen_space_measurement_tool.hpp"
+#include <glbinding/gl/gl.h>
+using namespace gl;
+// load glbinding function type
+#include <glbinding/Function.h>
+// load meta info extension
+#include <glbinding/Meta.h>
+// load callback support
+#include <glbinding/callbacks.h>
+
+//dont load gl bindings from glfw
+#define GLFW_INCLUDE_NONE
+#include <GLFW/glfw3.h>
 
 #include <globjects/globjects.h>
 #include <globjects/Buffer.h>
 #include <globjects/base/File.h>
-// load glbinding function type
-#include <glbinding/Function.h>
-#// load meta info extension
-#include <glbinding/Meta.h>
-// load callback support
-#include <glbinding/callbacks.h>
-using namespace gl;
-#include <GL/glut.h>
 
+#include <imgui.h>
+// #include "imgui_impl_glfw_gl3.h"
 #include <iostream>
 #include <cmath>
 #include <stdlib.h>
 #include <memory>
+
+#include <CMDParser.h>
+#include "texture_blitter.hpp"
+#include "screen_space_measurement_tool.hpp"
 
 #include <Point3.h>
 #include <BoundingBox.h>
@@ -67,7 +74,7 @@ ScreenSpaceMeasureTool g_ssmt{&g_camera, g_screenWidth, g_screenHeight};
 std::unique_ptr<kinect::NetKinectArray> g_nka;
 std::unique_ptr<kinect::CalibVolumes> g_cv;
 std::unique_ptr<kinect::CalibrationFiles> g_calib_files;
-
+GLFWwindow* g_window = nullptr;
 globjects::Buffer* g_buffer_shading;
 struct shading_data_t {
   unsigned mode = 0;
@@ -89,6 +96,7 @@ void motionFunc(int mouse_h, int mouse_v);
 void mouseFunc(int button, int state, int mouse_h, int mouse_v);
 void idle(void);
 void watch_gl_errors(bool activate);
+void quit(int status);
 
 std::vector<std::unique_ptr<kinect::Reconstruction>> g_recons;// 4
 std::unique_ptr<kinect::ReconCalibs> g_calibvis;// 4
@@ -197,9 +205,6 @@ void frameStep (){
 
   if(g_info)
     g_stats->draw(g_screenWidth, g_screenHeight);
-
-  //std::cerr << g_frameCounter << std::endl;
-  glutSwapBuffers();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -238,7 +243,7 @@ void show_fps() {
     std::string title{"OpenGL Framework - "};
     title += std::to_string(frames_per_second) + " fps";
 
-    glutSetWindowTitle(title.c_str());
+    glfwSetWindowTitle(g_window, title.c_str());
     frames_per_second = 0;
     last_second_time = last_frame;
   }
@@ -314,17 +319,12 @@ void draw3d(void)
   if (g_draw_textures) {
     TextureBlitter::blit(g_nka->getStartTextureUnit() + g_texture_type, g_num_texture, g_nka->getDepthResolution());
   }
-
-  double current_time = glutGet(GLenum(GLUT_ELAPSED_TIME)) / 1000;
-  delta_time = current_time - last_frame;
-  last_frame = current_time;
-  show_fps();
 }
 
 ////////////////////////////////////////////////////////////////////////////////
   /// this function is triggered when the screen is resized
 
-void resize(int width, int height){
+void update_view(GLFWwindow* window, int width, int height){
 
   g_screenWidth = width;
   g_screenHeight = height;
@@ -338,156 +338,149 @@ void resize(int width, int height){
   g_navi.resize(width, height);
   g_ftw.resize(width, height);
   g_ssmt.resize(g_screenWidth, g_screenHeight);
-  glutPostRedisplay();
+  // glutPostRedisplay();
 }
 
 
 //////////////////////////////////////////////////////////////////////////////////////////
   /// this function is called by glut when a key press occured
 
-void key(unsigned char key, int x, int y)
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
+  if(action != GLFW_RELEASE) return;
+
   switch (key){
     /// press ESC or q to quit
-  case 27 :
-  case 'q':
-    exit(0);
+  case GLFW_KEY_ESCAPE:
+  case GLFW_KEY_Q:
+    glfwSetWindowShouldClose(g_window, 1);
     break;
-  case 'r':
+  case GLFW_KEY_R:
     g_draw_axes = !g_draw_axes;
     break;
-  case 'f':
+  case GLFW_KEY_F:
     g_draw_frustums = !g_draw_frustums;
     break;
-  case 'b':
+  case GLFW_KEY_B:
     g_bilateral = !g_bilateral;
     g_nka->filterTextures(g_bilateral);
     break;
-  case 'd':
+  case GLFW_KEY_D:
     static bool processed = true;
     processed = !processed;
     g_nka->useProcessedDepths(processed);
     break;
-  case 'n':
+  case GLFW_KEY_N:
     static bool refine = true;
     refine = !refine;
     g_nka->refineBoundary(refine);
     break;
-  case 'g':
+  case GLFW_KEY_G:
     g_draw_grid = !g_draw_grid;
     break;
-  case 'a':
+  case GLFW_KEY_A:
     g_animate = !g_animate;
     break;
-  case 'w':
+  case GLFW_KEY_W:
     g_wire = !g_wire;
     break;
-  case 'y':
+  case GLFW_KEY_Y:
     g_num_texture = (g_num_texture + 1) % g_calib_files->num();
     break;
-  case 'u':
+  case GLFW_KEY_U:
     g_texture_type = (g_texture_type + 1) % 7;
     break;
-  case 't':
+  case GLFW_KEY_T:
     g_draw_textures = !g_draw_textures;
     break;
-  case 's':
+  case GLFW_KEY_S:
       for (auto& recon : g_recons) {
         recon->reload();
       }
       globjects::File::reloadAll();
       g_nka->processTextures(); 
     break;
-  case 'm':
+  case GLFW_KEY_M:
     g_picking = !g_picking;
     break;
-  case 'p':
+  case GLFW_KEY_P:
     g_play = !g_play;
     break;
-  case '1':
+  case GLFW_KEY_1:
     g_shading_buffer_data.mode = (g_shading_buffer_data.mode + 1) % 4;
     g_buffer_shading->setSubData(0, sizeof(shading_data_t), &g_shading_buffer_data);
     break;
-  case 'v':
+  case GLFW_KEY_V:
     g_draw_calibvis = !g_draw_calibvis;
     break;
-  case 'c':
+  case GLFW_KEY_C:
     static unsigned num_kinect = 1; 
     num_kinect = (num_kinect+ 1) % g_calib_files->num();
     g_calibvis->setActiveKinect(num_kinect);
     break;
+  case GLFW_KEY_PAGE_UP:
+    g_recon_mode = (g_recon_mode + 1) % g_recons.size();
+    break;
+  case GLFW_KEY_PAGE_DOWN:
+    g_recon_mode = (g_recon_mode + g_recons.size() - 1) % g_recons.size();
+    break;  
   default:
     break;
   }
 
-  glutPostRedisplay();
+  // glutPostRedisplay();
 }
 
 
 //////////////////////////////////////////////////////////////////////////////////////////
-void motionFunc(int mouse_h, int mouse_v){
+void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
+  int state1 = glfwGetMouseButton(g_window, GLFW_MOUSE_BUTTON_LEFT);
+  int state2 = glfwGetMouseButton(g_window, GLFW_MOUSE_BUTTON_RIGHT);
+  int state3 = glfwGetMouseButton(g_window, GLFW_MOUSE_BUTTON_MIDDLE);
+  int mouse_h = xpos;
+  int mouse_v = ypos;
   if(g_picking){
 
   }
   else{
-    g_navi.motion(mouse_h, mouse_v);
-    g_ftw.motion(mouse_h, mouse_v);
+      g_navi.motion(mouse_h, mouse_v);
+    if(state1 == GLFW_PRESS || state2 == GLFW_PRESS || state3 == GLFW_PRESS) {
+      g_ftw.motion(mouse_h, mouse_v);
+    }
   }
-  glutPostRedisplay();
 }
 
-
 //////////////////////////////////////////////////////////////////////////////////////////
-void passiveFunc(int x, int y){
-  if(g_picking){
-    
-  }
-  else{
-    g_ftw.passive(x,y);
-  }
-  glutPostRedisplay();
-}
-
-
-//////////////////////////////////////////////////////////////////////////////////////////
-void mouseFunc(int button, int state, int mouse_h, int mouse_v){
+void click_callback(GLFWwindow* window, int button, int action, int mods){
+  double xpos, ypos;
+  glfwGetCursorPos(window, &xpos, &ypos);
+  int mouse_h = xpos;
+  int mouse_v = ypos;
 
   if(g_picking){
-    g_ssmt.mouse(button, state, mouse_h, g_screenHeight - mouse_v);
+    g_ssmt.mouse(button, action, mouse_h, g_screenHeight - mouse_v);
   }
   else{
-    g_navi.mouse(button, state, mouse_h, mouse_v);
-    g_ftw.mouse(button, state, mouse_h, mouse_v);
-  }
-  glutPostRedisplay();
-}
-
-void specialKey(int key, int x, int y){
-  g_ftw.specialKey(key, x, y);
-  glutPostRedisplay();
-
-  switch(key) {
-    case GLUT_KEY_PAGE_UP:
-      g_recon_mode = (g_recon_mode + 1) % g_recons.size();
-      break;
-    case  GLUT_KEY_PAGE_DOWN:
-      g_recon_mode = (g_recon_mode + g_recons.size() - 1) % g_recons.size();
-      break;  
-    default:
-      break;
+    g_navi.mouse(button, action, mouse_h, mouse_v);
+    g_ftw.mouse(button, action, mouse_h, mouse_v);
   }
 }
-
-//////////////////////////////////////////////////////////////////////////////////////////
-  /// this function is triggered by glut,
-  /// when nothing is left to do for this frame
-
-void idle(void){
-    glutPostRedisplay();
-}
-
 
 ////////////////////////////////////////////////////////////////////////////////
+static void error_callback(int error, const char* description) {
+  fprintf(stderr, "Error %d: %s\n", error, description);
+}
+
+void quit(int status) {
+  //free globjects 
+  globjects::detachAllObjects();
+  // free glfw resources
+  glfwDestroyWindow(g_window);
+  glfwTerminate();
+
+  std::exit(status);
+}
+
 int main(int argc, char *argv[]) {
   CMDParser p("kinect_surface ...");
 
@@ -504,28 +497,34 @@ int main(int argc, char *argv[]) {
     g_info = true;
   }
 
-  glutInit(&argc, argv);
-  glutInitWindowSize(g_screenWidth, g_screenHeight);
-  glutInitWindowPosition(10,10);
-  glutInitDisplayMode(GLUT_RGBA | GLUT_ALPHA | GLUT_DOUBLE | GLUT_DEPTH);
+  // Setup window
+  glfwSetErrorCallback(error_callback);
+  if(!glfwInit()) {
+    std::exit(EXIT_FAILURE);  
+  }
 
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+#if __APPLE__
+  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+#endif
+  
+  g_window = glfwCreateWindow(g_screenWidth, g_screenHeight, "Kinect Reconstruction", NULL, NULL); 
+  if(!g_window) {
+    glfwTerminate();
+    std::exit(EXIT_FAILURE);
+  }
 
-  /// open the window
-  glutCreateWindow(argv[0]);
+  glfwMakeContextCurrent(g_window);
+    // disable vsync
+  // glfwSwapInterval(0);
+  glfwSetKeyCallback(g_window, key_callback);
+  glfwSetCursorPosCallback(g_window, mouse_callback);
+  glfwSetMouseButtonCallback(g_window, click_callback);
+  glfwSetFramebufferSizeCallback(g_window, update_view);
+  // allow unlimited mouse movement
 
-
-  /// set glut callbacks for resizing, frameloop, keyboard input and idle
-  glutReshapeFunc(resize);
-  glutDisplayFunc(frameStep);
-  glutKeyboardFunc(key);
-  glutIdleFunc(idle);
-  glutMotionFunc(motionFunc);
-  glutPassiveMotionFunc(passiveFunc);
-  glutMouseFunc(mouseFunc);
-  glutSpecialFunc(specialKey);
-  glutSetCursor(GLUT_CURSOR_CROSSHAIR);
-
-  // glbinding::Binding::initialize(); // only resolve functions that are actually used (lazy)
   // Initialize globjects (internally initializes glbinding, and registers the current context)
   globjects::init();
 
@@ -539,14 +538,23 @@ int main(int argc, char *argv[]) {
   // load and intialize stuff for our demo
   init(p.getArgs());
 
-  
+  update_view(g_window, g_screenWidth, g_screenHeight);
   /// start the loop (this will call display() every frame)
-  glutMainLoop();
+  // glutMainLoop();
+  while (!glfwWindowShouldClose(g_window)) {
+    
+    frameStep();
+    
+    glfwSwapBuffers(g_window);
+    glfwPollEvents();
 
-  //free globjects 
-  globjects::detachAllObjects();
+    double current_time = glfwGetTime();
+    delta_time = current_time - last_frame;
+    last_frame = current_time;
+    show_fps();
+  }
 
-  return EXIT_SUCCESS;
+  quit(EXIT_SUCCESS);
 }
 
 void watch_gl_errors(bool activate) {
@@ -574,7 +582,7 @@ void watch_gl_errors(bool activate) {
           // error
           std::cerr  << " - " << glbinding::Meta::getString(error) << std::endl;
           throw std::exception{};
-          exit(EXIT_FAILURE);
+          // exit(EXIT_FAILURE);
         }
       }
     );
