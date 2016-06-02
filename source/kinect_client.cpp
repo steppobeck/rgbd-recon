@@ -73,6 +73,13 @@ struct shading_data_t {
   unsigned mode = 0;
 } g_shading_buffer_data;
 
+// variables for fps computation
+double last_second_time = 0;
+unsigned frames_per_second = 0;
+
+double delta_time = 0.0;
+double last_frame = 0.0;
+
 void init(std::vector<std::string>& args);
 void update_view_matrix();
 void draw3d();
@@ -223,6 +230,19 @@ void update_view_matrix() {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
+ // calculate fps and show in window title
+void show_fps() {
+  ++frames_per_second;
+
+  if(last_frame - last_second_time >= 1.0) {
+    std::string title{"OpenGL Framework - "};
+    title += std::to_string(frames_per_second) + " fps";
+
+    glutSetWindowTitle(title.c_str());
+    frames_per_second = 0;
+    last_second_time = last_frame;
+  }
+}
   /// main loop function, render with 3D setup
 void draw3d(void)
 {
@@ -294,6 +314,11 @@ void draw3d(void)
   if (g_draw_textures) {
     TextureBlitter::blit(g_nka->getStartTextureUnit() + g_texture_type, g_num_texture, g_nka->getDepthResolution());
   }
+
+  double current_time = glutGet(GLenum(GLUT_ELAPSED_TIME)) / 1000;
+  delta_time = current_time - last_frame;
+  last_frame = current_time;
+  show_fps();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

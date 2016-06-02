@@ -34,7 +34,7 @@ layout (std140, binding = 1) uniform Settings {
 ///////////////////////////////////////////////////////////////////////////////
 void main() {
 
-  if(!in_bbox(geo_pos_cs[0]) || geo_depth[0] <= -1.0f) {
+  if(!in_bbox(geo_pos_cs[0]) || geo_depth[0] <= 0.0f) {
     return;
   }
 
