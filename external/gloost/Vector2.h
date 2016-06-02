@@ -32,6 +32,8 @@
 #include <cmath>
 #include <iostream>
 
+#define GLM_FORCE_RADIANS
+#include <glm/gtc/type_precision.hpp>
 
 namespace gloost
 {
@@ -42,6 +44,7 @@ namespace gloost
 class Vector2
 {
  public:
+    operator glm::fvec2() const;
 
     Vector2();
     Vector2(const Vector2&);

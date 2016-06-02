@@ -46,8 +46,8 @@
 /// cpp includes
 #include <string>
 #include <vector>
-#include <GL/glew.h>
-#include <GL/gl.h>
+#include <glbinding/gl/gl.h>
+using namespace gl;
 
 
 

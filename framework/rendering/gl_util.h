@@ -1,17 +1,18 @@
 #ifndef GL_UTIL_H
 #define GL_UTIL_H
 
-#include <GL/gl.h>
+#include <glbinding/gl/gl.h>
+using namespace gl;
 #include <stdexcept>
 #include <iostream>
-
+#include <GL/glu.h>
 
 inline
 void check_gl_errors(const char* msg, bool th = true){
   bool error = false;
-  GLuint errnum;
+  GLenum errnum;
   const char *errstr;
-  while ((errnum = glGetError())) {
+  while ((errnum = glGetError()) != GL_NONE) {
     errstr = reinterpret_cast<const char *>(gluErrorString(errnum));
     
     std::cout << "GLError: " << errstr << std::endl;

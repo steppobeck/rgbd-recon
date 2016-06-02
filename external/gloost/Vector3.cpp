@@ -35,16 +35,14 @@
 #include <Vector3.h>
 #include <Point3.h>
 
-
-
 // cpp includes
 #include <cstring>
 
-
-
 namespace gloost
 {
-
+Vector3::operator glm::fvec3() const {
+  return glm::fvec3{_data[0], _data[1], _data[2]};
+}
 ////////////////////////////////////////////////////////////////////////////////
 
 

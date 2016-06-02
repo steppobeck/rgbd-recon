@@ -11,7 +11,6 @@ namespace mvt{
   public:
 
     FourTiledWindow(unsigned width, unsigned height);
-    ~FourTiledWindow();
 
     void resize(unsigned width, unsigned height);
 

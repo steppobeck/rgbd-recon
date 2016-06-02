@@ -1,9 +1,9 @@
 #include <screen_space_measurement_tool.hpp>
 
+#include <gl_util.h>
 #include <GL/glut.h>
 #include <gloostMath.h>
 #include <gloostHelper.h>
-#include <gl_util.h>
 
 static gloost::Point3 multH(gloost::Matrix const& m,
                             gloost::Point3 const& p )

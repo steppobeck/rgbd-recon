@@ -31,8 +31,8 @@
 
 
 /// cpp includes
-#include <GL/glew.h>
-#include <GL/gl.h>
+#include <glbinding/gl/gl.h> // functions
+using namespace gl;
 #include <GL/glut.h>
 
 

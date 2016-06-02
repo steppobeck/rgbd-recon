@@ -28,7 +28,7 @@
 #include <glErrorUtil.h>
 #include <gloostConfig.h>
 
-
+#include <glbinding/gl/functions-patches.h>
 // cpp includes
 #include <string>
 
@@ -184,9 +184,9 @@ Shader::initInContext(unsigned int contextId)
   GLuint gs = 0;
 
   // return values for the compile process
-  GLint vsCompiled = 0;
-  GLint fsCompiled = 0;
-  GLint gsCompiled = 0;
+  GLboolean vsCompiled = GL_FALSE;
+  GLboolean fsCompiled = GL_FALSE;
+  GLboolean gsCompiled = GL_FALSE;
 
   // iterator for program parameter
   std::map<GLenum,int>::iterator params;
@@ -225,7 +225,7 @@ Shader::initInContext(unsigned int contextId)
 
   // vertex shader
   glCompileShader(vs);
-  glGetShaderiv(vs, GL_COMPILE_STATUS, &vsCompiled);
+  glGetShaderbv(vs, GL_COMPILE_STATUS, &vsCompiled);
 
   if (vsCompiled == GL_FALSE)
   {
@@ -246,7 +246,7 @@ Shader::initInContext(unsigned int contextId)
 
   // fragment shader
   glCompileShader( fs );
-  glGetShaderiv(fs, GL_COMPILE_STATUS, &fsCompiled);
+  glGetShaderbv(fs, GL_COMPILE_STATUS, &fsCompiled);
 
 
   if (fsCompiled == GL_FALSE)
@@ -269,7 +269,7 @@ Shader::initInContext(unsigned int contextId)
   if (gs)
   {
     glCompileShader( gs );
-    glGetShaderiv(gs, GL_COMPILE_STATUS, &gsCompiled);
+    glGetShaderbv(gs, GL_COMPILE_STATUS, &gsCompiled);
 
     if (gsCompiled == GL_FALSE)
     {
@@ -322,21 +322,45 @@ Shader::initInContext(unsigned int contextId)
 
   /// link programs
   glLinkProgram(shaderHandle);
+  GLint success = 0;
+  glGetProgramiv(shaderHandle, GL_LINK_STATUS, &success);
+  if(success == 0) {
+    // get log length
+    GLint log_size = 0;
+    glGetProgramiv(shaderHandle, GL_INFO_LOG_LENGTH, &log_size);
+    // get log
+    GLchar* log_buffer = (GLchar*)malloc(sizeof(GLchar) * log_size);
+    glGetProgramInfoLog(shaderHandle, log_size, &log_size, log_buffer);
+    
+    // utils::output_log(log_buffer, paths);
+
+    std::string error{};
+    std::istringstream error_stream{log_buffer};
+    while(std::getline(error_stream, error)) {
+      std::cerr << error << std::endl;
+    }
+    // free broken shaderHandle
+    glDeleteProgram(shaderHandle);
+    free(log_buffer);
+
+    // throw std::logic_error("Linking of " + paths);
+    vsCompiled = GL_FALSE;
+  }
 
 
 #ifndef GLOOST_SYSTEM_DISABLE_OUTPUT_MESSAGES
   if (vsCompiled == GL_TRUE && fsCompiled == GL_TRUE && gsCompiled == GL_TRUE)
   {
-    std::cout << std::endl;
-    std::cout << std::endl << "Message from Shader::compileToProgram() on SharedResource " << getSharedResourceId() << ":";
-    std::cout << std::endl << "             Successfully compiled and linked.";
-    std::cout << std::endl << "               \"" << _vertexShaderFileName << "\", ";
-    std::cout << std::endl << "               \"" << _fragmentShaderFileName << "\"";
-    if (gs)
-    {
-      std::cout << ", "<< std::endl << "             \"" << _geometryShaderFileName << "\"";
-    }
-    std::cout << std::endl;
+    // std::cout << std::endl;
+    // std::cout << std::endl << "Message from Shader::compileToProgram() on SharedResource " << getSharedResourceId() << ":";
+    // std::cout << std::endl << "             Successfully compiled and linked.";
+    // std::cout << std::endl << "               \"" << _vertexShaderFileName << "\", ";
+    // std::cout << std::endl << "               \"" << _fragmentShaderFileName << "\"";
+    // if (gs)
+    // {
+    //   std::cout << ", "<< std::endl << "             \"" << _geometryShaderFileName << "\"";
+    // }
+    // std::cout << std::endl;
     return true;
   }
 #endif

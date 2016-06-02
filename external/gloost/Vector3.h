@@ -27,32 +27,26 @@
 #ifndef GLOOST_VECTOR3_H
 #define GLOOST_VECTOR3_H
 
-
-
 /// gloost includes
 #include <gloostConfig.h>
-
-
 
 /// cpp includes
 #include <cmath>
 #include <iostream>
 #include <fstream>
 
-
+#define GLM_FORCE_RADIANS
+#include <glm/gtc/type_precision.hpp>
 
 namespace gloost
 {
-
   class Point3;
-
-
-
 
  /// 3D vector
 
 class Vector3
 {
+  operator glm::fvec3() const;
 
   public:
 

@@ -10,8 +10,8 @@
 
 #include <cmath>
 
-#include <GL/glew.h>
-#include <GL/gl.h>
+#include <glbinding/gl/gl.h>
+using namespace gl;
 
 namespace mvt{
 
@@ -43,9 +43,6 @@ namespace mvt{
       m_far_upper_right_color(),
       m_far_upper_left_color(),
       m_culler() {}
-
-    virtual ~CameraView(){}
-
 
     virtual void updateMatrices(){}
 

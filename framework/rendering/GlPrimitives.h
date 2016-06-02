@@ -8,7 +8,8 @@
 /// cpp includes
 #include <string>
 #include <vector>
-#include <GL/glew.h>
+#include <glbinding/gl/gl.h>
+using namespace gl;
 
 namespace mvt
 {

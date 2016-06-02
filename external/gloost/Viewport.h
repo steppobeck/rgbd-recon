@@ -32,7 +32,8 @@
 
 
 /// cpp includes
-#include <GL/gl.h>
+#include <glbinding/gl/gl.h>
+using namespace gl;
 
 
 namespace gloost

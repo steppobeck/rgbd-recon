@@ -32,13 +32,12 @@
 /// gloost includes
 #include <gloostConfig.h>
 
-
+#define GLM_FORCE_RADIANS
+#include <glm/gtc/type_precision.hpp>
 
 /// cpp includes
 #include <cmath>
 #include <iostream>
-
-
 
 namespace gloost
 {
@@ -52,6 +51,7 @@ namespace gloost
 class Point3
 {
  public:
+  operator glm::fvec3() const;
 
     Point3();
     Point3(const Point3&);

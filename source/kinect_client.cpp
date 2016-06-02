@@ -1,145 +1,219 @@
 #include <CMDParser.h>
-#include <screen_space_measurement_tool.hpp>
+#include "texture_blitter.hpp"
+#include "screen_space_measurement_tool.hpp"
 
-/// c++ includes
-#include <GL/glew.h>
+#include <globjects/globjects.h>
+#include <globjects/base/File.h>
+// load glbinding function type
+#include <glbinding/Function.h>
+#// load meta info extension
+#include <glbinding/Meta.h>
+// load callback support
+#include <glbinding/callbacks.h>
+using namespace gl;
 #include <GL/glut.h>
+
 #include <iostream>
 #include <cmath>
 #include <stdlib.h>
 #include <memory>
 
-
+#include <Point3.h>
+#include <BoundingBox.h>
 #include <PerspectiveCamera.h>
+
 #include <CameraNavigator.h>
 #include <FourTiledWindow.h>
-#include <CalibVolume.h>
-#include <KinectSurfaceV3.h>
+#include "CalibVolumes.hpp"
+#include <calibration_files.hpp>
 #include <NetKinectArray.h>
 #include <KinectCalibrationFile.h>
 #include <Statistics.h>
 #include <GlPrimitives.h>
 
+#include "reconstruction.hpp"
+#include "recon_trigrid.hpp"
+#include "recon_points.hpp"
+#include "recon_calibs.hpp"
+#include "recon_integration.hpp"
 
 /// general setup
-unsigned int g_screenWidth  = 1280;
-unsigned int g_screenHeight = 720;
-float        g_aspect       = g_screenWidth * 1.0/g_screenHeight;
-unsigned int g_frameCounter = 0;
-float        g_scale        = 1.0f;
-bool         g_info         = false;
-bool         g_play         = true;
-bool         g_reference    = false;
-bool         g_warpviz      = false;
-bool         g_animate      = false;
-bool         g_wire         = false;
-bool         g_bfilter      = true;
-bool         g_black        = false;
+unsigned g_screenWidth  = 1280;
+unsigned g_screenHeight = 720;
+float    g_aspect       = g_screenWidth * 1.0/g_screenHeight;
+unsigned g_frameCounter = 0;
+bool     g_info         = false;
+bool     g_play         = true;
+bool     g_draw_axes    = false;
+bool     g_draw_frustums= false;
+bool     g_draw_grid    = true;
+bool     g_animate      = false;
+bool     g_wire         = false;
+unsigned g_recon_mode   = 1;
+bool     g_bilateral    = true;
+bool     g_draw_calibvis= false;
+bool     g_draw_textures= false;
+unsigned g_texture_type = 0;
+unsigned g_num_texture  = 0;
+gloost::BoundingBox     g_bbox{};
 
-std::unique_ptr<gloost::PerspectiveCamera>   g_camera{};
-std::unique_ptr<pmd::CameraNavigator> g_navi{};
-std::unique_ptr<mvt::FourTiledWindow> g_ftw{};
+gloost::PerspectiveCamera g_camera{50.0, g_aspect, 0.1, 200.0};
+mvt::FourTiledWindow g_ftw{g_screenWidth, g_screenHeight};
+pmd::CameraNavigator g_navi{0.1f};
 std::unique_ptr<mvt::Statistics> g_stats{};
-std::unique_ptr<ScreenSpaceMeasureTool> g_ssmt{};
+ScreenSpaceMeasureTool g_ssmt{&g_camera, g_screenWidth, g_screenHeight};
+std::unique_ptr<kinect::NetKinectArray> g_nka;
+std::unique_ptr<kinect::CalibVolumes> g_cv;
+std::unique_ptr<kinect::CalibrationFiles> g_calib_files;
 
 void init(std::vector<std::string>& args);
-void draw3d(void);
+void update_view_matrix();
+void draw3d();
 void resize(int width, int height);
 void key(unsigned char key, int x, int y);
 void motionFunc(int mouse_h, int mouse_v);
 void mouseFunc(int button, int state, int mouse_h, int mouse_v);
 void idle(void);
+void watch_gl_errors(bool activate);
 
-std::vector<kinect::KinectSurfaceV3* > g_ksV3;// 4
-unsigned g_ks_mode = 0;
+std::unique_ptr<kinect::ReconTrigrid> g_ksV3;// 4
+std::vector<std::unique_ptr<kinect::Reconstruction>> g_recons;// 4
+std::unique_ptr<kinect::ReconCalibs> g_calibvis;// 4
 
 bool g_picking = false;
 
+//////////////////////////////////////////////////////////////////////////////////////////
 void init(std::vector<std::string> args){
+  g_stats.reset(new mvt::Statistics{});
+  g_stats->setInfoSlot("Volume Based Mapping", 0);
 
-  g_camera = std::unique_ptr<gloost::PerspectiveCamera>{new gloost::PerspectiveCamera(50.0,
-					   g_aspect,
-                                           0.1,
-                                           200.0)};
-
-  g_navi = std::unique_ptr<pmd::CameraNavigator>{new pmd::CameraNavigator(0.1f)};
-
-  g_ftw = std::unique_ptr<mvt::FourTiledWindow>{new mvt::FourTiledWindow(g_screenWidth, g_screenHeight)};
-  g_stats = std::unique_ptr<mvt::Statistics>{new mvt::Statistics};
-  g_ssmt = std::unique_ptr<ScreenSpaceMeasureTool>{new ScreenSpaceMeasureTool(g_camera.get(), g_screenWidth, g_screenHeight)};
-
+  std::string file_name{};
   for(unsigned i = 0; i < args.size(); ++i){
     const std::string ext(args[i].substr(args[i].find_last_of(".") + 1));
     std::cerr << ext << std::endl;
-   if("ksV3" == ext){
-      g_ksV3.push_back(new kinect::KinectSurfaceV3(args[i].c_str()));
-      g_ks_mode = 4;
+    if("ks" == ext) {
+      file_name = args[i];
+      break;
     }
   }
 
+  if (file_name.empty()) {
+    throw std::invalid_argument{"No .ks file specified"};
+  }
+
+  std::string serverport{};
+  std::vector<std::string> calib_filenames;
+  gloost::Point3 bbox_min{-1.0f ,0.0f, -1.0f};
+  gloost::Point3 bbox_max{ 1.0f ,2.2f, 1.0f};
+
+  std::string resource_path = file_name.substr(0, file_name.find_last_of("/\\")) + '/';
+  std::cout << resource_path << std::endl;
+  std::ifstream in(file_name);
+  std::string token;
+  while(in >> token){
+    if(token == "serverport"){
+      in >> serverport;
+    } 
+    else if (token == "kinect") {
+      in >> token;
+      // detect absolute path
+      if (token[0] == '/' || token[1] == ':') {
+        calib_filenames.push_back(token);
+      }
+      else {
+        calib_filenames.push_back(resource_path + token);
+      }
+    }
+    else if (token == "bbx") {
+      in >> bbox_min[0];
+      in >> bbox_min[1];
+      in >> bbox_min[2];
+      in >> bbox_max[0];
+      in >> bbox_max[1];
+      in >> bbox_max[2];
+    }
+  }
+  in.close();
+  // update bounding box dimensions with read values
+  g_bbox.setPMin(bbox_min);
+  g_bbox.setPMax(bbox_max);
+
+  g_calib_files = std::unique_ptr<kinect::CalibrationFiles>{new kinect::CalibrationFiles(calib_filenames)};
+  g_cv = std::unique_ptr<kinect::CalibVolumes>{new kinect::CalibVolumes(calib_filenames, g_bbox)};
+  g_nka = std::unique_ptr<kinect::NetKinectArray>{new kinect::NetKinectArray(serverport, g_calib_files.get(), g_cv.get())};
+  
+  // binds to unit 1 to 3
+  g_nka->setStartTextureUnit(1);
+  // bind calubration volumes from 4 - 13
+  g_cv->setStartTextureUnit(5);
+  g_cv->loadInverseCalibs(resource_path);
+  g_cv->setStartTextureUnitInv(30);
+
+  g_recons.emplace_back(new kinect::ReconTrigrid(*g_calib_files, g_cv.get(), g_bbox));
+  g_recons.emplace_back(new kinect::ReconPoints(*g_calib_files, g_cv.get(), g_bbox));
+  g_recons.emplace_back(new kinect::ReconIntegration(*g_calib_files, g_cv.get(), g_bbox));
+
+  g_calibvis = std::unique_ptr<kinect::ReconCalibs>(new kinect::ReconCalibs(*g_calib_files, g_cv.get(), g_bbox));
+
+  // enable point scaling in vertex shader
+  glEnable(GL_PROGRAM_POINT_SIZE);
+  glEnable(GL_POINT_SPRITE);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
-
-
   /// logic
 
 void frameStep (){
-
   /// increment the frame counter
   ++g_frameCounter;
 
-  
-  glClearColor(g_black ? 0 : 1, g_black ? 0 : 1, g_black ? 0 : 1, 0);
+  glClearColor(0, 0, 0, 0);
   glViewport(0,0,g_screenWidth, g_screenHeight);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  
+  update_view_matrix();
   draw3d();
   
-
-  g_ftw->endFrame();
+  g_ftw.endFrame();
 
   if(g_info)
     g_stats->draw(g_screenWidth, g_screenHeight);
-
 
   //std::cerr << g_frameCounter << std::endl;
   glutSwapBuffers();
 }
 
-
 //////////////////////////////////////////////////////////////////////////////////////////
-
-
-  /// main loop function, render with 3D setup
-
-void draw3d(void)
-{
-
-  g_camera->setAspect(g_aspect);
-  g_camera->set();
+void update_view_matrix() {
+  g_camera.set();
   
-
   glMatrixMode(GL_MODELVIEW);
   glLoadIdentity();
 
   gloost::Point3 speed(0.0,0.0,0.0);
 
-  gloost::vec2 speed_button1(g_ftw->getButtonSpeed(1));
-  gloost::vec2 speed_button2(g_ftw->getButtonSpeed(2));
+  gloost::vec2 speed_button1(g_ftw.getButtonSpeed(1));
+  gloost::vec2 speed_button2(g_ftw.getButtonSpeed(2));
+  // std::cout << "speed1 " << speed_button1 << ", " << speed_button2 << std::endl;
   float fac = 0.005;
   speed[0] = speed_button1.u * fac;
   speed[1] = speed_button1.v * - 1.0 * fac;
   speed[2] = speed_button2.v * fac;
 
-  gloost::Matrix camview(g_navi->get(speed));
+  gloost::Matrix camview(g_navi.get(speed));
   camview.invert();
 
-  gloostMultMatrix(camview.data());
+  glMultMatrixf(camview.data());
 
-  glScalef(g_scale, g_scale, g_scale);
+  gloost::Matrix modelview;
+  glGetFloatv(GL_MODELVIEW_MATRIX, modelview.data());
+  g_ssmt.setModelView(modelview);
+}
 
+//////////////////////////////////////////////////////////////////////////////////////////
+  /// main loop function, render with 3D setup
+void draw3d(void)
+{
   if(g_animate){
     static unsigned g_framecounta = 0;
     ++g_framecounta;
@@ -153,152 +227,40 @@ void draw3d(void)
     glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
   }
 
-  gloost::Matrix modelview;
-  glGetFloatv(GL_MODELVIEW_MATRIX, modelview.data());
-  g_ssmt->setModelView(modelview);
-  gloost::Vector3 test_vec(1.0,0.0,0.0);
-  test_vec = modelview * test_vec;
-  float scale = test_vec.length();
-
   g_stats->startGPU();
-
-#if 0
-  g_stats->setInfoSlot("comparison: [with calibration (above red x-axis)] vs. [without calibration]", 0);
-
-  gloost::Matrix t;
-  t.setIdentity();
-
-  glPushMatrix();
-  t.setTranslate(-0.5, 0.0,0.0);
-  glMultMatrixf(t.data());
-  g_ksV3[0]->lookup = 0;
-  g_ksV3[0]->draw(g_play, scale);
-  glPopMatrix();
-
-  glPushMatrix();
-  t.setTranslate(0.5, 0.0,0.0);
-  glMultMatrixf(t.data());
-  g_ksV3[0]->lookup = true;
-  g_ksV3[0]->draw(false, scale);
-  glPopMatrix();
-
-
-  glPushAttrib(GL_ALL_ATTRIB_BITS);
-  mvt::GlPrimitives::get()->drawCoords();
-  glPopAttrib();
-
-#endif
-
-#if 1
-  if(g_ks_mode == 1){
-    gloost::Matrix t;
-    t.setIdentity();
-    g_stats->setInfoSlot("quality-based fusion", 0);
-    for(unsigned i = 0; i < g_ksV3.size(); ++i){
-      if(g_play)
-        g_ksV3[i]->getNetKinectArray()->update();
-    }
+  if (g_play) {
+    g_nka->update();
   }
-  else if(g_ks_mode == 0){
-    gloost::Matrix t;
-    t.setIdentity();
-    g_stats->setInfoSlot("z-buffer-based fusion", 0);
-    for(unsigned i = 0; i < g_ksV3.size(); ++i){
-      if(g_play)
-        g_ksV3[i]->getNetKinectArray()->update();
-    }
-  }
-  else if(g_ks_mode == 2){
-    gloost::Matrix t;
-    t.setIdentity();
-    g_stats->setInfoSlot("quality-based accumulation", 0);
-    for(unsigned i = 0; i < g_ksV3.size(); ++i){
-      if(g_play)
-        g_ksV3[i]->getNetKinectArray()->update();
-    }
-  }
-  else if(g_ks_mode == 3){
-    gloost::Matrix t;
-    t.setIdentity();
-    for(unsigned i = 0; i < g_ksV3.size(); ++i){
-      if(g_play)
-        g_ksV3[i]->getNetKinectArray()->update();
-    }
-  }
-  else if(g_ks_mode == 4){
-    gloost::Matrix t;
-    t.setIdentity();
-    g_ksV3[0]->lookup ? g_stats->setInfoSlot("Volume Based Mapping", 0) : g_stats->setInfoSlot("Explicit Mapping", 0);
-    //g_stats->setInfoSlot(("compression ratio " + gloost::toString(g_ksV3[0]->getNetKinectArray()->depth_compression_ratio)).c_str(), 1);
-    for(unsigned i = 0; i < g_ksV3.size(); ++i){
-
-      glPushMatrix();
-      t.setTranslate(i, 0.0,0.0);
-      glMultMatrixf(t.data());
-      
-      g_ksV3[i]->draw(g_play, scale);
-
-
-      glPopMatrix();
-    }
-  }
-
-#endif
+  // draw active reconstruction
+  g_recons.at(g_recon_mode)->draw();
 
   g_stats->stopGPU();
   //std::cerr << "after stopGPU" << std::endl; check_gl_errors("after stopGPU", false);
 
-
   if(g_picking){
-    float dist = g_ssmt->measure();
+    float dist = g_ssmt.measure();
     g_stats->setInfoSlot(("measuring: " + gloost::toString(dist)).c_str(), 1);
   }
   else{
     g_stats->setInfoSlot("navigation mode", 1);
   }
-  mvt::GlPrimitives::get()->drawLineSegments(g_ssmt->getMeasurePoints());
+  mvt::GlPrimitives::get()->drawLineSegments(g_ssmt.getMeasurePoints());
 
-  if(g_reference && g_ksV3.size()){
+  if(g_draw_axes){
     glPushAttrib(GL_ALL_ATTRIB_BITS);
-    
-
     //glDisable(GL_DEPTH_TEST);
     mvt::GlPrimitives::get()->drawCoords();
-    
-
-#if 0
-    for(unsigned idx = 0; idx  < g_ksV3[0]->getNetKinectArray()->getCalibs().size(); ++idx){
-      
-    
-      glPushAttrib(GL_ALL_ATTRIB_BITS);
-      glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
-      
-      mvt::CameraView* v = (mvt::CameraView*) g_ksV3[0]->getNetKinectArray()->getCalibs()[idx];
-      v->updateMatrices();
-      
-      glPushMatrix();
-      gloostMultMatrix(v->eye_d_to_world.data());
-      glColor4f(0.0,0.0,0.0,1.0);
-      v->drawFrustum();
-      glPopMatrix();
-      /*  
-	  glPushMatrix();
-	  gloostMultMatrix(v->eye_rgb_to_world.data());
-	  glColor4f(0.0,1.0,0.0,0.0);
-	  v->drawFrustumColor();
-	  glPopMatrix();
-      */
-      glPopAttrib();
-    }
-#endif
     glPopAttrib();
-
-
-
-
+  }   
+  if (g_draw_calibvis) {
+    g_calibvis->draw();
   }
 
-  { // draw black grid on floor for fancy look
+  if(g_draw_frustums) {
+    g_cv->drawFrustums();
+  }
+  // draw black grid on floor for fancy look
+  if(g_draw_grid) {
     glPushAttrib(GL_ALL_ATTRIB_BITS);
     glColor3f(1.0,1.0,1.0);
     glBegin(GL_LINES);
@@ -316,12 +278,14 @@ void draw3d(void)
     glPopAttrib();
   }
 
+  g_bbox.draw();
 
+  if (g_draw_textures) {
+    TextureBlitter::blit(g_nka->getStartTextureUnit() + g_texture_type, g_num_texture, g_nka->getDepthResolution());
+  }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-
-
   /// this function is triggered when the screen is resized
 
 void resize(int width, int height){
@@ -329,102 +293,64 @@ void resize(int width, int height){
   g_screenWidth = width;
   g_screenHeight = height;
   g_aspect       = g_screenWidth * 1.0/g_screenHeight;
-  g_camera->setAspect(g_aspect);
+  g_camera.setAspect(g_aspect);
 
-  g_navi->resize(width, height);
-  g_ftw->resize(width, height);
-  g_ssmt->resize(g_screenWidth, g_screenHeight);
+  for (auto& recon : g_recons) {
+    recon->resize(width, height);
+  }
+
+  g_navi.resize(width, height);
+  g_ftw.resize(width, height);
+  g_ssmt.resize(g_screenWidth, g_screenHeight);
   glutPostRedisplay();
-
 }
 
 
 //////////////////////////////////////////////////////////////////////////////////////////
-
-
   /// this function is called by glut when a key press occured
 
 void key(unsigned char key, int x, int y)
 {
-
   switch (key){
-
-  case 'b':
-    g_black = !g_black;
-    for(unsigned i = 0; i < g_ksV3.size(); ++i){
-      g_ksV3[i]->black = g_black;
-    }
-    break;
-  case '0':
-    for(unsigned i = 0; i < g_ksV3.size(); ++i){
-      g_ksV3[i]->viztype = 0;
-    }
-    break;
-  case '1':
-    for(unsigned i = 0; i < g_ksV3.size(); ++i){
-      g_ksV3[i]->viztype = 1;
-    }
-    break;
-  case '2':
-    for(unsigned i = 0; i < g_ksV3.size(); ++i){
-      g_ksV3[i]->viztype = 2;
-    }
-    break;
-  case '3':
-    for(unsigned i = 0; i < g_ksV3.size(); ++i){
-      g_ksV3[i]->viztype = 3;
-    }
-    break;
-
     /// press ESC or q to quit
   case 27 :
   case 'q':
     exit(0);
     break;
   case 'r':
-    g_reference = !g_reference;
+    g_draw_axes = !g_draw_axes;
     break;
-
+  case 'f':
+    g_draw_frustums = !g_draw_frustums;
+    break;
+  case 'b':
+    g_bilateral = !g_bilateral;
+    g_nka->filterTextures(g_bilateral);
+    break;
+  case 'g':
+    g_draw_grid = !g_draw_grid;
+    break;
   case 'a':
     g_animate = !g_animate;
     break;
-#if 0
-  case 'w':
-    g_warpviz = !g_warpviz;
-    break;
-  case 'w':
-    for(unsigned i = 0; i < g_ksV2.size(); ++i){
-      g_ksV2[i]->saveCalibVolumes();
-      g_ksV2[i]->saveSamplePoints("samplePoints", 35 /* 7 * 5 */);
-    }
-    break;
-#endif
   case 'w':
     g_wire = !g_wire;
     break;
-  case '+':
-    
-    if(g_ksV3[0]->viztype_num < (g_ksV3[0]->getNetKinectArray()->getCalibs().size() - 1))
-      g_ksV3[0]->viztype_num += 1;
-    std::cout << "viztype_num: "  << g_ksV3[0]->viztype_num << std::endl;
-
+  case 'y':
+    g_num_texture = (g_num_texture + 1) % g_calib_files->num();
     break;
-  case '-':
-    if(g_ksV3[0]->viztype_num > 0)
-      g_ksV3[0]->viztype_num -= 1;
-    std::cout << "viztype_num: "  << g_ksV3[0]->viztype_num << std::endl;
-
+  case 'u':
+    g_texture_type = (g_texture_type + 1) % 4;
     break;
-#if 0
-  case ' ':
-    g_ks_mode = (g_ks_mode + 1) % 3;
-    std::cerr << "g_ks_mode: " << g_ks_mode << std::endl;
+  case 't':
+    g_draw_textures = !g_draw_textures;
     break;
-#endif
   case 's':
-    for(unsigned i = 0; i < g_ksV3.size(); ++i){
-      g_ksV3[i]->reloadShader();
-    }
+      for (auto& recon : g_recons) {
+        recon->reload();
+      }
+      globjects::File::reloadAll();
+      g_nka->processTextures(); 
     break;
   case 'm':
     g_picking = !g_picking;
@@ -432,25 +358,19 @@ void key(unsigned char key, int x, int y)
   case 'p':
     g_play = !g_play;
     break;
-
-  case 't':
-    for(unsigned i = 0; i < g_ksV3.size(); ++i){
-      g_ksV3[i]->lookup = (int) !g_ksV3[i]->lookup;
-    }
+  case 'v':
+    g_draw_calibvis = !g_draw_calibvis;
     break;
-  case'f':
-    g_bfilter = !g_bfilter;
-    for(unsigned i = 0; i < g_ksV3[0]->getNetKinectArray()->getCalibs().size(); ++i){
-      g_ksV3[0]->getNetKinectArray()->getCalibs()[i]->use_bf = g_bfilter;
-    }
+  case 'c':
+    static unsigned num_kinect = 1; 
+    num_kinect = (num_kinect+ 1) % g_calib_files->num();
+    g_calibvis->setActiveKinect(num_kinect);
     break;
-
   case '#':
-    for(unsigned i = 0; i < g_ksV3[0]->getNetKinectArray()->getCalibs().size(); ++i){
-      g_ksV3[0]->getNetKinectArray()->depth_compression_lex = !g_ksV3[0]->getNetKinectArray()->depth_compression_lex;
+    for(unsigned i = 0; i < g_calib_files->num(); ++i){
+      g_nka->depth_compression_lex = !g_nka->depth_compression_lex;
     }
     break;
-
   default:
     break;
   }
@@ -460,15 +380,13 @@ void key(unsigned char key, int x, int y)
 
 
 //////////////////////////////////////////////////////////////////////////////////////////
-
-
 void motionFunc(int mouse_h, int mouse_v){
   if(g_picking){
 
   }
   else{
-    g_navi->motion(mouse_h, mouse_v);
-    g_ftw->motion(mouse_h, mouse_v);
+    g_navi.motion(mouse_h, mouse_v);
+    g_ftw.motion(mouse_h, mouse_v);
   }
   glutPostRedisplay();
 }
@@ -480,38 +398,42 @@ void passiveFunc(int x, int y){
     
   }
   else{
-    g_ftw->passive(x,y);
+    g_ftw.passive(x,y);
   }
   glutPostRedisplay();
 }
 
 
 //////////////////////////////////////////////////////////////////////////////////////////
-
-
 void mouseFunc(int button, int state, int mouse_h, int mouse_v){
 
   if(g_picking){
-    g_ssmt->mouse(button, state, mouse_h, g_screenHeight - mouse_v);
+    g_ssmt.mouse(button, state, mouse_h, g_screenHeight - mouse_v);
   }
   else{
-    g_navi->mouse(button, state, mouse_h, mouse_v);
-    g_ftw->mouse(button, state, mouse_h, mouse_v);
+    g_navi.mouse(button, state, mouse_h, mouse_v);
+    g_ftw.mouse(button, state, mouse_h, mouse_v);
   }
   glutPostRedisplay();
 }
 
-
-
-
 void specialKey(int key, int x, int y){
-  g_ftw->specialKey(key, x, y);
+  g_ftw.specialKey(key, x, y);
   glutPostRedisplay();
+
+  switch(key) {
+    case GLUT_KEY_PAGE_UP:
+      g_recon_mode = (g_recon_mode + 1) % g_recons.size();
+      break;
+    case  GLUT_KEY_PAGE_DOWN:
+      g_recon_mode = (g_recon_mode + g_recons.size() - 1) % g_recons.size();
+      break;  
+    default:
+      break;
+  }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
-
-
   /// this function is triggered by glut,
   /// when nothing is left to do for this frame
 
@@ -521,18 +443,11 @@ void idle(void){
 
 
 ////////////////////////////////////////////////////////////////////////////////
-
-
-int main(int argc, char *argv[])
-{
-
-  std::string serverendpoint("tcp://141.54.147.32:7000");
-
+int main(int argc, char *argv[]) {
   CMDParser p("kinect_surface ...");
 
   p.addOpt("r",2,"resolution", "set screen resolution");
   p.addOpt("i",-1,"info", "draw info");
-  p.addOpt("s",1,"serverendpoint", "set the server endpoint for calibvolume based calibration");
   p.init(argc,argv);
 
   if(p.isOptSet("r")){
@@ -542,10 +457,6 @@ int main(int argc, char *argv[])
 
   if(p.isOptSet("i")){
     g_info = true;
-  }
-
-  if(p.isOptSet("s")){
-    kinect::CalibVolume::serverendpoint = std::string("tcp://") + p.getOptsString("s")[0];
   }
 
   glutInit(&argc, argv);
@@ -569,13 +480,11 @@ int main(int argc, char *argv[])
   glutSpecialFunc(specialKey);
   glutSetCursor(GLUT_CURSOR_CROSSHAIR);
 
-  // initialize GLEW
-  if (GLEW_OK != glewInit()){
-    /// ... or die trying
-    std::cout << "'glewInit()' failed." << std::endl;
-    exit(0);
-  }
+  // glbinding::Binding::initialize(); // only resolve functions that are actually used (lazy)
+  // Initialize globjects (internally initializes glbinding, and registers the current context)
+  globjects::init();
 
+  watch_gl_errors(true);
 
   // set some gl states
   glEnable(GL_TEXTURE_2D);
@@ -589,7 +498,43 @@ int main(int argc, char *argv[])
   /// start the loop (this will call display() every frame)
   glutMainLoop();
 
+  //free globjects 
+  globjects::detachAllObjects();
+
   return EXIT_SUCCESS;
 }
 
-
+void watch_gl_errors(bool activate) {
+  if(activate) {
+    // add callback after each function call
+    glbinding::setCallbackMaskExcept(glbinding::CallbackMask::After | glbinding::CallbackMask::ParametersAndReturnValue, {"glGetError", "glVertex3f", "glVertex2f", "glBegin", "glColor3f"});
+    glbinding::setAfterCallback(
+      [](glbinding::FunctionCall const& call) {
+        GLenum error = glGetError();
+        if (error != GL_NO_ERROR) {
+          // print name
+          std::cerr <<  "OpenGL Error: " << call.function->name() << "(";
+          // parameters
+          for (unsigned i = 0; i < call.parameters.size(); ++i)
+          {
+            std::cerr << call.parameters[i]->asString();
+            if (i < call.parameters.size() - 1)
+              std::cerr << ", ";
+          }
+          std::cerr << ")";
+          // return value
+          if(call.returnValue) {
+            std::cerr << " -> " << call.returnValue->asString();
+          }
+          // error
+          std::cerr  << " - " << glbinding::Meta::getString(error) << std::endl;
+          throw std::exception{};
+          exit(EXIT_FAILURE);
+        }
+      }
+    );
+  }
+  else {
+    glbinding::setCallbackMask(glbinding::CallbackMask::None);
+  }
+}

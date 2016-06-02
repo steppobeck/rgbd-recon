@@ -63,17 +63,19 @@ OF SUCH DAMAGE.
 */
 
 #include <glErrorUtil.h>
-#include <GL/glew.h>
+#include <glbinding/gl/gl.h>
+using namespace gl;
+#include <GL/glu.h>
 
 #ifndef NDEBUG
 void CheckErrorsGL(const char* location, std::ostream& ostr)
 {
-    GLuint errnum;
+    GLenum errnum;
     const char *errstr;
 
     //ostr ;
 
-    while ((errnum = glGetError()))
+    while ((errnum = glGetError()) != GL_NONE)
     {
         errstr = reinterpret_cast<const char *>(gluErrorString(errnum));
         if (errstr)

@@ -1,7 +1,7 @@
 #include "FourTiledWindow.h"
 
-#include <GL/glew.h>
-#include <GL/gl.h>
+#include <glbinding/gl/gl.h>
+using namespace gl;
 #include <GL/glut.h>
 
 namespace mvt{
@@ -17,14 +17,8 @@ namespace mvt{
       m_buttonSpeeds()
   {
     endFrame();
-
   }
 
-
-  FourTiledWindow::~FourTiledWindow()
-  {}
-
-    
   void
   FourTiledWindow::resize(unsigned width, unsigned height){
     m_width = width;

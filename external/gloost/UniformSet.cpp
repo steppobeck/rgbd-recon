@@ -1063,7 +1063,7 @@ UniformSet::addToShader(const unsigned int shaderHandle, unsigned int contextId)
     for (; index != end; ++index)
     {
       uniformPos = glGetUniformLocation (shaderHandle, (*index).first.c_str());
-      glUniformMatrix2fv(uniformPos, 4, 0, (GLfloat*)&((*index).second));
+      glUniformMatrix2fv(uniformPos, 4, GL_FALSE, (GLfloat*)&((*index).second));
     }
   }
 
@@ -1076,7 +1076,7 @@ UniformSet::addToShader(const unsigned int shaderHandle, unsigned int contextId)
     for (; index != end; ++index)
     {
       uniformPos = glGetUniformLocation (shaderHandle, (*index).first.c_str());
-      glUniformMatrix3fv(uniformPos, 1, false, (GLfloat*)&(*index).second  );
+      glUniformMatrix3fv(uniformPos, 1, GL_FALSE, (GLfloat*)&(*index).second  );
     }
   }
 
@@ -1089,7 +1089,7 @@ UniformSet::addToShader(const unsigned int shaderHandle, unsigned int contextId)
     for (; index != end; ++index)
     {
       uniformPos = glGetUniformLocation (shaderHandle, (*index).first.c_str());
-      glUniformMatrix4fv(uniformPos, 1, 0, (GLfloat*)&((*index).second));
+      glUniformMatrix4fv(uniformPos, 1, GL_FALSE, (GLfloat*)&((*index).second));
     }
   }
 
@@ -1103,7 +1103,7 @@ UniformSet::addToShader(const unsigned int shaderHandle, unsigned int contextId)
     for (; index != end; ++index)
     {
       uniformPos = glGetUniformLocation (shaderHandle, (*index).first.c_str());
-      glUniformMatrix4fv(uniformPos, (*index).second.size() /*count*/, 0 /*transpose it?*/, (GLfloat*)&((*index).second[0]));
+      glUniformMatrix4fv(uniformPos, (*index).second.size() /*count*/, GL_FALSE /*transpose it?*/, (GLfloat*)&((*index).second[0]));
     }
   }
 

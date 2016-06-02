@@ -22,7 +22,8 @@
 /// cpp includes
 #include <iostream>
 #include <cstdlib>
-
+#define GLM_FORCE_RADIANS
+#include <glm/gtc/type_precision.hpp>
 
 namespace gloost
 {
@@ -43,6 +44,8 @@ class Matrix
 
 
 	public:
+
+  operator glm::fmat4() const;
 
   /// class constructor
   Matrix();

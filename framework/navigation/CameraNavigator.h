@@ -1,7 +1,8 @@
 #ifndef PMD_CAMERANAVIGATOR_H
 #define PMD_CAMERANAVIGATOR_H
 
-#include <GL/glew.h>
+#include <glbinding/gl/gl.h>
+using namespace gl;
 #include <GL/glut.h>
 #include <stdlib.h>
 #include <math.h>
@@ -12,10 +13,7 @@
 #include <Vector3.h>
 #include <Matrix.h>
 
-
 namespace pmd{
-
-
 
 class CameraNavigator{
 
@@ -47,9 +45,6 @@ protected:
   float m_zoom_reset;
 };
 
-
-
 }
-
 
 #endif // #ifndef  PMD_CAMERANAVIGATOR_H

@@ -40,7 +40,8 @@
 /// cpp includes
 #include <string>
 #include <map>
-#include <GL/glew.h>
+#include <glbinding/gl/gl.h>
+using namespace gl;
 
 
 
@@ -67,7 +68,7 @@ class Texture : public MultiGlContext
 		Texture( unsigned int width,
              unsigned int height,
 		         GLenum target        = GL_TEXTURE_2D,
-		         GLint internalFormat = GL_RGBA,
+		         GLenum internalFormat = GL_RGBA,
 		         GLenum pixelFormat   = GL_RGBA,
 		         GLenum pixelType     = GL_FLOAT);
 
@@ -78,7 +79,7 @@ class Texture : public MultiGlContext
              unsigned int depth,
              void*        pixeldata,
 		         GLenum target,
-		         GLint  internalFormat,
+		         GLenum  internalFormat,
 		         GLenum pixelFormat,
 		         GLenum pixelType);
 
@@ -118,7 +119,7 @@ class Texture : public MultiGlContext
     GLenum getTarget();
 
     /// get gl's internal format for this texture
-    GLint getInternalFormat();
+    GLenum getInternalFormat();
 
     /// get gl's pixel format for this texture
     GLenum getPixelFormat();
@@ -173,7 +174,7 @@ class Texture : public MultiGlContext
 
 
 		/// bind Texture to GL state
-		void bind(unsigned int texUnitId=GL_TEXTURE0, unsigned int contextId = 0);
+		void bind(GLenum texId=GL_TEXTURE0, unsigned int contextId = 0);
 
 		///unbind Texture
 		void unbind(unsigned int contextId = 0);
@@ -239,7 +240,7 @@ class Texture : public MultiGlContext
 
 
 	  /// internal format of the texture (GL_RGB, GL_RGBA, GL_ALPHA, GL_DEPTH_COMPONENT32, ...)
-	  GLint _internalFormat;
+	  GLenum _internalFormat;
 
 
 		/// width of the texture
@@ -266,7 +267,7 @@ class Texture : public MultiGlContext
 
 
 		/// texture Unit Id, given with the bind(id) methode, used for unbind
-		std::vector<unsigned int> _textureUnitIdsForContexts;
+		std::vector<GLenum> _textureUnitIdsForContexts;
 
 
 		/// determines if this texture is using mipmapping
@@ -303,7 +304,7 @@ class Texture : public MultiGlContext
                            unsigned int height,
                            unsigned int depth     = 0,
                            GLenum target          = GL_TEXTURE_2D,
-                           GLint internalFormat   = GL_RGBA,
+                           GLenum internalFormat   = GL_RGBA,
                            GLenum pixelFormat     = GL_RGBA,
                            GLenum pixelType       = GL_FLOAT,
                            unsigned int contextId = 0);
