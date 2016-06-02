@@ -24,14 +24,12 @@ using namespace gl;
 
 #include <CMDParser.h>
 #include "texture_blitter.hpp"
-#include "screen_space_measurement_tool.hpp"
 
 #include <Point3.h>
 #include <BoundingBox.h>
 #include <PerspectiveCamera.h>
 
 #include <CameraNavigator.h>
-#include <FourTiledWindow.h>
 #include "CalibVolumes.hpp"
 #include <calibration_files.hpp>
 #include <NetKinectArray.h>
@@ -67,10 +65,8 @@ unsigned g_num_texture  = 0;
 gloost::BoundingBox     g_bbox{};
 
 gloost::PerspectiveCamera g_camera{50.0, g_aspect, 0.1, 200.0};
-mvt::FourTiledWindow g_ftw{g_screenWidth, g_screenHeight};
 pmd::CameraNavigator g_navi{0.1f};
 std::unique_ptr<mvt::Statistics> g_stats{};
-ScreenSpaceMeasureTool g_ssmt{&g_camera, g_screenWidth, g_screenHeight};
 std::unique_ptr<kinect::NetKinectArray> g_nka;
 std::unique_ptr<kinect::CalibVolumes> g_cv;
 std::unique_ptr<kinect::CalibrationFiles> g_calib_files;
@@ -100,9 +96,6 @@ void quit(int status);
 
 std::vector<std::unique_ptr<kinect::Reconstruction>> g_recons;// 4
 std::unique_ptr<kinect::ReconCalibs> g_calibvis;// 4
-
-bool g_picking = false;
-
 //////////////////////////////////////////////////////////////////////////////////////////
 void init(std::vector<std::string> args){
   g_stats.reset(new mvt::Statistics{});
@@ -201,8 +194,6 @@ void frameStep (){
   update_view_matrix();
   draw3d();
   
-  g_ftw.endFrame();
-
   if(g_info)
     g_stats->draw(g_screenWidth, g_screenHeight);
 }
@@ -216,13 +207,13 @@ void update_view_matrix() {
 
   gloost::Point3 speed(0.0,0.0,0.0);
 
-  gloost::vec2 speed_button1(g_ftw.getButtonSpeed(1));
-  gloost::vec2 speed_button2(g_ftw.getButtonSpeed(2));
+  glm::fvec2 speed_button1(g_navi.getOffset(0));
+  glm::fvec2 speed_button2(g_navi.getOffset(1));
   // std::cout << "speed1 " << speed_button1 << ", " << speed_button2 << std::endl;
   float fac = 0.005;
-  speed[0] = speed_button1.u * fac;
-  speed[1] = speed_button1.v * - 1.0 * fac;
-  speed[2] = speed_button2.v * fac;
+  speed[0] = speed_button1.x * fac;
+  speed[1] = speed_button1.y * - 1.0 * fac;
+  speed[2] = speed_button2.y * fac;
 
   gloost::Matrix camview(g_navi.get(speed));
   camview.invert();
@@ -231,7 +222,8 @@ void update_view_matrix() {
 
   gloost::Matrix modelview;
   glGetFloatv(GL_MODELVIEW_MATRIX, modelview.data());
-  g_ssmt.setModelView(modelview);
+
+  g_navi.resetOffsets();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -272,16 +264,6 @@ void draw3d(void)
   g_recons.at(g_recon_mode)->draw();
 
   g_stats->stopGPU();
-  //std::cerr << "after stopGPU" << std::endl; check_gl_errors("after stopGPU", false);
-
-  if(g_picking){
-    float dist = g_ssmt.measure();
-    g_stats->setInfoSlot(("measuring: " + gloost::toString(dist)).c_str(), 1);
-  }
-  else{
-    g_stats->setInfoSlot("navigation mode", 1);
-  }
-  mvt::GlPrimitives::get()->drawLineSegments(g_ssmt.getMeasurePoints());
 
   if(g_draw_axes){
     glPushAttrib(GL_ALL_ATTRIB_BITS);
@@ -336,15 +318,9 @@ void update_view(GLFWwindow* window, int width, int height){
   }
 
   g_navi.resize(width, height);
-  g_ftw.resize(width, height);
-  g_ssmt.resize(g_screenWidth, g_screenHeight);
-  // glutPostRedisplay();
 }
 
-
 //////////////////////////////////////////////////////////////////////////////////////////
-  /// this function is called by glut when a key press occured
-
 void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
   if(action != GLFW_RELEASE) return;
@@ -400,9 +376,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
       globjects::File::reloadAll();
       g_nka->processTextures(); 
     break;
-  case GLFW_KEY_M:
-    g_picking = !g_picking;
-    break;
   case GLFW_KEY_P:
     g_play = !g_play;
     break;
@@ -427,27 +400,12 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
   default:
     break;
   }
-
-  // glutPostRedisplay();
 }
 
 
 //////////////////////////////////////////////////////////////////////////////////////////
 void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
-  int state1 = glfwGetMouseButton(g_window, GLFW_MOUSE_BUTTON_LEFT);
-  int state2 = glfwGetMouseButton(g_window, GLFW_MOUSE_BUTTON_RIGHT);
-  int state3 = glfwGetMouseButton(g_window, GLFW_MOUSE_BUTTON_MIDDLE);
-  int mouse_h = xpos;
-  int mouse_v = ypos;
-  if(g_picking){
-
-  }
-  else{
-      g_navi.motion(mouse_h, mouse_v);
-    if(state1 == GLFW_PRESS || state2 == GLFW_PRESS || state3 == GLFW_PRESS) {
-      g_ftw.motion(mouse_h, mouse_v);
-    }
-  }
+  g_navi.motion(xpos, ypos);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -457,13 +415,7 @@ void click_callback(GLFWwindow* window, int button, int action, int mods){
   int mouse_h = xpos;
   int mouse_v = ypos;
 
-  if(g_picking){
-    g_ssmt.mouse(button, action, mouse_h, g_screenHeight - mouse_v);
-  }
-  else{
-    g_navi.mouse(button, action, mouse_h, mouse_v);
-    g_ftw.mouse(button, action, mouse_h, mouse_v);
-  }
+  g_navi.mouse(button, action, mouse_h, mouse_v);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -539,8 +491,7 @@ int main(int argc, char *argv[]) {
   init(p.getArgs());
 
   update_view(g_window, g_screenWidth, g_screenHeight);
-  /// start the loop (this will call display() every frame)
-  // glutMainLoop();
+
   while (!glfwWindowShouldClose(g_window)) {
     
     frameStep();
