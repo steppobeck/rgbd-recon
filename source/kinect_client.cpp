@@ -57,8 +57,8 @@ int      g_recon_mode   = 0;
 bool     g_bilateral    = true;
 bool     g_draw_calibvis= false;
 bool     g_draw_textures= false;
-unsigned g_texture_type = 0;
-unsigned g_num_texture  = 0;
+int      g_texture_type = 0;
+int      g_num_texture  = 0;
 bool     g_processed    = true;
 bool     g_refine       = true;
 int      g_num_kinect   = 1; 
@@ -215,9 +215,23 @@ void update_gui() {
         g_nka->refineBoundary(g_refine);
       }
     }
-    ImGui::Text("Hello");
     ImGui::End();
   }
+  {
+    ImGui::SetNextWindowSize(ImVec2(100,100), ImGuiSetCond_FirstUseEver);
+    ImGui::Begin("Textures");
+    if (ImGui::CollapsingHeader("Kinect"), true) {
+      static std::vector<const char*> listbox_items = {"1", "2", "3", "4"};
+      ImGui::ListBox("Number", &g_num_texture, listbox_items.data(), listbox_items.size(), listbox_items.size());
+    }
+    if (ImGui::CollapsingHeader("Texture Type"), true) {
+      static std::vector<const char*> listbox_items = {"Color", "Depth", "Quality", "Normals", "Silhouette", "Orig Depth", "LAB colors"};
+      ImGui::ListBox("Type", &g_texture_type, listbox_items.data(), listbox_items.size(), listbox_items.size());
+    }
+    ImGui::End();
+  }
+  // ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiSetCond_FirstUseEver);
+  // ImGui::ShowTestWindow();
 }
 
 void frameStep (){
