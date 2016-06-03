@@ -10,7 +10,6 @@
 #include <Vector3.h>
 #include <Vector2.h>
 #include <Matrix.h>
-#include <Plane3.h>
 
 /// cpp includes
 #include <string>

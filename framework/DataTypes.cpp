@@ -3,15 +3,12 @@
 
 namespace kinect{
 
-
   uv interpolate(const uv& a, const uv& b, float t){
     uv r;
     r.u = (1.0f - t)*a.u + t*b.u;
     r.v = (1.0f - t)*a.v + t*b.v;
     return r;
   }
-
-
 
   xyz interpolate(const xyz& a, const xyz& b, float t){
     xyz r;
@@ -20,9 +17,6 @@ namespace kinect{
     r.z = (1.0f - t)*a.z + t*b.z;
     return r;
   }
-
-
-
   /*extern*/
   xyz
   operator* (const float v, const xyz& b){
@@ -32,8 +26,6 @@ namespace kinect{
     res.z = v * b.z;
     return res;
   }
-
-
   /*extern*/
   uv
   operator* (const float v, const uv& b){
@@ -42,8 +34,6 @@ namespace kinect{
     res.v = v * b.v;
     return res;
   }
-
-
 
   /*extern*/
   xyz
@@ -69,7 +59,6 @@ namespace kinect{
     return res;
   }
 
-
   /*extern*/
   uv
   operator- (const uv& a, const uv& b){
@@ -94,7 +83,6 @@ namespace kinect{
     return res;
   }
 
-
   /*extern*/
   uv_d
   operator* (const float v, const uv_d& b){
@@ -103,8 +91,6 @@ namespace kinect{
     res.v = v * b.v;
     return res;
   }
-
-
 
   /*extern*/
   xyz_d
@@ -116,7 +102,6 @@ namespace kinect{
     return res;
   }
 
-
   /*extern*/
   uv_d
   operator+ (const uv_d& a, const uv& b){
@@ -125,65 +110,4 @@ namespace kinect{
     res.v = a.v + b.v;
     return res;
   }
-
-
-
-  CandidateSample::CandidateSample(const float w, const xyz& p_off, const uv& t_off):
-    weight(w),
-    pos_off(),
-    tex_off()
-  {
-    pos_off = p_off;
-    tex_off = t_off;
-  }
-
-  CandidateSample::~CandidateSample()
-  {}
-
-
-  /*extern*/
-  bool
-  operator < (const CandidateSample& a, const CandidateSample& b){
-    return a.weight > b.weight;
-  }
-
-
-
-
-
-
-  /* extern */
-  std::ostream&
-  operator<< (std::ostream& os, const samplePoint& a)
-  {
-    os << "samplePoint( " << std::fixed 
-       << " depth " << a.depth
-       << " tex_color.u " << a.tex_color.u
-       << " tex_color.v " << a.tex_color.v
-       << " tex_depth.u " << a.tex_depth.u
-       << " tex_depth.v " << a.tex_depth.v
-       << " pos_offset.x " << a.pos_offset.x
-       << " pos_offset.y " << a.pos_offset.y
-       << " pos_offset.z " << a.pos_offset.z
-       << " tex_offset.u " << a.tex_offset.u
-       << " tex_offset.v " << a.tex_offset.v
-       << " pos_real " << a.pos_real
-       << " quality "  << a.quality
-       << ")";
-
-
-    return os;
-  }
-
-#if 0
-   float depth;
-   uv tex_color;
-   uv tex_depth;
-   
-   xyz pos_offset;
-   uv tex_offset;
-   gloost::Point3 pos_real;
-#endif
-
-
 }
