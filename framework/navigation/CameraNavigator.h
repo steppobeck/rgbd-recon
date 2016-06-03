@@ -1,9 +1,6 @@
 #ifndef PMD_CAMERANAVIGATOR_H
 #define PMD_CAMERANAVIGATOR_H
 
-#include <glbinding/gl/gl.h>
-using namespace gl;
-
 #include <stdlib.h>
 #include <math.h>
 
@@ -23,7 +20,7 @@ public:
 
   void mouse(int button, int state, int mouse_h, int mouse_v);
   void motion(int mouse_h, int mouse_v);
-  void resize(GLsizei w, GLsizei h);
+  void resize(unsigned w, unsigned h);
 
   // virtual void special(int key){};
   // virtual void keyboard(unsigned char key){};

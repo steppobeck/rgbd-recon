@@ -5,9 +5,14 @@
 #include "CalibVolumes.hpp"
 
 #include <Matrix.h>
+
 #include <glm/gtc/type_precision.hpp>
+
+#include <glbinding/gl/gl.h>
+using namespace gl;
 #include <globjects/VertexAttributeBinding.h>
 #include <globjects/Shader.h>
+
 
 namespace kinect{
 

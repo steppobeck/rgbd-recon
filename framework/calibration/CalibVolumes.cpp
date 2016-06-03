@@ -2,7 +2,10 @@
 #include <KinectCalibrationFile.h>
 #include <timevalue.h>
 
+#include <glbinding/gl/functions.h>
 #include <glbinding/gl/functions-patches.h>
+#include <glbinding/gl/enum.h>
+using namespace gl;
 #include <globjects/Shader.h>
 
 #include <glm/gtc/matrix_transform.hpp>

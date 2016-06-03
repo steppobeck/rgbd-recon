@@ -169,18 +169,43 @@ void init(std::vector<std::string> args){
 
 //////////////////////////////////////////////////////////////////////////////////////////
   /// logic
+void update_gui() {
+  ImGui_ImplGlfwGLB_NewFrame();
+
+  bool show_another_window = false;
+  ImVec4 clear_color = ImColor(114, 144, 154);
+  // 1. Show a simple window
+  // Tip: if we don't call ImGui::Begin()/ImGui::End() the widgets appears in a window automatically called "Debug"
+  {
+    static float f = 0.0f;
+    ImGui::Text("Hello, world!");
+    ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
+    ImGui::ColorEdit3("clear color", (float*)&clear_color);
+    if (ImGui::Button("Another Window")) show_another_window ^= 1;
+    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+  }
+  // 2. Show another simple window, this time using an explicit Begin/End pair
+  if (show_another_window)
+  {
+    ImGui::SetNextWindowSize(ImVec2(200,100), ImGuiSetCond_FirstUseEver);
+    ImGui::Begin("Another Window", &show_another_window);
+    ImGui::Text("Hello");
+    ImGui::End();
+  }
+}
 
 void frameStep (){
-
-  glClearColor(0, 0, 0, 0);
-  glViewport(0,0,g_screenWidth, g_screenHeight);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  glfwPollEvents();
+  update_gui();
 
   update_view_matrix();
   draw3d();
   
   if(g_info)
     g_stats->draw(g_screenWidth, g_screenHeight);
+
+  ImGui::Render();
+  glfwSwapBuffers(g_window);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -214,7 +239,11 @@ void update_view_matrix() {
 //////////////////////////////////////////////////////////////////////////////////////////
   /// main loop function, render with 3D setup
 void draw3d(void)
-{
+{  
+  glClearColor(0, 0, 0, 0);
+  glViewport(0,0,g_screenWidth, g_screenHeight);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+  
   if(g_animate){
     static unsigned g_framecounta = 0;
     ++g_framecounta;
@@ -382,6 +411,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
 
 //////////////////////////////////////////////////////////////////////////////////////////
 void click_callback(GLFWwindow* window, int button, int action, int mods){
+  if(ImGui::GetIO().WantCaptureMouse) return;
   double xpos, ypos;
   glfwGetCursorPos(window, &xpos, &ypos);
   int mouse_h = xpos;
@@ -470,34 +500,7 @@ int main(int argc, char *argv[]) {
   update_view(g_window, g_screenWidth, g_screenHeight);
 
   while (!glfwWindowShouldClose(g_window)) {
-    
-    glfwPollEvents();
-    ImGui_ImplGlfwGLB_NewFrame();
-
-    bool show_another_window = false;
-    ImVec4 clear_color = ImColor(114, 144, 154);
-    // 1. Show a simple window
-    // Tip: if we don't call ImGui::Begin()/ImGui::End() the widgets appears in a window automatically called "Debug"
-    {
-        static float f = 0.0f;
-        ImGui::Text("Hello, world!");
-        ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
-        ImGui::ColorEdit3("clear color", (float*)&clear_color);
-        if (ImGui::Button("Another Window")) show_another_window ^= 1;
-        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-    }
-    // 2. Show another simple window, this time using an explicit Begin/End pair
-    if (show_another_window)
-    {
-        ImGui::SetNextWindowSize(ImVec2(200,100), ImGuiSetCond_FirstUseEver);
-        ImGui::Begin("Another Window", &show_another_window);
-        ImGui::Text("Hello");
-        ImGui::End();
-    }
-
     frameStep();
-    ImGui::Render();
-    glfwSwapBuffers(g_window);
   }
 
   quit(EXIT_SUCCESS);

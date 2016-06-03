@@ -1,8 +1,11 @@
 #include "CameraNavigator.h"
 
+#include <glbinding/gl/gl.h>
+using namespace gl;
+
 #define GLFW_INCLUDE_NONE
+#define GLFW_INCLUDE_GLU
 #include <GLFW/glfw3.h>
-#include <GL/glut.h>
 
 #include <string.h> // memcpy
 
@@ -69,7 +72,7 @@ namespace pmd{
   }
   
   void
-  CameraNavigator::resize(GLsizei w, GLsizei h){
+  CameraNavigator::resize(unsigned w, unsigned h){
     m_arcball.set_win_size(w, h);
   }
 

@@ -99,7 +99,7 @@ class quaternion
 					case X: return x;
 					case Y: return y;
 					case Z: return z;
-					default: throw std::exception{};
+					default: break;
 				}
 				return 0.0;
 			}
