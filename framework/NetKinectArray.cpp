@@ -8,18 +8,17 @@
 #include <TextureArray.h>
 #include <KinectCalibrationFile.h>
 #include "CalibVolumes.hpp"
-#include <timevalue.h>
-#include <clock.h>
 #include <DXTCompressor.h>
-
-#include <gl_util.h>
-#include <Viewport.h>
-#include <gloostHelper.h>
-
 
 #include <glbinding/gl/gl.h>
 #include <glbinding/gl/functions-patches.h>
 using namespace gl;
+
+#include <globjects/Program.h>
+#include <globjects/Texture.h>
+#include <globjects/Framebuffer.h>
+#include <globjects/Buffer.h>
+
 #include <globjects/Shader.h>
 #include <globjects/logging.h>
 #include <globjects/NamedString.h>
@@ -32,7 +31,6 @@ using namespace gl;
 #include <vector>
 #include <string>
 #include <fstream>
-#include <sstream>
 #include <thread>
 
 namespace kinect{
@@ -470,8 +468,6 @@ void NetKinectArray::readLoop(){
   //const unsigned pixelcountc = m_calib_files->getWidthC() * m_calib_files->getHeightC();    
   const unsigned colorsize = m_colorsize;
   const unsigned depthsize = m_depthsize;//pixelcount * sizeof(float);
-
-  sensor::timevalue ts(sensor::clock::time());
 
   double current_time = 0.0;
 

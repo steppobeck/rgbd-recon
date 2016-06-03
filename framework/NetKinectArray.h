@@ -7,15 +7,18 @@
 
 #include <glm/gtc/type_precision.hpp>
 
-#include <globjects/Program.h>
-#include <globjects/Texture.h>
-#include <globjects/Framebuffer.h>
-#include <globjects/Buffer.h>
+#include <globjects/base/ref_ptr.h>
+namespace globjects {
+  class Buffer;
+  class Program;
+  class Framebuffer;
+  class Texture;
+}
 
 #include <string>
 #include <vector>
-#include <atomic>
 #include <mutex>
+#include <memory>
 #include <map>
 
 namespace std{
@@ -26,22 +29,21 @@ namespace mvt{
   class TextureArray;
 }
 
-namespace kinect{
+namespace kinect {
 
   class KinectCalibrationFile;
   class CalibrationFiles;
   class CalibVolumes;
 
-  class NetKinectArray{
+  class NetKinectArray {
 
   public:
     NetKinectArray(std::string const& serverport, CalibrationFiles const* calibs, CalibVolumes const* vols, bool readfromfile = false);
-
     NetKinectArray(std::vector<KinectCalibrationFile*>& calibs);
 
-    virtual ~NetKinectArray();
+    ~NetKinectArray();
 
-    virtual void update();
+    void update();
 
     void processTextures();
     void setStartTextureUnit(unsigned m_start_texture_unit);
@@ -64,7 +66,7 @@ namespace kinect{
 
     int getTextureUnit(std::string const& name) const; 
 
-  protected:
+  private:
     void processBackground();
     void processDepth();
 
