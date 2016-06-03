@@ -1,17 +1,17 @@
 #ifndef MVT_TEXTUREARRAY_H
 #define MVT_TEXTUREARRAY_H
 
-#include <glbinding/gl/gl.h>
+#include <glbinding/gl/enum.h>
 using namespace gl;
 
-#include <globjects/Texture.h>
 #include <globjects/base/ref_ptr.h>
+namespace globjects {
+  class Texture;
+}
 
-#include <vector>
+namespace kinect {
 
-namespace mvt{
-
-class TextureArray{
+class TextureArray {
 
  public:
 /* kinect color: GL_RGB32F, GL_RGB, GL_FLOAT*/
@@ -29,7 +29,7 @@ class TextureArray{
 
   globjects::Texture* getTexture() const;
 
-  GLuint getGLHandle();
+  unsigned getGLHandle();
 
   // bool copyToCPU(unsigned layer, void* data);
   // bool copyToCPUAll(void* data);
@@ -49,6 +49,6 @@ class TextureArray{
   unsigned m_storage;
 };
 
-}// namespace mvt
+}
 
 #endif // #ifndef  MVT_TEXTUREARRAY_H

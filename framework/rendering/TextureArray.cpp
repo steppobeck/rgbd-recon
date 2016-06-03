@@ -1,17 +1,14 @@
 #include "TextureArray.h"
 
-#include <gl_util.h>
-#include <iostream>
-#include <cstdlib>
-
-#include <string.h>
-
-#include <cmath>
+#include <glbinding/gl/functions.h>
 #include <glbinding/gl/functions-patches.h>
+#include <globjects/Texture.h>
+
+#include <iostream>
 
 #define BUFFER_OFFSET(i) ((char *)NULL + (i))
 
-namespace mvt{
+namespace kinect {
 
   /* kinect color: GL_RGB32F, GL_RGB, GL_FLOAT*/
   /* kinect depth: GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT*/
@@ -101,7 +98,7 @@ void TextureArray::unbind() {
   m_texture->unbind();
 }
 
-GLuint TextureArray::getGLHandle() {
+unsigned TextureArray::getGLHandle() {
   return m_texture->id();
 }
 

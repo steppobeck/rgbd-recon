@@ -1,10 +1,13 @@
 #include "ViewArray.h"
 
-#include <gl_util.h>
+#include <glbinding/gl/gl.h>
+using namespace gl;
+#include <globjects/Framebuffer.h>
+
 #include <stdio.h>
 #include <iostream>
 
-namespace mvt{
+namespace kinect {
 
 ViewArray::ViewArray(unsigned width, unsigned height, unsigned numLayers)
   : m_width(width),

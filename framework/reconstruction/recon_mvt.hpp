@@ -21,8 +21,8 @@ namespace kinect{
     void resize(std::size_t width, std::size_t height) override;
 
   private:
-    std::unique_ptr<mvt::ViewArray>     m_va_pass_depth;
-    std::unique_ptr<mvt::ViewArray>     m_va_pass_accum;
+    std::unique_ptr<ViewArray>     m_va_pass_depth;
+    std::unique_ptr<ViewArray>     m_va_pass_accum;
 
     globjects::VertexArray*              m_tri_grid;
     globjects::Buffer*                  m_tri_buffer;

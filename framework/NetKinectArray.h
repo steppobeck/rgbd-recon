@@ -25,12 +25,9 @@ namespace std{
   class thread;
 }
 
-namespace mvt{
-  class TextureArray;
-}
-
 namespace kinect {
 
+  class TextureArray;
   class KinectCalibrationFile;
   class CalibrationFiles;
   class CalibVolumes;
@@ -78,8 +75,8 @@ namespace kinect {
     glm::uvec2 m_resolution_depth;
 
     unsigned m_numLayers;
-    std::unique_ptr<mvt::TextureArray> m_colorArray;
-    std::unique_ptr<mvt::TextureArray> m_depthArray_raw;
+    std::unique_ptr<TextureArray> m_colorArray;
+    std::unique_ptr<TextureArray> m_depthArray_raw;
     globjects::ref_ptr<globjects::Texture> m_textures_depth;
     globjects::ref_ptr<globjects::Texture> m_textures_depth_b;
     double_buffer<globjects::ref_ptr<globjects::Texture>> m_textures_depth2;
@@ -89,7 +86,7 @@ namespace kinect {
     double_buffer<globjects::ref_ptr<globjects::Texture>> m_textures_bg;
     globjects::ref_ptr<globjects::Texture> m_textures_silhouette;
     globjects::ref_ptr<globjects::Framebuffer> m_fbo;
-    std::unique_ptr<mvt::TextureArray>  m_colorArray_back;
+    std::unique_ptr<TextureArray>  m_colorArray_back;
 
     std::map<std::string, globjects::ref_ptr<globjects::Program>> m_programs;
     std::map<std::string, unsigned> m_texture_unit_offsets;

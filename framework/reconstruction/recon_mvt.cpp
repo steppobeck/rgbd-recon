@@ -161,10 +161,10 @@ void ReconMVT::draw(){
 }
 
 void ReconMVT::resize(std::size_t width, std::size_t height) {
-  m_va_pass_depth = std::unique_ptr<mvt::ViewArray>{new mvt::ViewArray(width, height, 1)};
+  m_va_pass_depth = std::unique_ptr<ViewArray>{new ViewArray(width, height, 1)};
   m_va_pass_depth->init();
 
-  m_va_pass_accum = std::unique_ptr<mvt::ViewArray>{new mvt::ViewArray(width, height, 1)};
+  m_va_pass_accum = std::unique_ptr<ViewArray>{new ViewArray(width, height, 1)};
   m_va_pass_accum->init();
 }
 

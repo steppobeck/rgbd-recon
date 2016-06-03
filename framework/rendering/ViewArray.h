@@ -1,17 +1,17 @@
 #ifndef MVT_VIEWARRAY_H
 #define MVT_VIEWARRAY_H
 
+#include <globjects/base/ref_ptr.h>
 #include "TextureArray.h"
 
 #include <Viewport.h>
 
-#include <glbinding/gl/gl.h>
-using namespace gl;
-#include <globjects/Framebuffer.h>
+namespace globjects {
+  class Framebuffer;
+}
 
-
-namespace mvt{
-  class ViewArray{
+namespace kinect {
+  class ViewArray {
 
   public:
     ViewArray(unsigned width, unsigned height, unsigned numLayers);
@@ -42,13 +42,11 @@ namespace mvt{
     TextureArray m_depthArray;
     globjects::Framebuffer* m_fbo;
 
-    GLint m_current_fbo;
+    int m_current_fbo;
     gloost::Viewport m_viewport;
     gloost::Viewport m_viewport_current;
   };
 
-
 }
-
 
 #endif // #ifndef MVT_VIEWARRAY_H

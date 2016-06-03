@@ -137,19 +137,19 @@ namespace kinect{
 
     /* kinect color: GL_RGB32F, GL_RGB, GL_FLOAT*/
     /* kinect depth: GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT*/
-    //m_colorArray = new mvt::TextureArray(m_resolution_depth.x, m_resolution_depth.y, m_numLayers, GL_RGB32F, GL_RGB, GL_FLOAT);
+    //m_colorArray = new TextureArray(m_resolution_depth.x, m_resolution_depth.y, m_numLayers, GL_RGB32F, GL_RGB, GL_FLOAT);
     if(m_calib_files->isCompressedRGB() == 1){
       std::cout << "Color DXT 1 compressed" << std::endl;
-      m_colorArray = std::unique_ptr<mvt::TextureArray>{new mvt::TextureArray(m_resolution_color.x, m_resolution_color.y, m_numLayers, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, GL_UNSIGNED_BYTE, m_colorsize)};
+      m_colorArray = std::unique_ptr<TextureArray>{new TextureArray(m_resolution_color.x, m_resolution_color.y, m_numLayers, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, GL_UNSIGNED_BYTE, m_colorsize)};
     }
     else if(m_calib_files->isCompressedRGB() == 5){
       std::cout << "Color DXT 5 compressed" << std::endl;
-      m_colorArray = std::unique_ptr<mvt::TextureArray>{new mvt::TextureArray(m_resolution_color.x, m_resolution_color.y, m_numLayers, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, GL_UNSIGNED_BYTE, m_colorsize)};
+      m_colorArray = std::unique_ptr<TextureArray>{new TextureArray(m_resolution_color.x, m_resolution_color.y, m_numLayers, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, GL_UNSIGNED_BYTE, m_colorsize)};
     }
     else{
-      m_colorArray = std::unique_ptr<mvt::TextureArray>{new mvt::TextureArray(m_resolution_color.x, m_resolution_color.y, m_numLayers, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE)};
+      m_colorArray = std::unique_ptr<TextureArray>{new TextureArray(m_resolution_color.x, m_resolution_color.y, m_numLayers, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE)};
     }
-    m_colorArray_back = std::unique_ptr<mvt::TextureArray>{new mvt::TextureArray(m_resolution_color.x, m_resolution_color.y, m_numLayers, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE)};
+    m_colorArray_back = std::unique_ptr<TextureArray>{new TextureArray(m_resolution_color.x, m_resolution_color.y, m_numLayers, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE)};
     m_textures_color->image3D(0, GL_RGB32F, m_resolution_depth.x, m_resolution_depth.y, m_numLayers, 0, GL_RGB, GL_FLOAT, (void*)nullptr);
 
     m_textures_quality->image3D(0, GL_LUMINANCE32F_ARB, m_resolution_depth.x, m_resolution_depth.y, m_numLayers, 0, GL_RED, GL_FLOAT, (void*)nullptr);
@@ -161,10 +161,10 @@ namespace kinect{
     m_textures_silhouette->image3D(0, GL_R32F, m_resolution_depth.x, m_resolution_depth.y, m_numLayers, 0, GL_RED, GL_FLOAT, (void*)nullptr);
 
     if(m_calib_files->isCompressedDepth()){
-      m_depthArray_raw = std::unique_ptr<mvt::TextureArray>{new mvt::TextureArray(m_resolution_depth.x, m_resolution_depth.y, m_numLayers, GL_LUMINANCE, GL_RED, GL_UNSIGNED_BYTE)};
+      m_depthArray_raw = std::unique_ptr<TextureArray>{new TextureArray(m_resolution_depth.x, m_resolution_depth.y, m_numLayers, GL_LUMINANCE, GL_RED, GL_UNSIGNED_BYTE)};
     }
     else{
-      m_depthArray_raw = std::unique_ptr<mvt::TextureArray>{new mvt::TextureArray(m_resolution_depth.x, m_resolution_depth.y, m_numLayers, GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT)};
+      m_depthArray_raw = std::unique_ptr<TextureArray>{new TextureArray(m_resolution_depth.x, m_resolution_depth.y, m_numLayers, GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT)};
     }
     m_textures_depth->image3D(0, GL_RG32F, m_resolution_depth.x, m_resolution_depth.y, m_numLayers, 0, GL_RG, GL_FLOAT, (void*)nullptr);
     m_textures_depth_b->image3D(0, GL_RG32F, m_resolution_depth.x, m_resolution_depth.y, m_numLayers, 0, GL_RG, GL_FLOAT, (void*)nullptr);
