@@ -59,6 +59,9 @@ bool     g_draw_calibvis= false;
 bool     g_draw_textures= false;
 unsigned g_texture_type = 0;
 unsigned g_num_texture  = 0;
+bool     g_processed    = true;
+bool     g_refine       = true;
+int      g_num_kinect   = 1; 
 gloost::BoundingBox     g_bbox{};
 
 gloost::PerspectiveCamera g_camera{50.0, g_aspect, 0.1, 200.0};
@@ -199,6 +202,17 @@ void update_gui() {
       ImGui::RadioButton("Blending", &g_shading_buffer_data.mode, 3);
       if(prev != g_shading_buffer_data.mode) {
         g_buffer_shading->setSubData(0, sizeof(shading_data_t), &g_shading_buffer_data);
+      }
+    }
+    if (ImGui::CollapsingHeader("Processing")) {
+      if (ImGui::Checkbox("Morphological Filter", &g_processed)) {
+        g_nka->useProcessedDepths(g_processed);
+      }
+      if (ImGui::Checkbox("Bilateral Filter", &g_bilateral)) {
+        g_nka->filterTextures(g_bilateral);
+      }
+      if (ImGui::Checkbox("Boundary Refinement", &g_refine)) {
+        g_nka->refineBoundary(g_refine);
       }
     }
     ImGui::Text("Hello");
@@ -343,14 +357,12 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     g_nka->filterTextures(g_bilateral);
     break;
   case GLFW_KEY_D:
-    static bool processed = true;
-    processed = !processed;
-    g_nka->useProcessedDepths(processed);
+    g_processed = !g_processed;
+    g_nka->useProcessedDepths(g_processed);
     break;
   case GLFW_KEY_N:
-    static bool refine = true;
-    refine = !refine;
-    g_nka->refineBoundary(refine);
+    g_refine = !g_refine;
+    g_nka->refineBoundary(g_refine);
     break;
   case GLFW_KEY_G:
     g_draw_grid = !g_draw_grid;
@@ -388,9 +400,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
     g_draw_calibvis = !g_draw_calibvis;
     break;
   case GLFW_KEY_C:
-    static unsigned num_kinect = 1; 
-    num_kinect = (num_kinect+ 1) % g_calib_files->num();
-    g_calibvis->setActiveKinect(num_kinect);
+    g_num_kinect = (g_num_kinect+ 1) % g_calib_files->num();
+    g_calibvis->setActiveKinect(g_num_kinect);
     break;
   case GLFW_KEY_PAGE_UP:
     g_recon_mode = (g_recon_mode + 1) % g_recons.size();
