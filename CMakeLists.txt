@@ -84,6 +84,10 @@ add_sublibrary(fastdxt ${CMAKE_CURRENT_SOURCE_DIR}/external/fastdxt "-O3 -funrol
 # gloost
 add_sublibrary(gloost ${CMAKE_CURRENT_SOURCE_DIR}/external/gloost "-w")
 ################################
+# imgui
+add_sublibrary(imgui ${CMAKE_CURRENT_SOURCE_DIR}/external/imgui-1.49 "-w")
+target_link_libraries(libimgui glfw)
+################################
 # svg
 add_sublibrary(svg ${CMAKE_CURRENT_SOURCE_DIR}/external/svg "-w")
 ################################

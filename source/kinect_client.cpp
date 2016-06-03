@@ -16,7 +16,7 @@ using namespace gl;
 #include <globjects/base/File.h>
 
 #include <imgui.h>
-// #include "imgui_impl_glfw_gl3.h"
+#include <imgui_impl_glfw_glb.h>
 #include <iostream>
 #include <cmath>
 #include <stdlib.h>
@@ -48,7 +48,6 @@ using namespace gl;
 unsigned g_screenWidth  = 1280;
 unsigned g_screenHeight = 720;
 float    g_aspect       = g_screenWidth * 1.0/g_screenHeight;
-unsigned g_frameCounter = 0;
 bool     g_info         = false;
 bool     g_play         = true;
 bool     g_draw_axes    = false;
@@ -76,21 +75,9 @@ struct shading_data_t {
   unsigned mode = 0;
 } g_shading_buffer_data;
 
-// variables for fps computation
-double last_second_time = 0;
-unsigned frames_per_second = 0;
-
-double delta_time = 0.0;
-double last_frame = 0.0;
-
 void init(std::vector<std::string>& args);
 void update_view_matrix();
 void draw3d();
-void resize(int width, int height);
-void key(unsigned char key, int x, int y);
-void motionFunc(int mouse_h, int mouse_v);
-void mouseFunc(int button, int state, int mouse_h, int mouse_v);
-void idle(void);
 void watch_gl_errors(bool activate);
 void quit(int status);
 
@@ -184,8 +171,6 @@ void init(std::vector<std::string> args){
   /// logic
 
 void frameStep (){
-  /// increment the frame counter
-  ++g_frameCounter;
 
   glClearColor(0, 0, 0, 0);
   glViewport(0,0,g_screenWidth, g_screenHeight);
@@ -227,19 +212,6 @@ void update_view_matrix() {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
- // calculate fps and show in window title
-void show_fps() {
-  ++frames_per_second;
-
-  if(last_frame - last_second_time >= 1.0) {
-    std::string title{"OpenGL Framework - "};
-    title += std::to_string(frames_per_second) + " fps";
-
-    glfwSetWindowTitle(g_window, title.c_str());
-    frames_per_second = 0;
-    last_second_time = last_frame;
-  }
-}
   /// main loop function, render with 3D setup
 void draw3d(void)
 {
@@ -426,6 +398,8 @@ static void error_callback(int error, const char* description) {
 void quit(int status) {
   //free globjects 
   globjects::detachAllObjects();
+
+  ImGui_ImplGlfwGLB_Shutdown();
   // free glfw resources
   glfwDestroyWindow(g_window);
   glfwTerminate();
@@ -469,6 +443,9 @@ int main(int argc, char *argv[]) {
   }
 
   glfwMakeContextCurrent(g_window);
+
+  // Setup ImGui binding
+  ImGui_ImplGlfwGLB_Init(g_window, true);
     // disable vsync
   // glfwSwapInterval(0);
   glfwSetKeyCallback(g_window, key_callback);
@@ -494,15 +471,33 @@ int main(int argc, char *argv[]) {
 
   while (!glfwWindowShouldClose(g_window)) {
     
-    frameStep();
-    
-    glfwSwapBuffers(g_window);
     glfwPollEvents();
+    ImGui_ImplGlfwGLB_NewFrame();
 
-    double current_time = glfwGetTime();
-    delta_time = current_time - last_frame;
-    last_frame = current_time;
-    show_fps();
+    bool show_another_window = false;
+    ImVec4 clear_color = ImColor(114, 144, 154);
+    // 1. Show a simple window
+    // Tip: if we don't call ImGui::Begin()/ImGui::End() the widgets appears in a window automatically called "Debug"
+    {
+        static float f = 0.0f;
+        ImGui::Text("Hello, world!");
+        ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
+        ImGui::ColorEdit3("clear color", (float*)&clear_color);
+        if (ImGui::Button("Another Window")) show_another_window ^= 1;
+        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    }
+    // 2. Show another simple window, this time using an explicit Begin/End pair
+    if (show_another_window)
+    {
+        ImGui::SetNextWindowSize(ImVec2(200,100), ImGuiSetCond_FirstUseEver);
+        ImGui::Begin("Another Window", &show_another_window);
+        ImGui::Text("Hello");
+        ImGui::End();
+    }
+
+    frameStep();
+    ImGui::Render();
+    glfwSwapBuffers(g_window);
   }
 
   quit(EXIT_SUCCESS);
@@ -533,7 +528,6 @@ void watch_gl_errors(bool activate) {
           // error
           std::cerr  << " - " << glbinding::Meta::getString(error) << std::endl;
           throw std::exception{};
-          // exit(EXIT_FAILURE);
         }
       }
     );
