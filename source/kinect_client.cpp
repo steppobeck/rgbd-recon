@@ -35,7 +35,7 @@ using namespace gl;
 #include <NetKinectArray.h>
 #include <KinectCalibrationFile.h>
 #include <Statistics.h>
-#include <GlPrimitives.h>
+// #include <GlPrimitives.h>
 
 #include "reconstruction.hpp"
 #include "recon_trigrid.hpp"
@@ -50,7 +50,6 @@ unsigned g_screenHeight = 720;
 float    g_aspect       = g_screenWidth * 1.0/g_screenHeight;
 bool     g_info         = false;
 bool     g_play         = true;
-bool     g_draw_axes    = false;
 bool     g_draw_frustums= false;
 bool     g_draw_grid    = true;
 bool     g_animate      = false;
@@ -243,7 +242,7 @@ void draw3d(void)
   glClearColor(0, 0, 0, 0);
   glViewport(0,0,g_screenWidth, g_screenHeight);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  
+
   if(g_animate){
     static unsigned g_framecounta = 0;
     ++g_framecounta;
@@ -266,12 +265,6 @@ void draw3d(void)
 
   g_stats->stopGPU();
 
-  if(g_draw_axes){
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
-    //glDisable(GL_DEPTH_TEST);
-    mvt::GlPrimitives::get()->drawCoords();
-    glPopAttrib();
-  }   
   if (g_draw_calibvis) {
     g_calibvis->draw();
   }
@@ -331,9 +324,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
   case GLFW_KEY_ESCAPE:
   case GLFW_KEY_Q:
     glfwSetWindowShouldClose(g_window, 1);
-    break;
-  case GLFW_KEY_R:
-    g_draw_axes = !g_draw_axes;
     break;
   case GLFW_KEY_F:
     g_draw_frustums = !g_draw_frustums;

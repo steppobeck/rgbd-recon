@@ -16,7 +16,10 @@
 #include <Viewport.h>
 #include <gloostHelper.h>
 
+
+#include <glbinding/gl/gl.h>
 #include <glbinding/gl/functions-patches.h>
+using namespace gl;
 #include <globjects/Shader.h>
 #include <globjects/logging.h>
 #include <globjects/NamedString.h>
