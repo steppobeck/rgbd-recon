@@ -102,7 +102,7 @@ void submitFragment(const in vec3 sample_pos) {
   #endif
   vec3 view_pos = (gl_ModelViewMatrix * vol_to_world * vec4(sample_pos, 1.0f)).xyz;
 
-  if (g_shade_mode == 3u) {
+  if (g_shade_mode == 3) {
     out_Color = vec4(blendCameras(sample_pos), 1.0f);
   }
   else {

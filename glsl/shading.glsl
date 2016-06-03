@@ -12,7 +12,7 @@ const float ks = 0.5f;            // specular intensity
 const float n = 20.0f;            //specular exponent 
 
 layout (std140, binding = 1) uniform Settings {
-  uint g_shade_mode;
+  int g_shade_mode;
 };
 // 0 = color
 // 1 = shaded
@@ -52,17 +52,17 @@ vec2 phongDiffSpec(const vec3 position, const vec3 normal, const float n, const 
 }
 // shade with included light and material info
 vec3 shade(const in vec3 view_pos, const in vec3 view_normal, const in vec3 diffuseColor) {
-  if (g_shade_mode == 0u) { 
+  if (g_shade_mode == 0) { 
     return diffuseColor;
   }
-  else if(g_shade_mode == 1u){
+  else if(g_shade_mode == 1){
     // shadow paramater
     vec2 diffSpec = phongDiffSpec(view_pos, view_normal, n, LightPosition);
     return vec3(LightAmbient * solid_diffuse 
               + LightDiffuse * solid_diffuse * diffSpec.x
               + LightSpecular * ks * diffSpec.y);
   }
-  else if (g_shade_mode == 2u) {
+  else if (g_shade_mode == 2) {
     return (inverse(gl_NormalMatrix) * vec4(view_normal, 0.0f)).xyz;
   }
   else return vec3(1.0f);

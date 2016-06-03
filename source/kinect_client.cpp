@@ -48,13 +48,12 @@ using namespace gl;
 unsigned g_screenWidth  = 1280;
 unsigned g_screenHeight = 720;
 float    g_aspect       = g_screenWidth * 1.0/g_screenHeight;
-bool     g_info         = false;
 bool     g_play         = true;
 bool     g_draw_frustums= false;
 bool     g_draw_grid    = true;
 bool     g_animate      = false;
 bool     g_wire         = false;
-unsigned g_recon_mode   = 0;
+int      g_recon_mode   = 0;
 bool     g_bilateral    = true;
 bool     g_draw_calibvis= false;
 bool     g_draw_textures= false;
@@ -71,7 +70,7 @@ std::unique_ptr<kinect::CalibrationFiles> g_calib_files;
 GLFWwindow* g_window = nullptr;
 globjects::Buffer* g_buffer_shading;
 struct shading_data_t {
-  unsigned mode = 0;
+  int mode = 0;
 } g_shading_buffer_data;
 
 void init(std::vector<std::string>& args);
@@ -171,23 +170,37 @@ void init(std::vector<std::string> args){
 void update_gui() {
   ImGui_ImplGlfwGLB_NewFrame();
 
-  bool show_another_window = false;
-  ImVec4 clear_color = ImColor(114, 144, 154);
   // 1. Show a simple window
   // Tip: if we don't call ImGui::Begin()/ImGui::End() the widgets appears in a window automatically called "Debug"
-  {
-    static float f = 0.0f;
-    ImGui::Text("Hello, world!");
-    ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
-    ImGui::ColorEdit3("clear color", (float*)&clear_color);
-    if (ImGui::Button("Another Window")) show_another_window ^= 1;
-    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-  }
+  // {
+  //   static float f = 0.0f;
+  //   ImGui::Text("Hello, world!");
+  //   ImGui::SliderFloat("float", &f, 0.0f, 1.0f);
+  //   ImGui::ColorEdit3("clear color", (float*)&clear_color);
+  //   if (ImGui::Button("Another Window")) show_another_window ^= 1;
+  // }
   // 2. Show another simple window, this time using an explicit Begin/End pair
-  if (show_another_window)
+  // if (show_another_window)
   {
     ImGui::SetNextWindowSize(ImVec2(200,100), ImGuiSetCond_FirstUseEver);
-    ImGui::Begin("Another Window", &show_another_window);
+    ImGui::Begin("Settings");
+    ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    if (ImGui::CollapsingHeader("Reconstruction"), true) {
+      ImGui::RadioButton("Points", &g_recon_mode, 0);
+      ImGui::RadioButton("Integration", &g_recon_mode, 1);
+      ImGui::RadioButton("Trigrid", &g_recon_mode, 2);     
+      ImGui::RadioButton("Trigrid orig", &g_recon_mode, 3);      
+    }
+    if (ImGui::CollapsingHeader("Visualisation")) {
+      int prev = g_shading_buffer_data.mode;
+      ImGui::RadioButton("Textured", &g_shading_buffer_data.mode, 0);
+      ImGui::RadioButton("Shaded", &g_shading_buffer_data.mode, 1);
+      ImGui::RadioButton("Normals", &g_shading_buffer_data.mode, 2);     
+      ImGui::RadioButton("Blending", &g_shading_buffer_data.mode, 3);
+      if(prev != g_shading_buffer_data.mode) {
+        g_buffer_shading->setSubData(0, sizeof(shading_data_t), &g_shading_buffer_data);
+      }
+    }
     ImGui::Text("Hello");
     ImGui::End();
   }
@@ -199,9 +212,6 @@ void frameStep (){
 
   update_view_matrix();
   draw3d();
-  
-  if(g_info)
-    g_stats->draw(g_screenWidth, g_screenHeight);
 
   ImGui::Render();
   glfwSwapBuffers(g_window);
@@ -431,16 +441,11 @@ int main(int argc, char *argv[]) {
   CMDParser p("kinect_surface ...");
 
   p.addOpt("r",2,"resolution", "set screen resolution");
-  p.addOpt("i",-1,"info", "draw info");
   p.init(argc,argv);
 
   if(p.isOptSet("r")){
     g_screenWidth = p.getOptsInt("r")[0];
     g_screenHeight = p.getOptsInt("r")[1];
-  }
-
-  if(p.isOptSet("i")){
-    g_info = true;
   }
 
   // Setup window
@@ -466,8 +471,8 @@ int main(int argc, char *argv[]) {
 
   // Setup ImGui binding
   ImGui_ImplGlfwGLB_Init(g_window, true);
-    // disable vsync
-  // glfwSwapInterval(0);
+  // disable vsync
+  glfwSwapInterval(0);
   glfwSetKeyCallback(g_window, key_callback);
   glfwSetCursorPosCallback(g_window, mouse_callback);
   glfwSetMouseButtonCallback(g_window, click_callback);

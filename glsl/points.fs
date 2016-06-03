@@ -67,7 +67,7 @@ void main() {
   vec3 normal = texture(kinect_normals, vec3(pass_pos_norm, float(layer))).rgb;
   vec3 view_normal = (gl_NormalMatrix * vec4(normal, 0.0f)).xyz;
   
-  if (g_shade_mode == 3u) {
+  if (g_shade_mode == 3) {
     gl_FragColor = vec4(camera_colors[layer], 1.0f);
   }
   else {

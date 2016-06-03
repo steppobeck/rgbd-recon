@@ -25,7 +25,7 @@ flat out vec3  pass_normal_es;
 flat out vec4  pass_glpos;
 
 layout (std140, binding = 1) uniform Settings {
-  uint g_shade_mode;
+  int g_shade_mode;
 };
 
 #include </inc_bbox_test.glsl>
@@ -52,7 +52,7 @@ void main() {
 
   float max_size = 10.0f;
   // if cameras are visualized, make points smaller to prevent occlusion
-  if (g_shade_mode == 3u) {
+  if (g_shade_mode == 3) {
     max_size = 4.0f;
   }
   gl_PointSize = max_size / dist;
