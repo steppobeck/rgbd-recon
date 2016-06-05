@@ -7,6 +7,8 @@
 // https://github.com/ocornut/imgui
 
 #include <imgui.h>
+#include <cstring>
+#include <iostream>
 #include "imgui_impl_glfw_glb.h"
 
 #include <glbinding/gl/gl.h>
@@ -29,6 +31,7 @@ static float        g_MouseWheel = 0.0f;
 static GLuint       g_FontTexture = 0;
 static int          g_ShaderHandle = 0, g_VertHandle = 0, g_FragHandle = 0;
 static int          g_AttribLocationTex = 0, g_AttribLocationProjMtx = 0;
+static int          g_AttribLocationTexArray = 0, g_AttribLocationLayer = 0, g_AttribLocationMode = 0;
 static int          g_AttribLocationPosition = 0, g_AttribLocationUV = 0, g_AttribLocationColor = 0;
 static unsigned int g_VboHandle = 0, g_VaoHandle = 0, g_ElementsHandle = 0;
 
@@ -82,6 +85,7 @@ void ImGui_ImplGlfwGLB_RenderDrawLists(ImDrawData* draw_data)
     };
     glUseProgram(g_ShaderHandle);
     glUniform1i(g_AttribLocationTex, 0);
+    glUniform1i(g_AttribLocationMode, 0);
     glUniformMatrix4fv(g_AttribLocationProjMtx, 1, GL_FALSE, &ortho_projection[0][0]);
     glBindVertexArray(g_VaoHandle);
 
@@ -104,7 +108,18 @@ void ImGui_ImplGlfwGLB_RenderDrawLists(ImDrawData* draw_data)
             }
             else
             {
-                glBindTexture(GL_TEXTURE_2D, (GLuint)(intptr_t)pcmd->TextureId);
+                TexInfo test;
+                std::memcpy(&test, &pcmd->TextureId, sizeof(test));
+                if (test.layer < 0) {
+                    glUniform1i(g_AttribLocationMode, 1);
+                    glUniform1i(g_AttribLocationTexArray, test.unit);
+                    glUniform1i(g_AttribLocationLayer, -(test.layer + 1));
+                }
+                else {
+                    glUniform1i(g_AttribLocationMode, 0);
+                    glBindTexture(GL_TEXTURE_2D, (GLuint)(intptr_t)pcmd->TextureId);
+                }
+
                 glScissor((int)pcmd->ClipRect.x, (int)(fb_height - pcmd->ClipRect.w), (int)(pcmd->ClipRect.z - pcmd->ClipRect.x), (int)(pcmd->ClipRect.w - pcmd->ClipRect.y));
                 glDrawElements(GL_TRIANGLES, (GLsizei)pcmd->ElemCount, sizeof(ImDrawIdx) == 2 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT, idx_buffer_offset);
             }
@@ -223,12 +238,22 @@ bool ImGui_ImplGlfwGLB_CreateDeviceObjects()
     const GLchar* fragment_shader =
         "#version 330\n"
         "uniform sampler2D Texture;\n"
+        "uniform sampler2DArray TextureArray;\n"
+        "uniform int Mode;\n"
+        "uniform int Layer;\n"
         "in vec2 Frag_UV;\n"
         "in vec4 Frag_Color;\n"
         "out vec4 Out_Color;\n"
         "void main()\n"
         "{\n"
-        "	Out_Color = Frag_Color * texture( Texture, Frag_UV.st);\n"
+          "if (Mode == 0) {\n"
+          "  Out_Color = Frag_Color * texture(Texture, Frag_UV);\n"
+          "}\n"
+          "else {\n"
+          "  Out_Color = Frag_Color * texture(TextureArray, vec3(Frag_UV, Layer));\n"
+          "}\n"
+
+        "	//Out_Color = Frag_Color * texture(Texture, Frag_UV.st);\n"
         "}\n";
 
     g_ShaderHandle = glCreateProgram();
@@ -242,7 +267,10 @@ bool ImGui_ImplGlfwGLB_CreateDeviceObjects()
     glAttachShader(g_ShaderHandle, g_FragHandle);
     glLinkProgram(g_ShaderHandle);
 
+    g_AttribLocationLayer = glGetUniformLocation(g_ShaderHandle, "Layer");
+    g_AttribLocationMode = glGetUniformLocation(g_ShaderHandle, "Mode");
     g_AttribLocationTex = glGetUniformLocation(g_ShaderHandle, "Texture");
+    g_AttribLocationTexArray = glGetUniformLocation(g_ShaderHandle, "TextureArray");
     g_AttribLocationProjMtx = glGetUniformLocation(g_ShaderHandle, "ProjMtx");
     g_AttribLocationPosition = glGetAttribLocation(g_ShaderHandle, "Position");
     g_AttribLocationUV = glGetAttribLocation(g_ShaderHandle, "UV");

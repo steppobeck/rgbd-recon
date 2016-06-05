@@ -4,7 +4,6 @@
 #include "texture_blitter.hpp"
 #include "screen_quad.hpp"
 #include <FileBuffer.h>
-#include <Timer.h>
 #include <TextureArray.h>
 #include <KinectCalibrationFile.h>
 #include "CalibVolumes.hpp"

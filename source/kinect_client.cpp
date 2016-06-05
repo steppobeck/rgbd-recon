@@ -238,10 +238,15 @@ void update_gui() {
       static std::vector<const char*> listbox_items = {"Color", "Depth", "Quality", "Normals", "Silhouette", "Orig Depth", "LAB colors"};
       ImGui::ListBox("Type", &g_texture_type, listbox_items.data(), listbox_items.size(), listbox_items.size());
     }
+    TexInfo test = {g_nka->getStartTextureUnit() + g_texture_type, -g_num_texture - 1};
+    ImTextureID cont;
+    std::memcpy(&cont, &test, sizeof(test));
+    glm::uvec2 res{g_nka->getDepthResolution()};
+    ImGui::Image(cont, ImVec2(res.x, res.y), ImVec2(0,0), ImVec2(1,1), ImColor(255,255,255,255), ImColor(255,255,255,128));
     ImGui::End();
   }
-  ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiSetCond_FirstUseEver);
-  ImGui::ShowTestWindow();
+  // ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiSetCond_FirstUseEver);
+  // ImGui::ShowTestWindow();
 }
 
 void frameStep (){

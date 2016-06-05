@@ -7,6 +7,7 @@
 // https://github.com/ocornut/imgui
 
 struct GLFWwindow;
+#include <cstdint>
 
 IMGUI_API bool        ImGui_ImplGlfwGLB_Init(GLFWwindow* window, bool install_callbacks);
 IMGUI_API void        ImGui_ImplGlfwGLB_Shutdown();
@@ -23,3 +24,17 @@ IMGUI_API void        ImGui_ImplGlfwGLB_MouseButtonCallback(GLFWwindow* window, 
 IMGUI_API void        ImGui_ImplGlfwGLB_ScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 IMGUI_API void        ImGui_ImplGlfwGLB_KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
 IMGUI_API void        ImGui_ImplGlfwGLB_CharCallback(GLFWwindow* window, unsigned int c);
+
+struct TexInfo {
+  std::uint16_t unit;
+  std::int16_t layer;
+
+  TexInfo(std::uint16_t id, std::int16_t l)
+   :unit{id}
+   ,layer{l}
+   {}
+  TexInfo()
+   :unit{0}
+   ,layer{1}
+   {}
+};
