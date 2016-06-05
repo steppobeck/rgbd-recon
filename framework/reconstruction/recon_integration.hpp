@@ -14,20 +14,25 @@ namespace kinect{
   class ReconIntegration : public Reconstruction {
 
   public:
-    ReconIntegration(CalibrationFiles const& cfs, CalibVolumes const* cv, gloost::BoundingBox const&  bbox);
-    ~ReconIntegration();
+    ReconIntegration(CalibrationFiles const& cfs, CalibVolumes const* cv, gloost::BoundingBox const&  bbo, float limit, float size);
 
     void draw() override;
     void integrate();
 
+    void setVoxelSize(float size);
+    void setTsdfLimit(float limit);
+
   private:
-    globjects::Program* m_program;
-    globjects::Program* m_program_integration;
+    globjects::ref_ptr<globjects::Program> m_program;
+    globjects::ref_ptr<globjects::Program> m_program_integration;
     glm::uvec3          m_res_volume;
     VolumeSampler       m_sampler;
     globjects::Texture* m_volume_tsdf;
 
     glm::fmat4          m_mat_vol_to_world;
+
+    float m_limit;
+    float m_voxel_size;
   };
 }
 

@@ -35,7 +35,6 @@ using namespace gl;
 #include <NetKinectArray.h>
 #include <KinectCalibrationFile.h>
 #include <Statistics.h>
-// #include <GlPrimitives.h>
 
 #include "reconstruction.hpp"
 #include "recon_trigrid.hpp"
@@ -62,6 +61,8 @@ int      g_num_texture  = 0;
 bool     g_processed    = true;
 bool     g_refine       = true;
 int      g_num_kinect   = 1; 
+float    g_voxel_size   = 0.007f;
+float    g_tsdf_limit   = 0.01f;
 gloost::BoundingBox     g_bbox{};
 
 gloost::PerspectiveCamera g_camera{50.0, g_aspect, 0.1, 200.0};
@@ -81,8 +82,8 @@ void update_view_matrix();
 void draw3d();
 void watch_gl_errors(bool activate);
 void quit(int status);
-
-std::vector<std::unique_ptr<kinect::Reconstruction>> g_recons;// 4
+std::shared_ptr<kinect::ReconIntegration> g_recon_integration{};
+std::vector<std::shared_ptr<kinect::Reconstruction>> g_recons;// 4
 std::unique_ptr<kinect::ReconCalibs> g_calibvis;// 4
 //////////////////////////////////////////////////////////////////////////////////////////
 void init(std::vector<std::string> args){
@@ -152,7 +153,8 @@ void init(std::vector<std::string> args){
   g_cv->setStartTextureUnitInv(30);
 
   g_recons.emplace_back(new kinect::ReconPoints(*g_calib_files, g_cv.get(), g_bbox));
-  g_recons.emplace_back(new kinect::ReconIntegration(*g_calib_files, g_cv.get(), g_bbox));
+  g_recon_integration = std::make_shared<kinect::ReconIntegration>(*g_calib_files, g_cv.get(), g_bbox, g_tsdf_limit, g_voxel_size);
+  g_recons.emplace_back(g_recon_integration);
   g_recons.emplace_back(new kinect::ReconTrigrid(*g_calib_files, g_cv.get(), g_bbox));
   g_recons.emplace_back(new kinect::ReconMVT(*g_calib_files, g_cv.get(), g_bbox)); 
 
@@ -188,7 +190,7 @@ void update_gui() {
     ImGui::SetNextWindowSize(ImVec2(200,100), ImGuiSetCond_FirstUseEver);
     ImGui::Begin("Settings");
     ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-    if (ImGui::CollapsingHeader("Reconstruction"), true) {
+    if (ImGui::CollapsingHeader("Reconstruction",ImGuiTreeNodeFlags_DefaultOpen)) {
       ImGui::RadioButton("Points", &g_recon_mode, 0);
       ImGui::RadioButton("Integration", &g_recon_mode, 1);
       ImGui::RadioButton("Trigrid", &g_recon_mode, 2);     
@@ -215,23 +217,31 @@ void update_gui() {
         g_nka->refineBoundary(g_refine);
       }
     }
+    if (ImGui::CollapsingHeader("Integration ")) {
+      if (ImGui::DragFloat("TSDF Limit", &g_tsdf_limit, 0.001f, 0.001f, 0.03f, "%.3f")) {
+        g_recon_integration->setTsdfLimit(g_tsdf_limit);
+      }
+      if (ImGui::DragFloat("Voxel Size", &g_voxel_size, 0.001f, 0.003f, 0.1f, "%.3f")) {
+        g_recon_integration->setVoxelSize(g_voxel_size);
+      }
+    }
     ImGui::End();
   }
   {
     ImGui::SetNextWindowSize(ImVec2(100,100), ImGuiSetCond_FirstUseEver);
     ImGui::Begin("Textures");
-    if (ImGui::CollapsingHeader("Kinect"), true) {
+    if (ImGui::CollapsingHeader("Kinect", ImGuiTreeNodeFlags_DefaultOpen)) {
       static std::vector<const char*> listbox_items = {"1", "2", "3", "4"};
       ImGui::ListBox("Number", &g_num_texture, listbox_items.data(), listbox_items.size(), listbox_items.size());
     }
-    if (ImGui::CollapsingHeader("Texture Type"), true) {
+    if (ImGui::CollapsingHeader("Texture Type", ImGuiTreeNodeFlags_DefaultOpen)) {
       static std::vector<const char*> listbox_items = {"Color", "Depth", "Quality", "Normals", "Silhouette", "Orig Depth", "LAB colors"};
       ImGui::ListBox("Type", &g_texture_type, listbox_items.data(), listbox_items.size(), listbox_items.size());
     }
     ImGui::End();
   }
-  // ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiSetCond_FirstUseEver);
-  // ImGui::ShowTestWindow();
+  ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiSetCond_FirstUseEver);
+  ImGui::ShowTestWindow();
 }
 
 void frameStep (){

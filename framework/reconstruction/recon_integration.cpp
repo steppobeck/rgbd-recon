@@ -18,19 +18,21 @@ using namespace gl;
 namespace kinect{
 
 static int start_image_unit = 3;
-static float limit = 0.01f;
-static float voxel_size = 0.007f;
+// float ReconIntegration::s_limit = 0.01f;
+// float ReconIntegration::s_voxel_size = 0.007f;
 
-ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes const* cv, gloost::BoundingBox const&  bbox)
+ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes const* cv, gloost::BoundingBox const&  bbox, float limit, float size)
  :Reconstruction(cfs, cv, bbox)
  ,m_program{new globjects::Program()}
  ,m_program_integration{new globjects::Program()}
  ,m_res_volume{glm::ceil(glm::fvec3{bbox.getPMax()[0] - bbox.getPMin()[0],
                                     bbox.getPMax()[1] - bbox.getPMin()[1],
-                                    bbox.getPMax()[2] - bbox.getPMin()[2]} / voxel_size)}
+                                    bbox.getPMax()[2] - bbox.getPMin()[2]} / size)}
  ,m_sampler{m_res_volume}
- ,m_volume_tsdf{}
+ ,m_volume_tsdf{globjects::Texture::createDefault(GL_TEXTURE_3D)}
  ,m_mat_vol_to_world{1.0f}
+ ,m_limit{limit}
+ ,m_voxel_size{size}
 {
   m_program->attach(
     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/tsdf_raymarch.vs"),
@@ -54,7 +56,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
   m_program->setUniform("cv_uv", m_cv->getUVVolumeUnits());
   m_program->setUniform("camera_positions", m_cv->getCameraPositions());
   m_program->setUniform("num_kinects", m_num_kinects);
-  m_program->setUniform("limit", limit);
+  m_program->setUniform("limit", m_limit);
   
   m_program_integration->attach(
     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/tsdf_integration.vs")
@@ -72,17 +74,10 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
   m_program_integration->setUniform("num_kinects", m_num_kinects);
   m_program_integration->setUniform("res_depth", glm::uvec2{m_cf->getWidth(), m_cf->getHeight()});
   m_program_integration->setUniform("res_tsdf", m_res_volume);
-  m_program_integration->setUniform("limit", limit);
+  m_program_integration->setUniform("limit", m_limit);
 
-  m_volume_tsdf = globjects::Texture::createDefault(GL_TEXTURE_3D);
-  std::vector<float> empty_tsdf(m_res_volume.x * m_res_volume.y * m_res_volume.z, -limit);
-  m_volume_tsdf->image3D(0, GL_R32F, glm::ivec3{m_res_volume}, 0, GL_RED, GL_FLOAT, empty_tsdf.data());
+  m_volume_tsdf->image3D(0, GL_R32F, glm::ivec3{m_res_volume}, 0, GL_RED, GL_FLOAT, nullptr);
   m_volume_tsdf->bindActive(GL_TEXTURE0 + 29);
-}
-
-ReconIntegration::~ReconIntegration() {
-  m_program->destroy();
-  m_program_integration->destroy();
 }
 
 void ReconIntegration::draw(){
@@ -117,6 +112,22 @@ void ReconIntegration::integrate() {
 
   m_program_integration->release();
   glDisable(GL_RASTERIZER_DISCARD);
+}
+
+void ReconIntegration::setVoxelSize(float size) {
+  m_voxel_size = size;
+  m_res_volume = glm::ceil(glm::fvec3{m_bbox.getPMax()[0] - m_bbox.getPMin()[0],
+                                      m_bbox.getPMax()[1] - m_bbox.getPMin()[1],
+                                      m_bbox.getPMax()[2] - m_bbox.getPMin()[2]} / m_voxel_size);
+  m_sampler.resize(m_res_volume);
+  m_program_integration->setUniform("res_tsdf", m_res_volume);
+  m_volume_tsdf->image3D(0, GL_R32F, glm::ivec3{m_res_volume}, 0, GL_RED, GL_FLOAT, nullptr);
+  m_volume_tsdf->bindActive(GL_TEXTURE0 + 29);
+}
+void ReconIntegration::setTsdfLimit(float limit) {
+  m_limit = limit;
+  m_program->setUniform("limit", m_limit);
+  m_program_integration->setUniform("limit", m_limit);
 }
 
 }
