@@ -21,6 +21,7 @@ using namespace gl;
 #include <cmath>
 #include <stdlib.h>
 #include <memory>
+#include <tuple>
 
 #include <CMDParser.h>
 #include "texture_blitter.hpp"
@@ -64,7 +65,7 @@ int      g_num_kinect   = 1;
 float    g_voxel_size   = 0.007f;
 float    g_tsdf_limit   = 0.01f;
 gloost::BoundingBox     g_bbox{};
-
+std::vector<std::pair<int, int>> g_gui_texture_settings{};
 gloost::PerspectiveCamera g_camera{50.0, g_aspect, 0.1, 200.0};
 pmd::CameraNavigator g_navi{0.1f};
 std::unique_ptr<mvt::Statistics> g_stats{};
@@ -189,6 +190,9 @@ void update_gui() {
   {
     ImGui::SetNextWindowSize(ImVec2(200,100), ImGuiSetCond_FirstUseEver);
     ImGui::Begin("Settings");
+    if (ImGui::Button("Show textures")) {
+      g_gui_texture_settings.emplace_back(0, 0);
+    }
     ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
     if (ImGui::CollapsingHeader("Reconstruction",ImGuiTreeNodeFlags_DefaultOpen)) {
       ImGui::RadioButton("Points", &g_recon_mode, 0);
@@ -227,26 +231,35 @@ void update_gui() {
     }
     ImGui::End();
   }
-  {
+  for(unsigned i = 0; i < g_gui_texture_settings.size(); ++i) {
+    auto& setting = g_gui_texture_settings[i];
     ImGui::SetNextWindowSize(ImVec2(100,100), ImGuiSetCond_FirstUseEver);
-    ImGui::Begin("Textures");
-    if (ImGui::CollapsingHeader("Kinect", ImGuiTreeNodeFlags_DefaultOpen)) {
-      static std::vector<const char*> listbox_items = {"1", "2", "3", "4"};
-      ImGui::ListBox("Number", &g_num_texture, listbox_items.data(), listbox_items.size(), listbox_items.size());
+    bool show_tex = true;
+    if (!ImGui::Begin(std::string{"Textures " + std::to_string(i)}.c_str(), &show_tex)) {
+        ImGui::End();
     }
-    if (ImGui::CollapsingHeader("Texture Type", ImGuiTreeNodeFlags_DefaultOpen)) {
-      static std::vector<const char*> listbox_items = {"Color", "Depth", "Quality", "Normals", "Silhouette", "Orig Depth", "LAB colors"};
-      ImGui::ListBox("Type", &g_texture_type, listbox_items.data(), listbox_items.size(), listbox_items.size());
+    else {
+      if (ImGui::CollapsingHeader("Kinect", ImGuiTreeNodeFlags_DefaultOpen)) {
+        static std::vector<const char*> listbox_items = {"1", "2", "3", "4"};
+        ImGui::ListBox("Number", &setting.second, listbox_items.data(), listbox_items.size(), listbox_items.size());
+      }
+      if (ImGui::CollapsingHeader("Texture Type", ImGuiTreeNodeFlags_DefaultOpen)) {
+        static std::vector<const char*> listbox_items = {"Color", "Depth", "Quality", "Normals", "Silhouette", "Orig Depth", "LAB colors"};
+        ImGui::ListBox("Type", &setting.first, listbox_items.data(), listbox_items.size(), listbox_items.size());
+      }
+      TexInfo test = {g_nka->getStartTextureUnit() + setting.first, -setting.second - 1};
+      ImTextureID cont;
+      std::memcpy(&cont, &test, sizeof(test));
+      glm::uvec2 res{g_nka->getDepthResolution()};
+      float aspect = float(res.x) / res.y;
+      float width = ImGui::GetWindowContentRegionWidth();
+      ImGui::Image(cont, ImVec2(width, width / aspect), ImVec2(0,0), ImVec2(1,1), ImColor(255,255,255,255), ImColor(255,255,255,128));
+      ImGui::End();
     }
-    TexInfo test = {g_nka->getStartTextureUnit() + g_texture_type, -g_num_texture - 1};
-    ImTextureID cont;
-    std::memcpy(&cont, &test, sizeof(test));
-    glm::uvec2 res{g_nka->getDepthResolution()};
-    ImGui::Image(cont, ImVec2(res.x, res.y), ImVec2(0,0), ImVec2(1,1), ImColor(255,255,255,255), ImColor(255,255,255,128));
-    ImGui::End();
+    if (!show_tex) {
+      g_gui_texture_settings.pop_back();
+    }
   }
-  // ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiSetCond_FirstUseEver);
-  // ImGui::ShowTestWindow();
 }
 
 void frameStep (){
