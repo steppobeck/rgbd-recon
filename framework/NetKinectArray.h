@@ -62,6 +62,7 @@ namespace kinect {
     glm::uvec2 getColorResolution() const;
 
     int getTextureUnit(std::string const& name) const; 
+    std::size_t getStageTime(std::string const& name) const; 
 
   private:
     void processBackground();
@@ -90,6 +91,7 @@ namespace kinect {
 
     std::map<std::string, globjects::ref_ptr<globjects::Program>> m_programs;
     std::map<std::string, unsigned> m_texture_unit_offsets;
+    std::map<std::string, std::size_t> m_times_stages;
 
     unsigned m_colorsize; // per frame
     unsigned m_depthsize; // per frame

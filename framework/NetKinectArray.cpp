@@ -22,6 +22,7 @@ using namespace gl;
 #include <globjects/logging.h>
 #include <globjects/NamedString.h>
 #include <globjects/base/File.h>
+#include <globjects/Query.h>
 
 #include "squish/squish.h"
 #include <zmq.hpp>
@@ -199,6 +200,12 @@ namespace kinect{
     globjects::NamedString::create("/inc_bbox_test.glsl", new globjects::File("glsl/inc_bbox_test.glsl"));
     globjects::NamedString::create("/inc_color.glsl", new globjects::File("glsl/inc_color.glsl"));
 
+    m_times_stages["morph"] = 0;
+    m_times_stages["bilateral"] = 0;
+    m_times_stages["boundary"] = 0;
+    m_times_stages["normal"] = 0;
+    m_times_stages["quality"] = 0;
+
     return true;
   }
 
@@ -229,6 +236,10 @@ glm::uvec2 NetKinectArray::getColorResolution() const {
 
 int NetKinectArray::getTextureUnit(std::string const& name) const {
   return m_texture_unit_offsets.at(name);
+} 
+
+std::size_t NetKinectArray::getStageTime(std::string const& name) const {
+  return m_times_stages.at(name);
 } 
 
 void NetKinectArray::processDepth() {
@@ -292,6 +303,8 @@ void NetKinectArray::processBackground() {
 }
 
 void NetKinectArray::processTextures(){
+  // static globjects::ref_ptr<globjects::Query> query{new globjects::Query(gl::GL_TIME_ELAPSED)};
+  
   GLint current_fbo;
   glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &current_fbo);
   GLsizei old_vp_params[4];
@@ -303,7 +316,10 @@ void NetKinectArray::processTextures(){
 
   m_fbo->bind();
 
+  // query->begin();
   processDepth();
+  // query->wait();
+  // m_times_stages.at("morph") = query->waitAndGet64();
 
   m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2});
 
