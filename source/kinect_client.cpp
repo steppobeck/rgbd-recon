@@ -13,6 +13,7 @@ using namespace gl;
 
 #include <globjects/globjects.h>
 #include <globjects/Buffer.h>
+#include <globjects/Query.h>
 #include <globjects/base/File.h>
 
 #include <imgui.h>
@@ -64,6 +65,9 @@ bool     g_refine       = true;
 int      g_num_kinect   = 1; 
 float    g_voxel_size   = 0.007f;
 float    g_tsdf_limit   = 0.01f;
+double   g_time_prev    = 0.0f;
+globjects::ref_ptr<globjects::Query> g_query;
+
 gloost::BoundingBox     g_bbox{};
 std::vector<std::pair<int, int>> g_gui_texture_settings{};
 gloost::PerspectiveCamera g_camera{50.0, g_aspect, 0.1, 200.0};
@@ -229,6 +233,16 @@ void update_gui() {
         g_recon_integration->setVoxelSize(g_voxel_size);
       }
     }
+    if (ImGui::CollapsingHeader("Processing Performance")) {
+      double curr_time = glfwGetTime();
+      ImGui::Text("Total Time %.3f ms/frame", (curr_time - g_time_prev) * 1000.0f);
+      g_time_prev = curr_time;
+      ImGui::Text("Morphological Filtering %.3f ms", g_nka->getStageTime("morph") / 1000000.0f);
+      ImGui::Text("Bilateral Filtering %.3f ms", g_nka->getStageTime("bilateral") / 1000000.0f);
+      ImGui::Text("Boundary Refinement %.3f ms", g_nka->getStageTime("boundary") / 1000000.0f);
+      ImGui::Text("Normal Computation %.3f ms", g_nka->getStageTime("normal") / 1000000.0f);
+      ImGui::Text("Quality Computation %.3f ms", g_nka->getStageTime("quality") / 1000000.0f);
+    }
     ImGui::End();
   }
   for(unsigned i = 0; i < g_gui_texture_settings.size(); ++i) {
@@ -361,6 +375,7 @@ void draw3d(void)
   if (g_draw_textures) {
     TextureBlitter::blit(g_nka->getStartTextureUnit() + g_texture_type, g_num_texture, g_nka->getDepthResolution());
   }
+  glMemoryBarrier(GL_ALL_BARRIER_BITS);
 }
 
 ////////////////////////////////////////////////////////////////////////////////

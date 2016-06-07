@@ -49,6 +49,7 @@ namespace kinect{
       m_textures_silhouette{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
       m_fbo{new globjects::Framebuffer()},
       m_colorArray_back(),
+      m_query{},
       m_colorsize(0),
       m_depthsize(0),
       m_pbo_colors(),
@@ -206,6 +207,7 @@ namespace kinect{
     m_times_stages["normal"] = 0;
     m_times_stages["quality"] = 0;
 
+    m_query = new globjects::Query{};
     return true;
   }
 
@@ -258,7 +260,7 @@ void NetKinectArray::processDepth() {
 
     ScreenQuad::draw();
   }
-  glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
   // dilate
   m_programs.at("morph")->setUniform("mode", 1u);
   m_textures_depth2.swapBuffers();
@@ -270,7 +272,7 @@ void NetKinectArray::processDepth() {
 
     ScreenQuad::draw();
   }
-  glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
   m_textures_depth2.front->unbindActive(getTextureUnit("morph_input"));
 
   m_programs.at("morph")->release();
@@ -302,9 +304,7 @@ void NetKinectArray::processBackground() {
   ++m_num_frame;
 }
 
-void NetKinectArray::processTextures(){
-  // static globjects::ref_ptr<globjects::Query> query{new globjects::Query(gl::GL_TIME_ELAPSED)};
-  
+void NetKinectArray::processTextures(){  
   GLint current_fbo;
   glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &current_fbo);
   GLsizei old_vp_params[4];
@@ -315,11 +315,15 @@ void NetKinectArray::processTextures(){
   m_depthArray_raw->bind();
 
   m_fbo->bind();
+  m_query->counter();
+  m_times_stages.at("morph") = m_query->waitAndGet64(GL_QUERY_RESULT);
 
-  // query->begin();
   processDepth();
-  // query->wait();
-  // m_times_stages.at("morph") = query->waitAndGet64();
+  m_query->counter();
+  m_times_stages.at("morph") = m_query->waitAndGet64(GL_QUERY_RESULT) - m_times_stages.at("morph");
+
+  m_query->counter();
+  m_times_stages.at("bilateral") = m_query->waitAndGet64(GL_QUERY_RESULT);
 
   m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2});
 
@@ -350,7 +354,13 @@ void NetKinectArray::processTextures(){
   }
   
   m_programs.at("filter")->release();
+  m_query->counter();
+  m_times_stages.at("bilateral") = m_query->waitAndGet64(GL_QUERY_RESULT) - m_times_stages.at("bilateral");
+
 // boundary
+  m_query->counter();
+  m_times_stages.at("boundary") = m_query->waitAndGet64(GL_QUERY_RESULT);
+
   m_programs.at("boundary")->use();
 
   m_programs.at("boundary")->setUniform("cv_uv", m_calib_vols->getUVVolumeUnits());
@@ -367,9 +377,14 @@ void NetKinectArray::processTextures(){
     ScreenQuad::draw();
   }
   m_programs.at("boundary")->release();
+  m_query->counter();
+  m_times_stages.at("boundary") = m_query->waitAndGet64(GL_QUERY_RESULT) - m_times_stages.at("boundary");
 
   m_textures_depth_b->bindActive(getTextureUnit("depth"));
 // normals
+  m_query->counter();
+  m_times_stages.at("normal") = m_query->waitAndGet64(GL_QUERY_RESULT);
+
   m_programs.at("normal")->use();
   m_programs.at("normal")->setUniform("cv_xyz", m_calib_vols->getXYZVolumeUnits());
   m_programs.at("normal")->setUniform("cv_uv", m_calib_vols->getUVVolumeUnits());
@@ -385,7 +400,13 @@ void NetKinectArray::processTextures(){
   }
   
   m_programs.at("normal")->release();
+  m_query->counter();
+  m_times_stages.at("normal") = m_query->waitAndGet64(GL_QUERY_RESULT) - m_times_stages.at("normal");
+
 // quality
+  m_query->counter();
+  m_times_stages.at("quality") = m_query->waitAndGet64(GL_QUERY_RESULT);
+
   m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT0});
   m_programs.at("quality")->use();
   m_programs.at("quality")->setUniform("cv_xyz", m_calib_vols->getXYZVolumeUnits());
@@ -398,8 +419,10 @@ void NetKinectArray::processTextures(){
 
     ScreenQuad::draw();
   }
-  
   m_programs.at("quality")->release();
+  m_query->counter();
+  m_times_stages.at("quality") = m_query->waitAndGet64(GL_QUERY_RESULT) - m_times_stages.at("quality");
+
   if(m_num_frame < s_num_bg_frames && m_curr_frametime < 0.5) {
     // processBackground();
   }

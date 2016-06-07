@@ -13,6 +13,7 @@ namespace globjects {
   class Program;
   class Framebuffer;
   class Texture;
+  class Query;
 }
 
 #include <string>
@@ -88,6 +89,7 @@ namespace kinect {
     globjects::ref_ptr<globjects::Texture> m_textures_silhouette;
     globjects::ref_ptr<globjects::Framebuffer> m_fbo;
     std::unique_ptr<TextureArray>  m_colorArray_back;
+    globjects::ref_ptr<globjects::Query> m_query;
 
     std::map<std::string, globjects::ref_ptr<globjects::Program>> m_programs;
     std::map<std::string, unsigned> m_texture_unit_offsets;
