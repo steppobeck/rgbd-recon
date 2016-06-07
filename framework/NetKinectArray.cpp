@@ -49,7 +49,6 @@ namespace kinect{
       m_textures_silhouette{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
       m_fbo{new globjects::Framebuffer()},
       m_colorArray_back(),
-      m_query{},
       m_colorsize(0),
       m_depthsize(0),
       m_pbo_colors(),
@@ -207,7 +206,6 @@ namespace kinect{
     m_times_stages["normal"] = 0;
     m_times_stages["quality"] = 0;
 
-    m_query = new globjects::Query{};
     return true;
   }
 
@@ -315,16 +313,12 @@ void NetKinectArray::processTextures(){
   m_depthArray_raw->bind();
 
   m_fbo->bind();
-  m_query->counter();
-  m_times_stages.at("morph") = m_query->waitAndGet64(GL_QUERY_RESULT);
-
+  m_timer.begin();
   processDepth();
-  m_query->counter();
-  m_times_stages.at("morph") = m_query->waitAndGet64(GL_QUERY_RESULT) - m_times_stages.at("morph");
+  m_timer.end();
+  m_times_stages.at("morph") = m_timer.duration();
 
-  m_query->counter();
-  m_times_stages.at("bilateral") = m_query->waitAndGet64(GL_QUERY_RESULT);
-
+  m_timer.begin();
   m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2});
 
   m_programs.at("filter")->use();
@@ -354,13 +348,11 @@ void NetKinectArray::processTextures(){
   }
   
   m_programs.at("filter")->release();
-  m_query->counter();
-  m_times_stages.at("bilateral") = m_query->waitAndGet64(GL_QUERY_RESULT) - m_times_stages.at("bilateral");
+  m_timer.end();
+  m_times_stages.at("bilateral") = m_timer.duration();
 
 // boundary
-  m_query->counter();
-  m_times_stages.at("boundary") = m_query->waitAndGet64(GL_QUERY_RESULT);
-
+  m_timer.begin();
   m_programs.at("boundary")->use();
 
   m_programs.at("boundary")->setUniform("cv_uv", m_calib_vols->getUVVolumeUnits());
@@ -377,14 +369,12 @@ void NetKinectArray::processTextures(){
     ScreenQuad::draw();
   }
   m_programs.at("boundary")->release();
-  m_query->counter();
-  m_times_stages.at("boundary") = m_query->waitAndGet64(GL_QUERY_RESULT) - m_times_stages.at("boundary");
+  m_timer.end();
+  m_times_stages.at("boundary") = m_timer.duration();
 
   m_textures_depth_b->bindActive(getTextureUnit("depth"));
 // normals
-  m_query->counter();
-  m_times_stages.at("normal") = m_query->waitAndGet64(GL_QUERY_RESULT);
-
+  m_timer.begin();
   m_programs.at("normal")->use();
   m_programs.at("normal")->setUniform("cv_xyz", m_calib_vols->getXYZVolumeUnits());
   m_programs.at("normal")->setUniform("cv_uv", m_calib_vols->getUVVolumeUnits());
@@ -400,13 +390,11 @@ void NetKinectArray::processTextures(){
   }
   
   m_programs.at("normal")->release();
-  m_query->counter();
-  m_times_stages.at("normal") = m_query->waitAndGet64(GL_QUERY_RESULT) - m_times_stages.at("normal");
+  m_timer.end();
+  m_times_stages.at("normal") = m_timer.duration();
 
 // quality
-  m_query->counter();
-  m_times_stages.at("quality") = m_query->waitAndGet64(GL_QUERY_RESULT);
-
+  m_timer.begin();
   m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT0});
   m_programs.at("quality")->use();
   m_programs.at("quality")->setUniform("cv_xyz", m_calib_vols->getXYZVolumeUnits());
@@ -420,8 +408,8 @@ void NetKinectArray::processTextures(){
     ScreenQuad::draw();
   }
   m_programs.at("quality")->release();
-  m_query->counter();
-  m_times_stages.at("quality") = m_query->waitAndGet64(GL_QUERY_RESULT) - m_times_stages.at("quality");
+  m_timer.end();
+  m_times_stages.at("quality") = m_timer.duration();
 
   if(m_num_frame < s_num_bg_frames && m_curr_frametime < 0.5) {
     // processBackground();
@@ -497,8 +485,8 @@ void NetKinectArray::readLoop(){
   zmq::socket_t  socket(ctx, ZMQ_SUB); // means a subscriber
 
   socket.setsockopt(ZMQ_SUBSCRIBE, "", 0);
-  uint64_t hwm = 1;
-  socket.setsockopt(ZMQ_HWM,&hwm, sizeof(hwm));
+  uint32_t hwm = 1;
+  socket.setsockopt(ZMQ_RCVHWM, &hwm, sizeof(hwm));
 
   std::string endpoint("tcp://" + m_serverport);
   socket.connect(endpoint.c_str());

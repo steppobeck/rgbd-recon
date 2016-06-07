@@ -234,14 +234,33 @@ void update_gui() {
       }
     }
     if (ImGui::CollapsingHeader("Processing Performance")) {
-      double curr_time = glfwGetTime();
-      ImGui::Text("Total Time %.3f ms/frame", (curr_time - g_time_prev) * 1000.0f);
-      g_time_prev = curr_time;
-      ImGui::Text("Morphological Filtering %.3f ms", g_nka->getStageTime("morph") / 1000000.0f);
-      ImGui::Text("Bilateral Filtering %.3f ms", g_nka->getStageTime("bilateral") / 1000000.0f);
-      ImGui::Text("Boundary Refinement %.3f ms", g_nka->getStageTime("boundary") / 1000000.0f);
-      ImGui::Text("Normal Computation %.3f ms", g_nka->getStageTime("normal") / 1000000.0f);
-      ImGui::Text("Quality Computation %.3f ms", g_nka->getStageTime("quality") / 1000000.0f);
+      std::uint64_t total = 
+        g_nka->getStageTime("morph")
+        + g_nka->getStageTime("bilateral")
+        + g_nka->getStageTime("boundary")
+        + g_nka->getStageTime("normal")
+        + g_nka->getStageTime("quality");
+
+      if (ImGui::TreeNode("Texture Processing")) {
+        ImGui::SameLine();
+        ImGui::Text("   %.3f ms", total / 1000000.0f);
+        ImGui::Columns(2, NULL, false);
+        ImGui::Text("Morphological Filtering");
+        ImGui::Text("Bilateral Filtering");
+        ImGui::Text("Boundary Refinement");
+        ImGui::Text("Normal Computation");
+        ImGui::Text("Quality Computation");
+        ImGui::NextColumn();
+        ImGui::Text("%.3f ms", g_nka->getStageTime("morph") / 1000000.0f);
+        ImGui::Text("%.3f ms", g_nka->getStageTime("bilateral") / 1000000.0f);
+        ImGui::Text("%.3f ms", g_nka->getStageTime("boundary") / 1000000.0f);
+        ImGui::Text("%.3f ms", g_nka->getStageTime("normal") / 1000000.0f);
+        ImGui::Text("%.3f ms", g_nka->getStageTime("quality") / 1000000.0f);
+      }
+      else {
+        ImGui::SameLine();
+        ImGui::Text("   %.3f ms", total / 1000000.0f);
+      }
     }
     ImGui::End();
   }
@@ -274,6 +293,8 @@ void update_gui() {
       g_gui_texture_settings.pop_back();
     }
   }
+  ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiSetCond_FirstUseEver);
+  ImGui::ShowTestWindow();
 }
 
 void frameStep (){

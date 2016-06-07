@@ -4,6 +4,7 @@
 #include "DataTypes.h"
 #include "double_buffer.hpp"
 #include "double_pixel_buffer.hpp"
+#include "timer_gpu.hpp"
 
 #include <glm/gtc/type_precision.hpp>
 
@@ -89,7 +90,7 @@ namespace kinect {
     globjects::ref_ptr<globjects::Texture> m_textures_silhouette;
     globjects::ref_ptr<globjects::Framebuffer> m_fbo;
     std::unique_ptr<TextureArray>  m_colorArray_back;
-    globjects::ref_ptr<globjects::Query> m_query;
+    TimerGPU m_timer;
 
     std::map<std::string, globjects::ref_ptr<globjects::Program>> m_programs;
     std::map<std::string, unsigned> m_texture_unit_offsets;

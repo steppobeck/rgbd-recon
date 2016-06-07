@@ -1,6 +1,8 @@
 #ifndef DOUBLE_BUFFER_HPP
 #define DOUBLE_BUFFER_HPP
 
+#include <algorithm>
+
 template<typename T>
 struct double_buffer{
   double_buffer(T const& f, T const& b)
