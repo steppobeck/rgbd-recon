@@ -17,10 +17,13 @@ namespace kinect{
     ReconIntegration(CalibrationFiles const& cfs, CalibVolumes const* cv, gloost::BoundingBox const&  bbo, float limit, float size);
 
     void draw() override;
+    void drawF() override;
     void integrate();
 
     void setVoxelSize(float size);
     void setTsdfLimit(float limit);
+
+    std::uint64_t integrationTime() const;
 
   private:
     globjects::ref_ptr<globjects::Program> m_program;
@@ -33,6 +36,8 @@ namespace kinect{
 
     float m_limit;
     float m_voxel_size;
+
+    TimerGPU m_timer_integration;
   };
 }
 

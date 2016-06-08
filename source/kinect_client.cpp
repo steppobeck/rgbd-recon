@@ -198,7 +198,7 @@ void update_gui() {
       g_gui_texture_settings.emplace_back(0, 0);
     }
     ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-    if (ImGui::CollapsingHeader("Reconstruction",ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (ImGui::CollapsingHeader("Reconstruction Mode",ImGuiTreeNodeFlags_DefaultOpen)) {
       ImGui::RadioButton("Points", &g_recon_mode, 0);
       ImGui::RadioButton("Integration", &g_recon_mode, 1);
       ImGui::RadioButton("Trigrid", &g_recon_mode, 2);     
@@ -256,10 +256,24 @@ void update_gui() {
         ImGui::Text("%.3f ms", g_nka->getStageTime("boundary") / 1000000.0f);
         ImGui::Text("%.3f ms", g_nka->getStageTime("normal") / 1000000.0f);
         ImGui::Text("%.3f ms", g_nka->getStageTime("quality") / 1000000.0f);
+        ImGui::Columns(1);
+        ImGui::TreePop();
       }
       else {
         ImGui::SameLine();
         ImGui::Text("   %.3f ms", total / 1000000.0f);
+      }
+      if (ImGui::TreeNode("Reconstruction")) {
+        ImGui::Columns(2, NULL, false);
+        ImGui::Text("Drawing");
+        if(g_recons[g_recon_mode].get() == g_recon_integration.get())
+          ImGui::Text("Integration");
+        ImGui::NextColumn();
+        ImGui::Text("%.3f ms", g_recons[g_recon_mode]->drawTime() / 1000000.0f);
+        if(g_recons[g_recon_mode].get() == g_recon_integration.get())
+        ImGui::Text("%.3f ms", g_recon_integration->integrationTime() / 1000000.0f);
+        ImGui::Columns(1);
+        ImGui::TreePop();
       }
     }
     ImGui::End();
@@ -293,8 +307,8 @@ void update_gui() {
       g_gui_texture_settings.pop_back();
     }
   }
-  ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiSetCond_FirstUseEver);
-  ImGui::ShowTestWindow();
+  // ImGui::SetNextWindowPos(ImVec2(650, 20), ImGuiSetCond_FirstUseEver);
+  // ImGui::ShowTestWindow();
 }
 
 void frameStep (){
@@ -362,7 +376,7 @@ void draw3d(void)
     g_nka->update();
   }
   // draw active reconstruction
-  g_recons.at(g_recon_mode)->draw();
+  g_recons.at(g_recon_mode)->drawF();
 
   g_stats->stopGPU();
 

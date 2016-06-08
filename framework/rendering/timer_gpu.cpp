@@ -20,7 +20,10 @@ void TimerGPU::end() {
   m_query->counter();
 }
 
-std::uint64_t TimerGPU::duration() {
-  m_end = m_query->waitAndGet64(GL_QUERY_RESULT);
+std::uint64_t TimerGPU::duration() const {
+  // get end time only if outdated
+  if(m_end < m_start) {
+    m_end = m_query->waitAndGet64(GL_QUERY_RESULT);
+  }
   return m_end - m_start;
 }

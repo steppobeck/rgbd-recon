@@ -33,6 +33,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
  ,m_mat_vol_to_world{1.0f}
  ,m_limit{limit}
  ,m_voxel_size{size}
+ ,m_timer_integration{}
 {
   m_program->attach(
     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/tsdf_raymarch.vs"),
@@ -80,8 +81,14 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
   m_volume_tsdf->bindActive(GL_TEXTURE0 + 29);
 }
 
-void ReconIntegration::draw(){
+void ReconIntegration::drawF() {
+  m_timer_integration.begin();
   integrate();
+  m_timer_integration.end();
+  Reconstruction::drawF();
+}
+
+void ReconIntegration::draw(){
 
   m_program->use();
 
@@ -128,6 +135,10 @@ void ReconIntegration::setTsdfLimit(float limit) {
   m_limit = limit;
   m_program->setUniform("limit", m_limit);
   m_program_integration->setUniform("limit", m_limit);
+}
+
+std::uint64_t ReconIntegration::integrationTime() const {
+  return m_timer_integration.duration();
 }
 
 }

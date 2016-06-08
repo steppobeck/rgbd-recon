@@ -15,12 +15,12 @@ class TimerGPU {
   void begin();
   void end();
   // in ns
-  std::uint64_t duration();
+  std::uint64_t duration() const;
   
  private:
   globjects::ref_ptr<globjects::Query> m_query;
-  std::uint64_t m_start;
-  std::uint64_t m_end;
+  mutable std::uint64_t m_start;
+  mutable std::uint64_t m_end;
 };
 
 #endif
