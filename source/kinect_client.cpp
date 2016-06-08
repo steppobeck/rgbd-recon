@@ -66,7 +66,6 @@ int      g_num_kinect   = 1;
 float    g_voxel_size   = 0.007f;
 float    g_tsdf_limit   = 0.01f;
 double   g_time_prev    = 0.0f;
-globjects::ref_ptr<globjects::Query> g_query;
 
 gloost::BoundingBox     g_bbox{};
 std::vector<std::pair<int, int>> g_gui_texture_settings{};
@@ -263,17 +262,28 @@ void update_gui() {
         ImGui::SameLine();
         ImGui::Text("   %.3f ms", total / 1000000.0f);
       }
-      if (ImGui::TreeNode("Reconstruction")) {
-        ImGui::Columns(2, NULL, false);
-        ImGui::Text("Drawing");
-        if(g_recons[g_recon_mode].get() == g_recon_integration.get())
+      if(g_recons[g_recon_mode].get() == g_recon_integration.get()) {
+        if (ImGui::TreeNode("Reconstruction")) {
+          ImGui::SameLine();
+          ImGui::Text("   %.3f ms", (g_recon_integration->drawTime() + g_recon_integration->integrationTime()) / 1000000.0f);
+          ImGui::Columns(2, NULL, false);
+          ImGui::Text("Drawing");
           ImGui::Text("Integration");
-        ImGui::NextColumn();
-        ImGui::Text("%.3f ms", g_recons[g_recon_mode]->drawTime() / 1000000.0f);
-        if(g_recons[g_recon_mode].get() == g_recon_integration.get())
-        ImGui::Text("%.3f ms", g_recon_integration->integrationTime() / 1000000.0f);
-        ImGui::Columns(1);
-        ImGui::TreePop();
+          ImGui::NextColumn();
+          ImGui::Text("%.3f ms", g_recon_integration->drawTime() / 1000000.0f);
+          ImGui::Text("%.3f ms", g_recon_integration->integrationTime() / 1000000.0f);
+          ImGui::Columns(1);
+          ImGui::TreePop();
+        }
+        else {
+          ImGui::SameLine();
+          ImGui::Text("   %.3f ms", (g_recon_integration->drawTime() + g_recon_integration->integrationTime()) / 1000000.0f);          
+        }
+      }
+      else {
+        ImGui::Text("   Reconstruction");
+        ImGui::SameLine();
+        ImGui::Text("   %.3f ms", g_recons[g_recon_mode]->drawTime() / 1000000.0f);
       }
     }
     ImGui::End();
