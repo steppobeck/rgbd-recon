@@ -29,6 +29,10 @@ out vec3  normal_es;
 bool validSurface(vec3 a, vec3 b, vec3 c,
                   float depth_a, float depth_b, float depth_c)
 {
+  // discard if invalid depth is contained
+  if(depth_a < 0.5f || depth_b < 0.5f || depth_c < 0.5f) {
+    return false;
+  }
   float avg_depth = (depth_a + depth_b + depth_c)/3.0;
   float baselength = 0.005;
   float l = min_length * avg_depth + baselength;  
@@ -57,7 +61,7 @@ void main() {
 
   bool valid = validSurface(a_cs, b_cs, c_cs, depth_a, depth_b, depth_c);
 
-  if (valid){
+  if (valid ){
     vec3 a = to_geom_pos_es[1] - to_geom_pos_es[0];
     vec3 b = to_geom_pos_es[2] - to_geom_pos_es[0];
     vec3 c = to_geom_pos_es[2] - to_geom_pos_es[1];
