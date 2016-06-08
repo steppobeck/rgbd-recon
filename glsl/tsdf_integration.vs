@@ -40,17 +40,18 @@ void main() {
       // break;
     }
     float sdist = pos_calib.z - depth;
-    // if (sdist <= -limit ) {
-    //   // weighted_tsd = -limit;
-    //   // break;
-    // }
-    if (sdist >= limit ) {
+    if (sdist <= -limit ) {
+      weighted_tsd = -limit;
+      // break;
+    }
+    else if (sdist >= limit ) {
       // do nothing
+      // weighted_tsd = -limit;
     }
     else {
-      if(weighted_tsd >= limit) {
-        weighted_tsd = 0.0f;
-      }
+      // if(weighted_tsd >= limit) {
+      //   weighted_tsd = 0.0f;
+      // }
       float tsd = clamp(sdist, -limit, limit);
       float quality = texture(kinect_qualities, vec3(pos_calib.xy, float(i))).r;
 
@@ -58,7 +59,7 @@ void main() {
       weight += quality;
     }
   }
-
+  // weighted_tsd = clamp(weighted_tsd, -limit, limit);
   // coordinates must be even pixels
   ivec3 ipos_vol = ivec3(round(in_Position * res_tsdf - vec3(0.5f)));
   imageStore(volume_tsdf, ipos_vol, vec4(weighted_tsd, 0.0f, 0.0f, 0.0f));

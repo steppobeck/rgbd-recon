@@ -10,29 +10,22 @@ uniform sampler3D[5] cv_uv_inv;
 flat in vec3 geo_pos_view;
 flat in vec3 geo_pos_world;
 flat in vec3 geo_pos_volume;
-flat in vec2 geo_texcoord;
+flat in float geo_distance;
 
 out vec4 gl_FragColor;
 
 void main() {
-	float inverted_dist = abs(geo_texcoord.r) / limit;
-	if (geo_texcoord.r > 0.0f) {
+	float inverted_dist = abs(geo_distance) / limit;
+	if (geo_distance > 0.0f) {
    	  gl_FragColor = vec4(1.0f -inverted_dist, 0.0f, 0.0f, 1.0f);	
 	}
 	else {
         gl_FragColor = vec4(0.0f, 1.0f - inverted_dist, 0.0f, 1.0f); 
    }
    vec3 color = texture(cv_xyz_inv[layer],geo_pos_volume).rgb;
-   if(geo_texcoord.r >= limit) {
+   if(geo_distance >= limit) {
 	  gl_FragColor = vec4(0.0f, 0.0f, 1.0f, 1.0f);	   
    }
-   	 // if(!clip(color)) discard;
-   	 // if(color.z <= 0.0f) discard;
-   	  // gl_FragColor = vec4(color, 1.0f);	
-   // gl_FragColor = vec4(1.0f);
-   // gl_FragColor = vec4(geo_pos_volume, 1.0f);
-   // if (geo_texcoord.r < -10.0f) discard;
-   // if (geo_texcoord.r > 9.0f) discard;
-   // if (geo_texcoord.r > 0.0f) discard;
-   if (geo_texcoord.r <= -limit) discard;
+
+   if (geo_distance <= -limit) discard;
 }
