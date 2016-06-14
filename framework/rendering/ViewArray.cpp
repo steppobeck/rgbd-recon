@@ -25,14 +25,6 @@ ViewArray::ViewArray(unsigned width, unsigned height, unsigned numLayers)
   m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT0});
 }
 
-ViewArray::~ViewArray() {
-  m_fbo->destroy();
-}
-
-void ViewArray::init() {
-
-}
-
 void ViewArray::enable(unsigned layer, bool use_vp, unsigned* ox, unsigned* oy, bool clearcolor) {
   glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &m_current_fbo);
 

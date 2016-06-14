@@ -4,10 +4,12 @@
 #include "reconstruction.hpp"
 #include "volume_sampler.hpp"
 
-#include <globjects/Buffer.h>
-#include <globjects/Program.h>
-#include <globjects/VertexArray.h>
-#include <globjects/Texture.h>
+#include <globjects/base/ref_ptr.h>
+namespace globjects {
+  class Texture;
+  class Program;
+  class Framebuffer;
+}
 
 namespace kinect{
 
@@ -19,6 +21,7 @@ namespace kinect{
     void draw() override;
     void drawF() override;
     void integrate();
+    void fillColors();
 
     void setVoxelSize(float size);
     void setTsdfLimit(float limit);
@@ -28,9 +31,11 @@ namespace kinect{
   private:
     globjects::ref_ptr<globjects::Program> m_program;
     globjects::ref_ptr<globjects::Program> m_program_integration;
+    globjects::ref_ptr<globjects::Program> m_program_inpaint;
+
     glm::uvec3          m_res_volume;
     VolumeSampler       m_sampler;
-    globjects::Texture* m_volume_tsdf;
+    globjects::ref_ptr<globjects::Texture> m_volume_tsdf;
 
     glm::fmat4          m_mat_vol_to_world;
 

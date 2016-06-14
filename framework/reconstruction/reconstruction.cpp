@@ -3,6 +3,8 @@
 #include "calibration_files.hpp"
 #include "CalibVolumes.hpp"
 
+#include <glbinding/gl/gl.h>
+using namespace gl;
 #include <globjects/NamedString.h>
 #include <globjects/base/File.h>
 
@@ -35,6 +37,16 @@ void Reconstruction::drawF() {
 
 std::uint64_t Reconstruction::drawTime() const {
   return m_timer_draw.duration();
+}
+
+glm::uvec2 Reconstruction::getViewportRes() {
+  auto params = getViewport();
+  return glm::uvec2{params[3], params[4]};
+}
+glm::uvec4 Reconstruction::getViewport() {
+  gl::GLsizei vp_params[4];
+  glGetIntegerv(GL_VIEWPORT,vp_params);
+  return glm::uvec4{vp_params[0], vp_params[1], vp_params[2], vp_params[3]};
 }
 
 }

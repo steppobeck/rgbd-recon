@@ -34,6 +34,9 @@ namespace kinect{
     gloost::BoundingBox m_bbox;
 
     TimerGPU m_timer_draw;
+
+    static glm::uvec2 getViewportRes();
+    static glm::uvec4 getViewport();
   };
 }
 

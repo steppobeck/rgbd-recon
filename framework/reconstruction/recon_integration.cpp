@@ -2,6 +2,7 @@
 
 #include "calibration_files.hpp"
 #include "unit_cube.hpp"
+#include "screen_quad.hpp"
 #include <KinectCalibrationFile.h>
 #include "CalibVolumes.hpp"
 
@@ -11,6 +12,11 @@
 
 #include <glbinding/gl/gl.h>
 using namespace gl;
+#include <globjects/Buffer.h>
+#include <globjects/Program.h>
+#include <globjects/VertexArray.h>
+#include <globjects/Texture.h>
+#include <globjects/Framebuffer.h>
 
 #include <globjects/Shader.h>
 #include <globjects/globjects.h>
@@ -25,6 +31,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
  :Reconstruction(cfs, cv, bbox)
  ,m_program{new globjects::Program()}
  ,m_program_integration{new globjects::Program()}
+ ,m_program_inpaint{new globjects::Program()}
  ,m_res_volume{glm::ceil(glm::fvec3{bbox.getPMax()[0] - bbox.getPMin()[0],
                                     bbox.getPMax()[1] - bbox.getPMin()[1],
                                     bbox.getPMax()[2] - bbox.getPMin()[2]} / size)}
@@ -79,6 +86,12 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
 
   m_volume_tsdf->image3D(0, GL_R32F, glm::ivec3{m_res_volume}, 0, GL_RED, GL_FLOAT, nullptr);
   m_volume_tsdf->bindActive(GL_TEXTURE0 + 29);
+  std::cout << "resolution " << m_res_volume.x << ", " << m_res_volume.y << ", " << m_res_volume.z << std::endl;
+  
+  m_program_inpaint->attach(
+    globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/texture_passthrough.vs"),
+    globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/texture_passthrough.fs")
+  );
 }
 
 void ReconIntegration::drawF() {
@@ -121,6 +134,12 @@ void ReconIntegration::integrate() {
   glDisable(GL_RASTERIZER_DISCARD);
 }
 
+void ReconIntegration::fillColors() {
+  m_program_inpaint->use();
+  ScreenQuad::draw();
+  m_program_inpaint->release();  
+}
+
 void ReconIntegration::setVoxelSize(float size) {
   m_voxel_size = size;
   m_res_volume = glm::ceil(glm::fvec3{m_bbox.getPMax()[0] - m_bbox.getPMin()[0],
@@ -130,6 +149,7 @@ void ReconIntegration::setVoxelSize(float size) {
   m_program_integration->setUniform("res_tsdf", m_res_volume);
   m_volume_tsdf->image3D(0, GL_R32F, glm::ivec3{m_res_volume}, 0, GL_RED, GL_FLOAT, nullptr);
   m_volume_tsdf->bindActive(GL_TEXTURE0 + 29);
+  std::cout << "resolution " << m_res_volume.x << ", " << m_res_volume.y << ", " << m_res_volume.z << std::endl;
 }
 void ReconIntegration::setTsdfLimit(float limit) {
   m_limit = limit;

@@ -12,14 +12,6 @@
 
 namespace kinect{
 
-void
-static getWidthHeight(unsigned& width, unsigned& height){
-  GLsizei vp_params[4];
-  glGetIntegerv(GL_VIEWPORT,vp_params);
-  width  = vp_params[2];
-  height = vp_params[3];
-}
-
 ReconMVT::ReconMVT(CalibrationFiles const& cfs, CalibVolumes const* cv, gloost::BoundingBox const&  bbox)
  :Reconstruction(cfs, cv, bbox)
  ,m_va_pass_depth()
@@ -98,10 +90,9 @@ void ReconMVT::draw(){
   viewport_translate.setTranslate(1.0,1.0,1.0);
   gloost::Matrix viewport_scale;
   viewport_scale.setIdentity();
-  unsigned width  = 0;
-  unsigned height = 0;
-  getWidthHeight(width, height);
-  viewport_scale.setScale(width * 0.5, height * 0.5, 0.5f);
+
+  glm::uvec4 viewport_vals{getViewport()};
+  viewport_scale.setScale(viewport_vals[2] * 0.5, viewport_vals[3] * 0.5, 0.5f);
   gloost::Matrix image_to_eye =  viewport_scale * viewport_translate * projection_matrix;
   image_to_eye.invert();
 
@@ -150,7 +141,7 @@ void ReconMVT::draw(){
 
   m_program_normalize->use();
   m_program_normalize->setUniform("texSizeInv", glm::fvec2(1.0f/m_va_pass_depth->getWidth(), 1.0f/m_va_pass_depth->getHeight()));
-  m_program_normalize->setUniform("offset"    , glm::fvec2(1.0f*ox,                          1.0f*oy));
+  m_program_normalize->setUniform("offset"    , glm::fvec2(1.0f * viewport_vals[0],                    1.0f * viewport_vals[1]));
   
   m_va_pass_accum->bindToTextureUnitRGBA(15);
   m_va_pass_depth->bindToTextureUnitDepth(16);
@@ -162,10 +153,7 @@ void ReconMVT::draw(){
 
 void ReconMVT::resize(std::size_t width, std::size_t height) {
   m_va_pass_depth = std::unique_ptr<ViewArray>{new ViewArray(width, height, 1)};
-  m_va_pass_depth->init();
-
   m_va_pass_accum = std::unique_ptr<ViewArray>{new ViewArray(width, height, 1)};
-  m_va_pass_accum->init();
 }
 
 }
