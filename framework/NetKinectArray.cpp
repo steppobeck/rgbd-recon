@@ -57,7 +57,7 @@ namespace kinect{
       m_readThread(),
       m_running(true),
       m_filter_textures(true),
-      m_refine_bound(false),
+      m_refine_bound(true),
       m_serverport(serverport),
       m_num_frame{0},
       m_curr_frametime{0.0},

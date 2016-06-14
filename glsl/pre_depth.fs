@@ -149,10 +149,10 @@ void main(void) {
   
   if (!is_in_box) {
     out_Color = rgb_to_lab(get_color(vec3(pass_TexCoord, (depth_norm <= 0.0f) ? 0.0f : 1.0f)));
+    out_Color = vec3(0.0f);
     return;
   }
 
-  out_Color = rgb_to_lab(get_color(vec3(pass_TexCoord, (out_Depth.x <= 0.0f) ? 0.0f : 1.0f)));  
   
   if(!filter_textures) {
     out_Depth = vec2(depth_norm, 0.0f);
@@ -160,6 +160,7 @@ void main(void) {
   else {
     out_Depth = bilateral_filter(vec3(pass_TexCoord, depth));
   }
+  out_Color = rgb_to_lab(get_color(vec3(pass_TexCoord, (out_Depth.x <= 0.0f) ? 0.0f : 1.0f)));  
 
   if(out_Depth.y < 1.0f) {
     out_Silhouette = 1.0f;
