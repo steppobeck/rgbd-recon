@@ -28,8 +28,7 @@ const int kernel_size = 6; // in pixel
 const int kernel_end = kernel_size + 1;
 
 layout(location = 0) out vec2 out_Depth;
-layout(location = 1) out float out_Silhouette;
-layout(location = 2) out vec3 out_Color;
+layout(location = 1) out vec3 out_Color;
 
 #include </inc_bbox_test.glsl>
 
@@ -126,11 +125,8 @@ vec2 bilateral_filter(vec3 coords){
 
   return vec2(normalize_depth(filtered_depth), w_range  / num_samples);
 }
-const float min_range = 0.65f;
 
 void main(void) {
-  out_Depth = vec2(0.0f);
-  out_Silhouette = 0.0f;
 
   float depth = sample(pass_TexCoord);
   float depth_norm = normalize_depth(depth);
@@ -139,11 +135,10 @@ void main(void) {
   
   if (!is_in_box) {
     out_Color = rgb_to_lab(get_color(vec3(pass_TexCoord, (depth_norm <= 0.0f) ? 0.0f : 1.0f)));
-    out_Color = vec3(0.0f);
+    out_Depth = vec2(0.0f);
     return;
   }
 
-  
   if(!filter_textures) {
     out_Depth = vec2(depth_norm, 0.0f);
   }
@@ -151,11 +146,4 @@ void main(void) {
     out_Depth = bilateral_filter(vec3(pass_TexCoord, depth));
   }
   out_Color = rgb_to_lab(get_color(vec3(pass_TexCoord, (out_Depth.x <= 0.0f) ? 0.0f : 1.0f)));  
-
-  if(out_Depth.y >= min_range) {
-    out_Silhouette = 1.0f;
-  }
-// if(out_Depth.y > 0.1f) {
-//   out_Depth.x = -1.0f;
-// }
 }

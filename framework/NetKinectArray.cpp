@@ -319,7 +319,7 @@ void NetKinectArray::processTextures(){
   m_times_stages.at("morph") = m_timer.duration();
 
   m_timer.begin();
-  m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2});
+  m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1});
 
   m_programs.at("filter")->use();
   m_programs.at("filter")->setUniform("filter_textures", m_filter_textures);
@@ -333,8 +333,7 @@ void NetKinectArray::processTextures(){
     m_programs.at("filter")->setUniform("cv_max_ds", m_calib_vols->getDepthLimits(i).y);
 
     m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT0, m_textures_depth, 0, i);
-    m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT1, m_textures_silhouette, 0, i);
-    m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT2, m_textures_color, 0, i);
+    m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT1, m_textures_color, 0, i);
     m_programs.at("filter")->setUniform("layer", i);
     m_programs.at("filter")->setUniform("compress", m_calib_files->getCalibs()[i].isCompressedDepth());
     const float near = m_calib_files->getCalibs()[i].getNear();
@@ -359,10 +358,9 @@ void NetKinectArray::processTextures(){
   m_programs.at("boundary")->setUniform("refine", m_refine_bound);
   m_textures_depth->bindActive(getTextureUnit("depth"));
 
-  m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT0});
-
   for(unsigned i = 0; i < m_calib_files->num(); ++i){
     m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT0, m_textures_depth_b, 0, i);
+    m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT1, m_textures_silhouette, 0, i);
 
     m_programs.at("boundary")->setUniform("layer", i);
 

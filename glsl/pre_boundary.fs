@@ -14,8 +14,9 @@ uniform bool refine;
 uniform vec2 texSizeInv;
 
 layout(location = 0) out vec2 out_Depth;
+layout(location = 1) out float out_Silhouette;
 
-const float max_color_dist = 0.05f;
+const float max_color_dist = 0.9f;
 
 const int kernel_size = 2; // in pixel
 const int kernel_end = kernel_size + 1;
@@ -84,7 +85,8 @@ float recompute_depth(vec2 coords) {
 // average depth with new value
 void main(void) {
   vec2 depth = texture(kinect_depths, vec3(pass_TexCoord, layer)).rg;
-  // pixel was discarded in depth filtering
+  out_Silhouette = 1.0f;
+  // pixel is outside of box
   if(depth.x <= 0.0f) {
     float new_depth = recompute_depth(pass_TexCoord);
     if(refine && new_depth > 0.0f) {
@@ -93,13 +95,22 @@ void main(void) {
     }
     else {
       depth.y = 0.0f;
+      out_Silhouette = 0.0f;
     }
   }
+  // pixel was discarded in depth filtering
   else if(!foreground(depth.y)) {
+    if(depth.y > 0.65) {
+      out_Silhouette = 1.0f;
+    }
+    else {
+      out_Silhouette = 0.0f;
+    }
     float color_dist = get_color_diff(pass_TexCoord);
     if(color_dist > max_color_dist || !refine) {
       depth.x = -1.0f;
       depth.y = 0.1f;
+      out_Silhouette = 0.0f;
     }
     else {
       depth.y = 1.0f;
