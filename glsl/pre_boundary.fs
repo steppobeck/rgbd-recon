@@ -23,6 +23,11 @@ const int total_samples = (kernel_size * 2) * (kernel_size * 2);
 
 #include </inc_color.glsl>
 
+const float min_range = 0.65f;
+bool foreground(float depth) {
+  return depth > min_range;
+}
+
 vec3 get_color(vec3 coords) {
   vec2 coords_c = texture(cv_uv[layer], coords).xy;
   return texture(kinect_colors, vec3(coords_c, layer)).rgb;
@@ -36,7 +41,7 @@ float get_color_diff(vec2 coords) {
     for(int x = -kernel_size; x < kernel_end; ++x){
       vec2 coords_s = coords + vec2(x, y) * texSizeInv;
       vec2 depth_s = texture(kinect_depths, vec3(coords_s, layer)).rg;
-      if(depth_s.x > 0.0f && depth_s.y < 1.0f) {
+      if(depth_s.x > 0.0f && foreground(depth_s.y)) {
         num_samples += 1.0f;
         vec3 color_s = texture(kinect_colors_lab, vec3(coords_s, layer)).rgb;
         total_dist += distance(color, color_s);
@@ -56,7 +61,7 @@ float recompute_depth(vec2 coords) {
     for(int x = -kernel_size; x < kernel_end; ++x){
       vec2 coords_s = coords + vec2(x, y) * texSizeInv;
       vec2 depth_s = texture(kinect_depths, vec3(coords_s, layer)).rg;
-      if(depth_s.x > 0.0f && depth_s.y < 1.0f) {
+      if(depth_s.x > 0.0f && foreground(depth_s.y)) {
         num_samples += 1;
         vec3 color_s = texture(kinect_colors_lab, vec3(coords_s, layer)).rgb;
         total_color += color_s;
@@ -75,6 +80,7 @@ float recompute_depth(vec2 coords) {
   }
   return avg_depth;
 }
+
 // average depth with new value
 void main(void) {
   vec2 depth = texture(kinect_depths, vec3(pass_TexCoord, layer)).rg;
@@ -89,12 +95,18 @@ void main(void) {
       depth.y = 0.0f;
     }
   }
-  else if(depth.y > 0.1f) {
+  else if(!foreground(depth.y)) {
     float color_dist = get_color_diff(pass_TexCoord);
     if(color_dist > max_color_dist || !refine) {
       depth.x = -1.0f;
       depth.y = 0.1f;
     }
+    else {
+      depth.y = 1.0f;
+    }
+  }
+  else {
+    depth.y = 0.0f;
   }
   out_Depth = vec2(depth);
 }

@@ -83,7 +83,6 @@ vec3 get_color(vec3 coords) {
   vec2 coords_c = texture(cv_uv[layer], coords).xy;
   return texture(kinect_colors, vec3(coords_c, layer)).rgb;
 }
-
 vec2 bilateral_filter(vec3 coords){
 
   float depth = coords.z;
@@ -123,20 +122,11 @@ vec2 bilateral_filter(vec3 coords){
     }
   }
 
-  float discarded = 0.0f;
-  float filtered_depth = 0.0f;
-  if(w > 0.0)
-    filtered_depth = depth_bf/w;
-  else {
-    discarded = 1.0f;
-  }
+  float filtered_depth = depth_bf / w;
 
-  if(w_range < (num_samples * 0.65)) {
-    discarded = 1.0f;
-  }
-
-  return vec2(normalize_depth(filtered_depth), discarded);
+  return vec2(normalize_depth(filtered_depth), w_range  / num_samples);
 }
+const float min_range = 0.65f;
 
 void main(void) {
   out_Depth = vec2(0.0f);
@@ -162,7 +152,7 @@ void main(void) {
   }
   out_Color = rgb_to_lab(get_color(vec3(pass_TexCoord, (out_Depth.x <= 0.0f) ? 0.0f : 1.0f)));  
 
-  if(out_Depth.y < 1.0f) {
+  if(out_Depth.y >= min_range) {
     out_Silhouette = 1.0f;
   }
 // if(out_Depth.y > 0.1f) {
