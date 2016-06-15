@@ -37,7 +37,7 @@ void ViewArray::enable(unsigned layer, bool clearcolor) {
   unsigned h;
   getWidthHeight(x,y,w,h);
   m_viewport_current.set(x,y,w,h);
-  glViewport(0,0,w,h);
+  glViewport(0, 0, m_width, m_height);
 
   if(clearcolor) {
     glClearColor(0.0,0.0,0.0,0.0);
