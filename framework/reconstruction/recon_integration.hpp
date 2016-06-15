@@ -34,12 +34,12 @@ namespace kinect{
     
     void resize(std::size_t width, std::size_t height) override;
 
+    std::unique_ptr<ViewLod>               m_view_inpaint;
   private:
     globjects::ref_ptr<globjects::Program> m_program;
     globjects::ref_ptr<globjects::Program> m_program_integration;
     globjects::ref_ptr<globjects::Program> m_program_inpaint;
     globjects::ref_ptr<globjects::Program> m_program_transfer;
-    std::unique_ptr<ViewLod>               m_view_inpaint;
     std::unique_ptr<ViewLod>               m_view_inpaint2;
     glm::uvec3          m_res_volume;
     VolumeSampler       m_sampler;

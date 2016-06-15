@@ -172,8 +172,8 @@ void ReconIntegration::fillColors() {
   // tranfer to default framebuffer
   m_view_inpaint->bindToTextureUnits(15);
   m_program_transfer->use();
-  m_program_transfer->setUniform("resolution_tex", m_view_inpaint->resolution(3));
-  m_program_transfer->setUniform("lod", 3);
+  m_program_transfer->setUniform("resolution_tex", m_view_inpaint->resolution(0));
+  m_program_transfer->setUniform("lod", 0);
 
   ScreenQuad::draw();
   m_program_transfer->release();  
