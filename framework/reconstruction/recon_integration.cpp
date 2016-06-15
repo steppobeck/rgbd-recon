@@ -118,7 +118,7 @@ void ReconIntegration::draw(){
 
   m_program->setUniform("CameraPos", camera_texturespace);
 
-  m_view_inpaint->enable(0, true);
+  m_view_inpaint->enable(1);
   UnitCube::draw();
   m_view_inpaint->disable();
 
@@ -142,6 +142,8 @@ void ReconIntegration::fillColors() {
   m_view_inpaint->bindToTextureUnits(15);
   m_view_inpaint->bindToTextureUnitDepth(16);
   m_program_inpaint->use();
+  m_program_inpaint->setUniform("resolution_tex", m_view_inpaint->resolution(1));
+
   ScreenQuad::draw();
   m_program_inpaint->release();  
 }
@@ -168,7 +170,7 @@ std::uint64_t ReconIntegration::integrationTime() const {
 }
 
 void ReconIntegration::resize(std::size_t width, std::size_t height) {
-  m_view_inpaint = std::unique_ptr<ViewLod>{new ViewLod(width, height)};
+  m_view_inpaint = std::unique_ptr<ViewLod>{new ViewLod(width, height, 2)};
 }
 
 }

@@ -1,9 +1,12 @@
 #ifndef VIEW_LOD_HPP
 #define VIEW_LOD_HPP
 
-#include <globjects/base/ref_ptr.h>
+#include "Viewport.h"
 
-#include <Viewport.h>
+#include <globjects/base/ref_ptr.h>
+#include <glm/gtc/type_precision.hpp>
+
+#include <vector>
 
 namespace globjects {
   class Framebuffer;
@@ -14,7 +17,7 @@ namespace kinect {
   class ViewLod {
 
   public:
-    ViewLod(unsigned width, unsigned height, unsigned num_lod = 0);
+    ViewLod(unsigned width, unsigned height, unsigned num_lod = 1);
 
     void enable(unsigned lod = 0, bool clearcolor = true);
     void disable();
@@ -23,8 +26,9 @@ namespace kinect {
     void bindToTextureUnitDepth(unsigned start_texture_unit);
     void bindToTextureUnitRGBA(unsigned start_texture_unit);
 
-    unsigned getWidth();
-    unsigned getHeight();
+    unsigned getWidth(unsigned i);
+    unsigned getHeight(unsigned i);
+    glm::uvec2 resolution(unsigned i);
 
     unsigned getNumLods();
 
@@ -33,7 +37,7 @@ namespace kinect {
 
     unsigned m_width;
     unsigned m_height;
-    unsigned m_num_lods;
+    std::vector<glm::uvec2> m_resolutions;
 
     globjects::ref_ptr<globjects::Framebuffer> m_fbo;
     globjects::ref_ptr<globjects::Texture> m_tex_color;
