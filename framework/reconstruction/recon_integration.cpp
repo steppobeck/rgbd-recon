@@ -5,8 +5,8 @@
 #include "screen_quad.hpp"
 #include <KinectCalibrationFile.h>
 #include "CalibVolumes.hpp"
-#include "ViewArray.h"
 #include "view_lod.hpp"
+#include "texture_blitter.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
@@ -32,6 +32,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
  ,m_program{new globjects::Program()}
  ,m_program_integration{new globjects::Program()}
  ,m_program_inpaint{new globjects::Program()}
+ ,m_program_transfer{new globjects::Program()}
  ,m_res_volume{glm::ceil(glm::fvec3{bbox.getPMax()[0] - bbox.getPMin()[0],
                                     bbox.getPMax()[1] - bbox.getPMin()[1],
                                     bbox.getPMax()[2] - bbox.getPMin()[2]} / size)}
@@ -94,6 +95,13 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
   );
   m_program_inpaint->setUniform("texture_color", 15);
   m_program_inpaint->setUniform("texture_depth", 16);
+
+  m_program_transfer->attach(
+   globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/texture_passthrough.vs")
+  ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/framebuffer_transfer.fs")
+  );
+  m_program_transfer->setUniform("texture_color", 15);
+  m_program_transfer->setUniform("texture_depth", 16);
 }
 
 void ReconIntegration::drawF() {
@@ -140,12 +148,23 @@ void ReconIntegration::integrate() {
 
 void ReconIntegration::fillColors() {
   m_view_inpaint->bindToTextureUnits(15);
-  m_view_inpaint->bindToTextureUnitDepth(16);
-  m_program_inpaint->use();
-  m_program_inpaint->setUniform("resolution_tex", m_view_inpaint->resolution(1));
+
+  m_view_inpaint2->enable(0);
+  m_program_transfer->use();
+  m_program_transfer->setUniform("resolution_tex", m_view_inpaint->resolution(1));
+  m_program_transfer->setUniform("lod", 1);
+  ScreenQuad::draw();
+  m_view_inpaint2->disable();
+  m_program_transfer->release();
+
+  m_view_inpaint2->bindToTextureUnits(15);
+
+  m_program_transfer->use();
+  m_program_transfer->setUniform("resolution_tex", m_view_inpaint2->resolution(0));
+  m_program_transfer->setUniform("lod", 0);
 
   ScreenQuad::draw();
-  m_program_inpaint->release();  
+  m_program_transfer->release();  
 }
 
 void ReconIntegration::setVoxelSize(float size) {
@@ -170,7 +189,8 @@ std::uint64_t ReconIntegration::integrationTime() const {
 }
 
 void ReconIntegration::resize(std::size_t width, std::size_t height) {
-  m_view_inpaint = std::unique_ptr<ViewLod>{new ViewLod(width, height, 2)};
+  m_view_inpaint = std::unique_ptr<ViewLod>{new ViewLod(width, height, 4)};
+  m_view_inpaint2 = std::unique_ptr<ViewLod>{new ViewLod(width, height, 4)};
 }
 
 }
