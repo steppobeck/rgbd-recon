@@ -96,12 +96,10 @@ void ReconMVT::draw(){
   gloost::Matrix image_to_eye =  viewport_scale * viewport_translate * projection_matrix;
   image_to_eye.invert();
 
-  unsigned ox;
-  unsigned oy;
   // cull in the geometry shader
   glDisable(GL_CULL_FACE);
 // pass 1 goes to depth buffer only
-  m_va_pass_depth->enable(0, false, &ox, &oy, false);
+  m_va_pass_depth->enable(0, false);
 
   m_program_accum->use();
   m_program_accum->setUniform("stage", 0u);
@@ -112,14 +110,14 @@ void ReconMVT::draw(){
     m_tri_grid->drawArrays(GL_TRIANGLES, 0, m_tex_width * m_tex_height * 6);
   }
 
-  m_va_pass_depth->disable(false);
+  m_va_pass_depth->disable();
 
 // pass 2 goes to accumulation buffer
   glDisable(GL_DEPTH_TEST);
   glEnable(GL_BLEND); 
   glBlendFuncSeparateEXT(GL_ONE,GL_ONE,GL_ONE,GL_ONE);
   glBlendEquationSeparateEXT(GL_FUNC_ADD, GL_FUNC_ADD);
-  m_va_pass_accum->enable(0, false, &ox, &oy);
+  m_va_pass_accum->enable();
   m_program_accum->setUniform("stage", 1u);
   m_program_accum->setUniform("viewportSizeInv", glm::fvec2(1.0f/m_va_pass_depth->getWidth(), 1.0f/m_va_pass_depth->getHeight()));
   m_program_accum->setUniform("img_to_eye_curr", image_to_eye);
@@ -133,7 +131,7 @@ void ReconMVT::draw(){
   }
 
   m_program_accum->release();
-  m_va_pass_accum->disable(false);
+  m_va_pass_accum->disable();
   glDisable(GL_BLEND);
 
 // normalize pass outputs best quality color and depth to framebuffer of parent renderstage

@@ -58,7 +58,6 @@ namespace kinect {
     void useProcessedDepths(bool filter);
     void refineBoundary(bool filter);
 
-    void bindToTextureUnits() const;
 
     glm::uvec2 getDepthResolution() const;
     glm::uvec2 getColorResolution() const;
@@ -67,6 +66,7 @@ namespace kinect {
     std::size_t getStageTime(std::string const& name) const; 
 
   private:
+    void bindToTextureUnits() const;
     void processBackground();
     void processDepth();
 

@@ -16,8 +16,8 @@ namespace kinect {
   public:
     ViewArray(unsigned width, unsigned height, unsigned numLayers);
 
-    void enable(unsigned layer, bool use_vp = true, unsigned* ox = 0, unsigned* oy = 0, bool clearcolor = true);
-    void disable(bool use_vp = true);
+    void enable(unsigned layer = 0, bool clearcolor = true);
+    void disable();
 
     void bindToTextureUnits(unsigned start_texture_unit);
     void bindToTextureUnitDepth(unsigned start_texture_unit);
@@ -29,7 +29,6 @@ namespace kinect {
     unsigned getNumLayers();
 
   private:
-
     void getWidthHeight(unsigned& x, unsigned& y, unsigned& width, unsigned& height);
 
     unsigned m_width;
@@ -41,7 +40,6 @@ namespace kinect {
     globjects::ref_ptr<globjects::Framebuffer> m_fbo;
 
     int m_current_fbo;
-    gloost::Viewport m_viewport;
     gloost::Viewport m_viewport_current;
   };
 

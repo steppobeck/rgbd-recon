@@ -5,6 +5,7 @@
 #include "screen_quad.hpp"
 #include <KinectCalibrationFile.h>
 #include "CalibVolumes.hpp"
+#include "ViewArray.h"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
@@ -24,8 +25,6 @@ using namespace gl;
 namespace kinect{
 
 static int start_image_unit = 3;
-// float ReconIntegration::s_limit = 0.01f;
-// float ReconIntegration::s_voxel_size = 0.007f;
 
 ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes const* cv, gloost::BoundingBox const&  bbox, float limit, float size)
  :Reconstruction(cfs, cv, bbox)
@@ -90,8 +89,10 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
   
   m_program_inpaint->attach(
     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/texture_passthrough.vs"),
-    globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/texture_passthrough.fs")
+    globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/tsdf_inpaint.fs")
   );
+  m_program_inpaint->setUniform("texture_color", 15);
+  m_program_inpaint->setUniform("texture_depth", 16);
 }
 
 void ReconIntegration::drawF() {
@@ -99,10 +100,10 @@ void ReconIntegration::drawF() {
   integrate();
   m_timer_integration.end();
   Reconstruction::drawF();
+  fillColors();
 }
 
 void ReconIntegration::draw(){
-
   m_program->use();
 
   gloost::Matrix modelview;
@@ -116,7 +117,9 @@ void ReconIntegration::draw(){
 
   m_program->setUniform("CameraPos", camera_texturespace);
 
+  m_va_inpaint->enable(0, true);
   UnitCube::draw();
+  m_va_inpaint->disable();
 
   m_program->release();  
 }
@@ -135,6 +138,8 @@ void ReconIntegration::integrate() {
 }
 
 void ReconIntegration::fillColors() {
+  m_va_inpaint->bindToTextureUnits(15);
+  m_va_inpaint->bindToTextureUnitDepth(16);
   m_program_inpaint->use();
   ScreenQuad::draw();
   m_program_inpaint->release();  
@@ -159,6 +164,10 @@ void ReconIntegration::setTsdfLimit(float limit) {
 
 std::uint64_t ReconIntegration::integrationTime() const {
   return m_timer_integration.duration();
+}
+
+void ReconIntegration::resize(std::size_t width, std::size_t height) {
+  m_va_inpaint = std::unique_ptr<ViewArray>{new ViewArray(width, height, 1)};
 }
 
 }

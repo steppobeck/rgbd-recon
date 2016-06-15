@@ -17,7 +17,6 @@ ViewArray::ViewArray(unsigned width, unsigned height, unsigned numLayers)
     m_depthArray(m_width, m_height, m_numLayers, GL_DEPTH_COMPONENT32, GL_DEPTH_COMPONENT, GL_FLOAT),
     m_fbo{new globjects::Framebuffer()},
     m_current_fbo(0),
-    m_viewport(0,0,width,height),
     m_viewport_current(0,0,width, height)
 {
   m_depthArray.setMAGMINFilter(GL_NEAREST);
@@ -25,30 +24,20 @@ ViewArray::ViewArray(unsigned width, unsigned height, unsigned numLayers)
   m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT0});
 }
 
-void ViewArray::enable(unsigned layer, bool use_vp, unsigned* ox, unsigned* oy, bool clearcolor) {
+void ViewArray::enable(unsigned layer, bool clearcolor) {
   glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &m_current_fbo);
 
   m_fbo->bind();
   m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT0, m_colorArray.getTexture(), 0, layer);
   m_fbo->attachTextureLayer(GL_DEPTH_ATTACHMENT, m_depthArray.getTexture(), 0, layer);
 
-  if(use_vp){
-    m_viewport.enter();
-  }
-  else{
-    unsigned x;
-    unsigned y;
-    unsigned w;
-    unsigned h;
-    getWidthHeight(x,y,w,h);
-    if(0 == ox || 0 == oy)
-       std::cerr << " ViewArray::enable(unsigned layer, bool use_vp, unsigned* ox, unsigned* oy) ERROR" << std::endl;
-    *ox = x;
-    *oy = y;
-    //std::cerr << x << " " << y << " " << w << " " << h << std::endl;
-    m_viewport_current.set(x,y,w,h);
-    glViewport(0,0,w,h);
-  }
+  unsigned x;
+  unsigned y;
+  unsigned w;
+  unsigned h;
+  getWidthHeight(x,y,w,h);
+  m_viewport_current.set(x,y,w,h);
+  glViewport(0,0,w,h);
 
   if(clearcolor) {
     glClearColor(0.0,0.0,0.0,0.0);
@@ -60,14 +49,9 @@ void ViewArray::enable(unsigned layer, bool use_vp, unsigned* ox, unsigned* oy, 
 }
 
 void
-ViewArray::disable(bool use_vp){
+ViewArray::disable(){
   glBindFramebuffer(GL_FRAMEBUFFER_EXT, m_current_fbo);
-  if(use_vp){
-    m_viewport.leave();
-  }
-  else{
-    m_viewport_current.enter(false);
-  }
+  m_viewport_current.enter(false);
 }
 
 void

@@ -11,7 +11,10 @@ namespace globjects {
   class Framebuffer;
 }
 
+#include <memory>
+
 namespace kinect{
+  class ViewArray;
 
   class ReconIntegration : public Reconstruction {
 
@@ -27,12 +30,14 @@ namespace kinect{
     void setTsdfLimit(float limit);
 
     std::uint64_t integrationTime() const;
+    
+    void resize(std::size_t width, std::size_t height) override;
 
   private:
     globjects::ref_ptr<globjects::Program> m_program;
     globjects::ref_ptr<globjects::Program> m_program_integration;
     globjects::ref_ptr<globjects::Program> m_program_inpaint;
-
+    std::unique_ptr<ViewArray>             m_va_inpaint;
     glm::uvec3          m_res_volume;
     VolumeSampler       m_sampler;
     globjects::ref_ptr<globjects::Texture> m_volume_tsdf;
