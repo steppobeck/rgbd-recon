@@ -6,6 +6,7 @@
 #include <KinectCalibrationFile.h>
 #include "CalibVolumes.hpp"
 #include "ViewArray.h"
+#include "view_lod.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
@@ -117,9 +118,9 @@ void ReconIntegration::draw(){
 
   m_program->setUniform("CameraPos", camera_texturespace);
 
-  m_va_inpaint->enable(0, true);
+  m_view_inpaint->enable(0, true);
   UnitCube::draw();
-  m_va_inpaint->disable();
+  m_view_inpaint->disable();
 
   m_program->release();  
 }
@@ -138,8 +139,8 @@ void ReconIntegration::integrate() {
 }
 
 void ReconIntegration::fillColors() {
-  m_va_inpaint->bindToTextureUnits(15);
-  m_va_inpaint->bindToTextureUnitDepth(16);
+  m_view_inpaint->bindToTextureUnits(15);
+  m_view_inpaint->bindToTextureUnitDepth(16);
   m_program_inpaint->use();
   ScreenQuad::draw();
   m_program_inpaint->release();  
@@ -167,7 +168,7 @@ std::uint64_t ReconIntegration::integrationTime() const {
 }
 
 void ReconIntegration::resize(std::size_t width, std::size_t height) {
-  m_va_inpaint = std::unique_ptr<ViewArray>{new ViewArray(width, height, 1)};
+  m_view_inpaint = std::unique_ptr<ViewLod>{new ViewLod(width, height)};
 }
 
 }

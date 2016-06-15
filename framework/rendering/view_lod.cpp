@@ -4,6 +4,7 @@
 using namespace gl;
 #include <globjects/Framebuffer.h>
 #include <globjects/Texture.h>
+#include <iostream>
 
 namespace kinect {
 
@@ -18,6 +19,7 @@ ViewLod::ViewLod(unsigned width, unsigned height, unsigned num_lods)
    m_viewport_current(0,0,width, height)
 {
   m_tex_color->image2D(0, GL_RGBA32F, m_width, m_height, 0, GL_RGBA, GL_FLOAT, (void*)nullptr);
+  std::cout << "color id " << m_tex_color->id() << std::endl;
   m_tex_depth->image2D(0, GL_DEPTH_COMPONENT32, m_width, m_height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, (void*)nullptr);
   m_tex_depth->setParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   m_tex_depth->setParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -31,7 +33,7 @@ void ViewLod::enable(unsigned lod, bool clear_color) {
   m_fbo->bind();
   m_fbo->attachTexture(GL_COLOR_ATTACHMENT0, m_tex_color, lod);
   m_fbo->attachTexture(GL_DEPTH_ATTACHMENT, m_tex_depth, lod);
-  // m_fbo->printStatus();
+ 
   unsigned x;
   unsigned y;
   unsigned w;
@@ -55,16 +57,20 @@ void ViewLod::disable(){
 }
 
 void ViewLod::bindToTextureUnits(unsigned start_texture_unit){
-  m_tex_color->bindActive(start_texture_unit);
-  m_tex_depth->bindActive(start_texture_unit + 1);
+  bindToTextureUnitRGBA(start_texture_unit);
+  bindToTextureUnitDepth(start_texture_unit + 1);
 }
 
 void ViewLod::bindToTextureUnitDepth(unsigned start_texture_unit){
-  m_tex_depth->bindActive(start_texture_unit);
+  // m_tex_depth->bindActive(start_texture_unit);
+  glActiveTexture(GL_TEXTURE0 + start_texture_unit);
+  m_tex_depth->bind();
 }
 
 void ViewLod::bindToTextureUnitRGBA(unsigned start_texture_unit){
-  m_tex_color->bindActive(start_texture_unit);
+  // m_tex_color->bindActive(start_texture_unit);
+  glActiveTexture(GL_TEXTURE0 + start_texture_unit);
+  m_tex_color->bind();
 }
 
 unsigned ViewLod::getWidth(){

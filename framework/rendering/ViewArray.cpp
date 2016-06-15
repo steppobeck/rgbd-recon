@@ -50,16 +50,14 @@ void ViewArray::enable(unsigned layer, bool clearcolor) {
 
 void
 ViewArray::disable(){
-  glBindFramebuffer(GL_FRAMEBUFFER_EXT, m_current_fbo);
+  glBindFramebuffer(GL_FRAMEBUFFER, m_current_fbo);
   m_viewport_current.enter(false);
 }
 
 void
 ViewArray::bindToTextureUnits(unsigned start_texture_unit){
-  glActiveTexture(GL_TEXTURE0 + start_texture_unit);
-  m_colorArray.bind();
-  glActiveTexture(GL_TEXTURE0 + start_texture_unit + 1);
-  m_depthArray.bind();
+  bindToTextureUnitRGBA(start_texture_unit);
+  bindToTextureUnitDepth(start_texture_unit + 1);
 }
 
 void

@@ -3,6 +3,7 @@
 
 #include "reconstruction.hpp"
 #include "volume_sampler.hpp"
+#include "view_lod.hpp"
 
 #include <globjects/base/ref_ptr.h>
 namespace globjects {
@@ -14,7 +15,7 @@ namespace globjects {
 #include <memory>
 
 namespace kinect{
-  class ViewArray;
+  class ViewLod;
 
   class ReconIntegration : public Reconstruction {
 
@@ -37,7 +38,7 @@ namespace kinect{
     globjects::ref_ptr<globjects::Program> m_program;
     globjects::ref_ptr<globjects::Program> m_program_integration;
     globjects::ref_ptr<globjects::Program> m_program_inpaint;
-    std::unique_ptr<ViewArray>             m_va_inpaint;
+    std::unique_ptr<ViewLod>               m_view_inpaint;
     glm::uvec3          m_res_volume;
     VolumeSampler       m_sampler;
     globjects::ref_ptr<globjects::Texture> m_volume_tsdf;
