@@ -41,6 +41,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
  ,m_mat_vol_to_world{1.0f}
  ,m_limit{limit}
  ,m_voxel_size{size}
+ ,m_num_lods{4}
  ,m_timer_integration{}
 {
   m_program->attach(
@@ -126,7 +127,7 @@ void ReconIntegration::draw(){
 
   m_program->setUniform("CameraPos", camera_texturespace);
 
-  m_view_inpaint->enable(1);
+  m_view_inpaint->enable();
   UnitCube::draw();
   m_view_inpaint->disable();
 
@@ -147,21 +148,32 @@ void ReconIntegration::integrate() {
 }
 
 void ReconIntegration::fillColors() {
+  for(unsigned i = 1; i < m_num_lods; ++i) {
+    // calculate next lod
+    m_view_inpaint->enable(i);
+    m_program_inpaint->use();
+    m_program_inpaint->setUniform("resolution_tex", m_view_inpaint->resolution(i - 1));
+    m_program_inpaint->setUniform("lod", int(i - 1));
+    ScreenQuad::draw();
+    m_view_inpaint->disable();
+    m_program_inpaint->release();
+    
+    // transfer textures
+    m_view_inpaint->bindToTextureUnits(15);
+    m_view_inpaint2->enable(i);
+    m_program_transfer->use();
+    m_program_transfer->setUniform("resolution_tex", m_view_inpaint->resolution(i));
+    m_program_transfer->setUniform("lod", int(i));
+    ScreenQuad::draw();
+    m_view_inpaint2->disable();
+    m_program_transfer->release();
+    std::swap(m_view_inpaint, m_view_inpaint2);
+  }
+  // tranfer to default framebuffer
   m_view_inpaint->bindToTextureUnits(15);
-
-  m_view_inpaint2->enable(0);
   m_program_transfer->use();
-  m_program_transfer->setUniform("resolution_tex", m_view_inpaint->resolution(1));
-  m_program_transfer->setUniform("lod", 1);
-  ScreenQuad::draw();
-  m_view_inpaint2->disable();
-  m_program_transfer->release();
-
-  m_view_inpaint2->bindToTextureUnits(15);
-
-  m_program_transfer->use();
-  m_program_transfer->setUniform("resolution_tex", m_view_inpaint2->resolution(0));
-  m_program_transfer->setUniform("lod", 0);
+  m_program_transfer->setUniform("resolution_tex", m_view_inpaint->resolution(3));
+  m_program_transfer->setUniform("lod", 3);
 
   ScreenQuad::draw();
   m_program_transfer->release();  
