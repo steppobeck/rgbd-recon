@@ -19,19 +19,24 @@ MACRO(find_dependency DEP DEP_HEADER DEP_LIB)
 ##############################################################################
 # search paths
 ##############################################################################
-SET(${DEP}_INCLUDE_SEARCH_DIRS
-  ${GLOBAL_EXT_DIR}/inc/${DEP}
+list(APPEND ${DEP}_INCLUDE_SEARCH_DIRS
   ${${DEP}_INCLUDE_DIRS}
   ${${DEP}_INCLUDE_SEARCH_DIR}
+  ${GLOBAL_EXT_DIR}/inc/${DEP}
   "/usr/include"
   "/usr/share/include"
   "/usr/include/x86_64-linux-gnu/"
 )
 
-SET(${DEP}_LIBRARY_SEARCH_DIRS
-  ${GLOBAL_EXT_DIR}/lib
+# search before global paths
+list(APPEND ${DEP}_LIBRARY_SEARCH_HINTS
   ${${DEP}_LIBRARY_DIRS}
   ${${DEP}_LIBRARY_SEARCH_DIR}
+  ${GLOBAL_EXT_DIR}/lib
+  ${GLOBAL_EXT_DIR}/${DEP}/lib
+)
+# search after global paths
+list(APPEND ${DEP}_LIBRARY_SEARCH_PATHS
   "/usr/lib/"
   "/usr/lib/x86_64-linux-gnu/"
 )
@@ -39,120 +44,105 @@ SET(${DEP}_LIBRARY_SEARCH_DIRS
 # macros
 ##############################################################################
 # feedback to provide user-defined paths to search for ${DEP}
-MACRO (request_dep_search_directories)
+MACRO(request_include_search_dirs)
+  # if hints were provided, display
+  if (DEFINED ${DEP}_INCLUDE_SEARCH_DIR)
+    set(${DEP}_INCLUDE_SEARCH_DIR ${${DEP}_INCLUDE_SEARCH_DIR} CACHE PATH "path to ${DEP} headers.")
+    # if not, request them
+  else()
+    set(${DEP}_INCLUDE_SEARCH_DIR "Please provide ${DEP} include path." CACHE PATH "path to ${DEP} headers.")
+  endif()
+ENDMACRO()
 
-  IF ( NOT ${DEP}_INCLUDE_DIRS )
-    SET(${DEP}_INCLUDE_SEARCH_DIR "Please provide ${DEP} include path." CACHE PATH "path to ${DEP} headers.")
-    MESSAGE(FATAL_ERROR "find_${DEP}.cmake: unable to find ${DEP} headers.")
-  ELSE ( NOT ${DEP}_INCLUDE_DIRS )
-    UNSET(${DEP}_INCLUDE_SEARCH_DIR CACHE)
-  ENDIF ( NOT ${DEP}_INCLUDE_DIRS )
-
-  IF ( NOT ${DEP}_LIBRARY_DIRS )
-    SET(${DEP}_LIBRARY_SEARCH_DIR "Please provide ${DEP} library path." CACHE PATH "path to ${DEP} libraries.")
-    MESSAGE(FATAL_ERROR "find_${DEP}.cmake: unable to find ${DEP} libraries.")
-  ELSE ( NOT ${DEP}_LIBRARY_DIRS )
-    UNSET(${DEP}_LIBRARY_SEARCH_DIR CACHE)
-  ENDIF ( NOT ${DEP}_LIBRARY_DIRS ) 
-
-ENDMACRO (request_dep_search_directories)
-
-# get library extension depending on platform
-MACRO(add_lib_extension FILENAME FULL_FILENAME)
-  IF(UNIX)
-    SET(${FULL_FILENAME} "${FILENAME}.so")
-  ELSEIF(WIN32)
-    SET(${FULL_FILENAME} "${FILENAME}.lib")
-  ENDIF(UNIX)
-ENDMACRO(add_lib_extension)
+MACRO(request_lib_search_dirs)
+  # if hints were provided, display
+  if (DEFINED ${DEP}_LIBRARY_SEARCH_DIR)
+    set(${DEP}_LIBRARY_SEARCH_DIR ${${DEP}_LIBRARY_SEARCH_DIR} CACHE PATH "path to ${DEP} libraries.")
+    # if not, request them
+  else()
+    set(${DEP}_LIBRARY_SEARCH_DIR "Please provide ${DEP} library path." CACHE PATH "path to ${DEP} libraries.")
+  endif()
+ENDMACRO()
 ##############################################################################
 # search
 ##############################################################################
 message(STATUS "Looking for ${DEP}")
 # search for include directory
-IF (NOT ${DEP}_INCLUDE_DIRS)
+if (NOT ${DEP}_INCLUDE_DIRS)
 
-  SET(_${DEP}_FOUND_INC_DIRS "")
-  FOREACH(_SEARCH_DIR ${${DEP}_INCLUDE_SEARCH_DIRS})
-    FIND_PATH(_CUR_SEARCH
+  set(_${DEP}_FOUND_INC_DIRS "")
+  foreach(_SEARCH_DIR ${${DEP}_INCLUDE_SEARCH_DIRS})
+    find_path(_CUR_SEARCH
       NAMES ${DEP_HEADER}
         PATHS ${_SEARCH_DIR}
         NO_DEFAULT_PATH)
     # stop search once dir is found
-    IF (_CUR_SEARCH)
-      LIST(APPEND _${DEP}_FOUND_INC_DIRS ${_CUR_SEARCH})
-      BREAK()
-    ENDIF(_CUR_SEARCH)
-  ENDFOREACH(_SEARCH_DIR ${${DEP}_INCLUDE_SEARCH_DIRS})
+    if (_CUR_SEARCH)
+      list(APPEND _${DEP}_FOUND_INC_DIRS ${_CUR_SEARCH})
+      break()
+    endif(_CUR_SEARCH)
+  endforeach(_SEARCH_DIR ${${DEP}_INCLUDE_SEARCH_DIRS})
   # reset search status for next search
-  SET(_CUR_SEARCH _CUR_SEARCH-NOTFOUND CACHE INTERNAL "internal use")
+  set(_CUR_SEARCH _CUR_SEARCH-NOTFOUND CACHE INTERNAL "internal use")
 
-  IF (NOT _${DEP}_FOUND_INC_DIRS)
-    request_dep_search_directories()
-  ENDIF (NOT _${DEP}_FOUND_INC_DIRS)
+  if (NOT _${DEP}_FOUND_INC_DIRS)
+    request_include_search_dirs()
+    message(FATAL_ERROR "Unable to find ${DEP} headers.")
+  endif (NOT _${DEP}_FOUND_INC_DIRS)
 
-  FOREACH(_INC_DIR ${_${DEP}_FOUND_INC_DIRS})
-    SET(${DEP}_INCLUDE_DIRS ${${DEP}_INCLUDE_DIRS} ${_INC_DIR} CACHE PATH "${DEP} include directory.")
-  ENDFOREACH(_INC_DIR ${_${DEP}_FOUND_INC_DIRS})
+  foreach(_INC_DIR ${_${DEP}_FOUND_INC_DIRS})
+    set(${DEP}_INCLUDE_DIRS ${${DEP}_INCLUDE_DIRS} ${_INC_DIR} CACHE PATH "${DEP} include directory.")
+  endforeach(_INC_DIR ${_${DEP}_FOUND_INC_DIRS})
 
-ENDIF (NOT ${DEP}_INCLUDE_DIRS)
+endif (NOT ${DEP}_INCLUDE_DIRS)
 
-
-# search for library dirs
-add_lib_extension(${DEP_LIB} ${DEP}_LIB_FILENAME)
-IF ( NOT ${DEP}_LIBRARY_DIRS )
-
-  SET(_${DEP}_FOUND_LIB_DIR "")
-  SET(_${DEP}_POSTFIX "")
-  # check all given possible library dirs
-  FOREACH(_SEARCH_DIR ${${DEP}_LIBRARY_SEARCH_DIRS})
-    FIND_PATH(_CUR_SEARCH
-      NAMES ${${DEP}_LIB_FILENAME}
-        PATHS ${_SEARCH_DIR}
-        PATH_SUFFIXES release debug
-        NO_DEFAULT_PATH)
-    # stop search once dir is found
-    IF (_CUR_SEARCH)
-      LIST(APPEND _${DEP}_FOUND_LIB_DIR ${_SEARCH_DIR})
-      BREAK()
-    ENDIF(_CUR_SEARCH)
-  ENDFOREACH(_SEARCH_DIR ${${DEP}_LIBRARY_SEARCH_DIRS})
-  # reset search status for next search
-  SET(_CUR_SEARCH _CUR_SEARCH-NOTFOUND CACHE INTERNAL "internal use")
-
-  # react to search result
-  IF (NOT _${DEP}_FOUND_LIB_DIR)
-    request_dep_search_directories()
-  ELSE (NOT _${DEP}_FOUND_LIB_DIR)
-    SET(${DEP}_LIBRARY_DIRS ${_${DEP}_FOUND_LIB_DIR} CACHE INTERNAL PATH "The ${DEP} library directory")
-  ENDIF (NOT _${DEP}_FOUND_LIB_DIR)
-
-  # begin list of libraries with search library
-  LIST(APPEND _${DEP}_LIBRARIES "${_${DEP}_FOUND_LIB_DIR}/${${DEP}_LIB_FILENAME}")
-  # Cannot use ARGN directly with list() command.
-  SET(extra_macro_args ${ARGN})
+# search for libraries
+if (NOT ${DEP}_LIBS_FOUND)
+  # create list of libs from lib and optional arguments
+  set(${DEP}_LIB_LIST ${DEP_LIB})
+  list(APPEND ${DEP}_LIB_LIST ${ARGN})
   # accumulate library list
-  FOREACH(EXTRA_LIB ${extra_macro_args})
-    add_lib_extension(${EXTRA_LIB} EXTRA_LIB_FULL)
-    LIST(APPEND _${DEP}_LIBRARIES "${_${DEP}_FOUND_LIB_DIR}/${EXTRA_LIB_FULL}")
-  ENDFOREACH(EXTRA_LIB ${extra_macro_args})
-  # set library cache variable
-  IF (_${DEP}_FOUND_LIB_DIR)
-    SET(${DEP}_LIBRARIES ${_${DEP}_LIBRARIES} CACHE FILEPATH "The ${DEP} library filename.")
-  ENDIF (_${DEP}_FOUND_LIB_DIR)
-
-ENDIF ( NOT ${DEP}_LIBRARY_DIRS )
+  foreach(_SEARCH_LIB ${${DEP}_LIB_LIST})
+    # search only for lib if it hasnt already been found
+    list(FIND ${DEP}_FOUND_LIBS ${_SEARCH_LIB} _INDEX)
+    if(${_INDEX} LESS 0)
+      find_library(_CUR_SEARCH
+        NAMES ${_SEARCH_LIB}
+        HINTS ${${DEP}_LIBRARY_SEARCH_HINTS}
+        PATHS ${${DEP}_LIBRARY_SEARCH_PATHS}
+        PATH_SUFFIXES release debug
+      )
+      # react to search result
+      if(_CUR_SEARCH)
+          # add library and path to output lists 
+          set(${DEP}_LIBRARIES ${${DEP}_LIBRARIES} ${_CUR_SEARCH} CACHE FILEPATH "The ${DEP} library filenames." FORCE)
+          get_filename_component(_${DEP}_LIB_PATH ${_CUR_SEARCH} DIRECTORY)
+          set(${DEP}_LIBRARY_DIRS ${${DEP}_LIBRARY_DIRS} ${_${DEP}_LIB_PATH} CACHE PATH "The ${DEP} library directories." FORCE)
+          # mark library as found
+          set(${DEP}_FOUND_LIBS ${${DEP}_FOUND_LIBS} ${_SEARCH_LIB} CACHE INTERNAL "internal use")
+        # reset search status for next search
+        set(_CUR_SEARCH _CUR_SEARCH-NOTFOUND CACHE INTERNAL "internal use")
+      else()
+        set(_CUR_SEARCH _CUR_SEARCH-NOTFOUND CACHE INTERNAL "internal use")
+        request_lib_search_dirs()
+        # stops processing and exits loop
+        message(FATAL_ERROR "Unable to find ${DEP} library '${_SEARCH_LIB}'")
+      endif()
+    endif()
+  endforeach()
+  # if statement is reached, all libraries were found
+  set(${DEP}_LIBS_FOUND TRUE CACHE INTERNAL "internal use")
+endif()
 
 ##############################################################################
 # verify
 ##############################################################################
-IF ( NOT ${DEP}_INCLUDE_DIRS OR NOT ${DEP}_LIBRARY_DIRS )
-  request_dep_search_directories()
-  message(STATUS "Looking for ${DEP} - not found")
-ELSE ( NOT ${DEP}_INCLUDE_DIRS OR NOT ${DEP}_LIBRARY_DIRS ) 
-  UNSET(${DEP}_INCLUDE_SEARCH_DIR CACHE)
-  UNSET(${DEP}_LIBRARY_SEARCH_DIR CACHE)
+if(${DEP}_INCLUDE_DIRS AND ${DEP}_LIBS_FOUND)
+  unset(${DEP}_INCLUDE_SEARCH_DIR CACHE)
+  unset(${DEP}_LIBRARY_SEARCH_DIR CACHE)
   message(STATUS "Looking for ${DEP} - found")
-ENDIF ( NOT ${DEP}_INCLUDE_DIRS OR NOT ${DEP}_LIBRARY_DIRS )
+else() 
+  message(STATUS "Looking for ${DEP} - not found")
+endif()
 
 ENDMACRO(find_dependency)
