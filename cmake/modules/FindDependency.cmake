@@ -19,23 +19,26 @@ MACRO(find_dependency DEP DEP_HEADER DEP_LIB)
 ##############################################################################
 # search paths
 ##############################################################################
-list(APPEND ${DEP}_INCLUDE_SEARCH_DIRS
+# search before global environment paths
+list(APPEND ${DEP}_INCLUDE_SEARCH_HINTS
   ${${DEP}_INCLUDE_DIRS}
   ${${DEP}_INCLUDE_SEARCH_DIR}
   ${GLOBAL_EXT_DIR}/inc/${DEP}
+  ${GLOBAL_EXT_DIR}/${DEP}/include
+)
+# search after global environment paths
+list(APPEND ${DEP}_INCLUDE_SEARCH_PATHS
   "/usr/include"
   "/usr/share/include"
   "/usr/include/x86_64-linux-gnu/"
 )
 
-# search before global paths
 list(APPEND ${DEP}_LIBRARY_SEARCH_HINTS
   ${${DEP}_LIBRARY_DIRS}
   ${${DEP}_LIBRARY_SEARCH_DIR}
   ${GLOBAL_EXT_DIR}/lib
   ${GLOBAL_EXT_DIR}/${DEP}/lib
 )
-# search after global paths
 list(APPEND ${DEP}_LIBRARY_SEARCH_PATHS
   "/usr/lib/"
   "/usr/lib/x86_64-linux-gnu/"
@@ -70,29 +73,20 @@ message(STATUS "Looking for ${DEP}")
 # search for include directory
 if (NOT ${DEP}_INCLUDE_DIRS)
 
-  set(_${DEP}_FOUND_INC_DIRS "")
-  foreach(_SEARCH_DIR ${${DEP}_INCLUDE_SEARCH_DIRS})
-    find_path(_CUR_SEARCH
-      NAMES ${DEP_HEADER}
-        PATHS ${_SEARCH_DIR}
-        NO_DEFAULT_PATH)
-    # stop search once dir is found
-    if (_CUR_SEARCH)
-      list(APPEND _${DEP}_FOUND_INC_DIRS ${_CUR_SEARCH})
-      break()
-    endif(_CUR_SEARCH)
-  endforeach(_SEARCH_DIR ${${DEP}_INCLUDE_SEARCH_DIRS})
-  # reset search status for next search
-  set(_CUR_SEARCH _CUR_SEARCH-NOTFOUND CACHE INTERNAL "internal use")
+  find_path(_CUR_SEARCH
+    NAMES ${DEP_HEADER}
+    HINTS ${${DEP}_INCLUDE_SEARCH_HINTS}
+    PATHS ${${DEP}_INCLUDE_SEARCH_PATHS}
+    PATH_SUFFIXES release debug
+  )
 
-  if (NOT _${DEP}_FOUND_INC_DIRS)
+  if(_CUR_SEARCH)
+    set(${DEP}_INCLUDE_DIRS ${_CUR_SEARCH} CACHE PATH "${DEP} include directory.")
+  else()
     request_include_search_dirs()
-    message(FATAL_ERROR "Unable to find ${DEP} headers.")
-  endif (NOT _${DEP}_FOUND_INC_DIRS)
-
-  foreach(_INC_DIR ${_${DEP}_FOUND_INC_DIRS})
-    set(${DEP}_INCLUDE_DIRS ${${DEP}_INCLUDE_DIRS} ${_INC_DIR} CACHE PATH "${DEP} include directory.")
-  endforeach(_INC_DIR ${_${DEP}_FOUND_INC_DIRS})
+    message(FATAL_ERROR "Unable to find ${DEP} headers, please specify the correct ${DEP}_INCLUDE_SEARCH_DIR.")
+  endif()
+  set(_CUR_SEARCH _CUR_SEARCH-NOTFOUND CACHE INTERNAL "internal use")
 
 endif (NOT ${DEP}_INCLUDE_DIRS)
 
@@ -126,7 +120,7 @@ if (NOT ${DEP}_LIBS_FOUND)
         set(_CUR_SEARCH _CUR_SEARCH-NOTFOUND CACHE INTERNAL "internal use")
         request_lib_search_dirs()
         # stops processing and exits loop
-        message(FATAL_ERROR "Unable to find ${DEP} library '${_SEARCH_LIB}'")
+        message(FATAL_ERROR "Unable to find ${DEP} library '${_SEARCH_LIB}', please specify the correct ${DEP}_LIBRARY_SEARCH_DIR.")
       endif()
     endif()
   endforeach()
@@ -141,6 +135,12 @@ if(${DEP}_INCLUDE_DIRS AND ${DEP}_LIBS_FOUND)
   unset(${DEP}_INCLUDE_SEARCH_DIR CACHE)
   unset(${DEP}_LIBRARY_SEARCH_DIR CACHE)
   message(STATUS "Looking for ${DEP} - found")
+  # create imported library if version is high enough
+  if(${CMAKE_MAJOR_VERSION} GREATER 2 AND ${CMAKE_MINOR_VERSION} GREATER -1 AND ${CMAKE_PATCH_VERSION} GREATER 1)
+    add_library(${DEP_LIB} INTERFACE IMPORTED GLOBAL)
+    set_property(TARGET ${DEP_LIB} PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${${DEP}_INCLUDE_DIRS})
+    set_property(TARGET ${DEP_LIB} PROPERTY INTERFACE_LINK_LIBRARIES "${${DEP}_LIBRARIES}")
+  endif()
 else() 
   message(STATUS "Looking for ${DEP} - not found")
 endif()
