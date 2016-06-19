@@ -163,7 +163,7 @@ vec3 blendColors(const in vec3 sample_pos) {
     total_weight += weights[i];
   }
   total_color /= total_weight;
-  if(total_weight <= 0.0f) total_color = vec3(1.0f, 0.0f, 0.0f);
+  if(total_weight <= 0.0f) total_color = vec3(0.0f);
   return total_color;
 }
 

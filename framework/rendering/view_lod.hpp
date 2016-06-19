@@ -26,11 +26,13 @@ namespace kinect {
     void bindToTextureUnitDepth(unsigned start_texture_unit);
     void bindToTextureUnitRGBA(unsigned start_texture_unit);
 
-    unsigned getWidth(unsigned i);
-    unsigned getHeight(unsigned i);
-    glm::uvec2 resolution(unsigned i);
+    unsigned getWidth(unsigned i) const;
+    unsigned getHeight(unsigned i) const;
 
-    unsigned getNumLods();
+    void setResolution(unsigned width, unsigned height);
+    glm::uvec2 resolution(unsigned i) const;
+
+    unsigned getNumLods() const;
 
   private:
     void getWidthHeight(unsigned& x, unsigned& y, unsigned& width, unsigned& height);

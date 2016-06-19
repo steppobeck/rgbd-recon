@@ -27,7 +27,7 @@ void main() {
   	for(int y = 0; y < kernel_size; ++y) {
 	 		const ivec2 pos = clamp(ivec2(pass_TexCoord * resolution_tex) + ivec2(x-4/2+1, y-4/2+1), ivec2(0), ivec2(resolution_tex)-1);
 	 		vec4 color = texelFetch(texture_color, pos, lod);
-	 		if (color.rgb != vec3(1.0f, 0.0f, 0.0f) && color.rgb != vec3(0.0f)) {
+	 		if (color != vec4(0.0f, 0.0f, 0.0f, 1.0f)) {
 		 		float depth = texelFetch(texture_depth, pos, lod).r;
 		 		float weight = gauss_weights[x + kernel_size * y];
 		 		total_color += color * weight;
@@ -38,5 +38,6 @@ void main() {
   }
 
   out_FragColor = total_color / total_weight;
+  if(total_weight <= 0.0f) out_FragColor = vec4(0.0f, 0.0f, 0.0f, 1.0f);
   gl_FragDepth = total_depth / total_weight;
 }

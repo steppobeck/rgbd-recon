@@ -103,6 +103,9 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
   );
   m_program_transfer->setUniform("texture_color", 15);
   m_program_transfer->setUniform("texture_depth", 16);
+
+  m_view_inpaint = std::unique_ptr<ViewLod>{new ViewLod(1280, 720, m_num_lods)};
+  m_view_inpaint2 = std::unique_ptr<ViewLod>{new ViewLod(1280, 720, m_num_lods)};
 }
 
 void ReconIntegration::drawF() {
@@ -201,8 +204,8 @@ std::uint64_t ReconIntegration::integrationTime() const {
 }
 
 void ReconIntegration::resize(std::size_t width, std::size_t height) {
-  m_view_inpaint = std::unique_ptr<ViewLod>{new ViewLod(width, height, 4)};
-  m_view_inpaint2 = std::unique_ptr<ViewLod>{new ViewLod(width, height, 4)};
+  m_view_inpaint->setResolution(width, height);
+  m_view_inpaint2->setResolution(width, height);
 }
 
 }
