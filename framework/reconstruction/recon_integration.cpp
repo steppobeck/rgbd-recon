@@ -32,6 +32,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
  ,m_program{new globjects::Program()}
  ,m_program_integration{new globjects::Program()}
  ,m_program_inpaint{new globjects::Program()}
+ ,m_program_colorfill{new globjects::Program()}
  ,m_program_transfer{new globjects::Program()}
  ,m_res_volume{glm::ceil(glm::fvec3{bbox.getPMax()[0] - bbox.getPMin()[0],
                                     bbox.getPMax()[1] - bbox.getPMin()[1],
@@ -42,6 +43,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
  ,m_limit{limit}
  ,m_voxel_size{size}
  ,m_num_lods{4}
+ ,m_fill_holes{true}
  ,m_timer_integration{}
 {
   m_program->attach(
@@ -104,6 +106,14 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
   m_program_transfer->setUniform("texture_color", 15);
   m_program_transfer->setUniform("texture_depth", 16);
 
+  m_program_colorfill->attach(
+   globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/texture_passthrough.vs")
+  ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/tsdf_colorfill.fs")
+  );
+  m_program_colorfill->setUniform("texture_color", 15);
+  m_program_colorfill->setUniform("texture_depth", 16);
+  m_program_colorfill->setUniform("num_lods", int(m_num_lods));
+
   m_view_inpaint = std::unique_ptr<ViewLod>{new ViewLod(1280, 720, m_num_lods)};
   m_view_inpaint2 = std::unique_ptr<ViewLod>{new ViewLod(1280, 720, m_num_lods)};
 }
@@ -113,7 +123,12 @@ void ReconIntegration::drawF() {
   integrate();
   m_timer_integration.end();
   Reconstruction::drawF();
-  fillColors();
+  
+  if (m_fill_holes) {
+    m_timer_holefill.begin();
+    fillColors();
+    m_timer_holefill.end();
+  }
 }
 
 void ReconIntegration::draw(){
@@ -130,10 +145,13 @@ void ReconIntegration::draw(){
 
   m_program->setUniform("CameraPos", camera_texturespace);
 
-  m_view_inpaint->enable();
+  if (m_fill_holes) {
+    m_view_inpaint->enable();
+  }
   UnitCube::draw();
-  m_view_inpaint->disable();
-
+  if (m_fill_holes) {
+    m_view_inpaint->disable();
+  }
   m_program->release();  
 }
 
@@ -174,12 +192,11 @@ void ReconIntegration::fillColors() {
   }
   // tranfer to default framebuffer
   m_view_inpaint->bindToTextureUnits(15);
-  m_program_transfer->use();
-  m_program_transfer->setUniform("resolution_tex", m_view_inpaint->resolution(0));
-  m_program_transfer->setUniform("lod", 0);
+  m_program_colorfill->use();
+  m_program_colorfill->setUniform("resolution_tex", m_view_inpaint->resolution(0));
 
   ScreenQuad::draw();
-  m_program_transfer->release();  
+  m_program_colorfill->release();  
 }
 
 void ReconIntegration::setVoxelSize(float size) {
@@ -203,9 +220,17 @@ std::uint64_t ReconIntegration::integrationTime() const {
   return m_timer_integration.duration();
 }
 
+std::uint64_t ReconIntegration::holefillTime() const {
+  return m_timer_holefill.duration();
+}
+
 void ReconIntegration::resize(std::size_t width, std::size_t height) {
   m_view_inpaint->setResolution(width, height);
   m_view_inpaint2->setResolution(width, height);
+}
+
+void ReconIntegration::setColorFilling(bool active) {
+  m_fill_holes = active;
 }
 
 }

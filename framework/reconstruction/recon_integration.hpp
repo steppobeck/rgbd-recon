@@ -25,21 +25,23 @@ namespace kinect{
     void draw() override;
     void drawF() override;
     void integrate();
-    void fillColors();
-
+    void setColorFilling(bool active);
     void setVoxelSize(float size);
     void setTsdfLimit(float limit);
 
     std::uint64_t integrationTime() const;
+    std::uint64_t holefillTime() const;
     
     void resize(std::size_t width, std::size_t height) override;
 
     std::unique_ptr<ViewLod>               m_view_inpaint;
   private:
+    void fillColors();
     std::unique_ptr<ViewLod>               m_view_inpaint2;
     globjects::ref_ptr<globjects::Program> m_program;
     globjects::ref_ptr<globjects::Program> m_program_integration;
     globjects::ref_ptr<globjects::Program> m_program_inpaint;
+    globjects::ref_ptr<globjects::Program> m_program_colorfill;
     globjects::ref_ptr<globjects::Program> m_program_transfer;
     glm::uvec3          m_res_volume;
     VolumeSampler       m_sampler;
@@ -50,8 +52,9 @@ namespace kinect{
     float m_limit;
     float m_voxel_size;
     unsigned m_num_lods;
-
+    bool m_fill_holes;
     TimerGPU m_timer_integration;
+    TimerGPU m_timer_holefill;
   };
 }
 

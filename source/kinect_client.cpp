@@ -62,6 +62,7 @@ int      g_texture_type = 0;
 int      g_num_texture  = 0;
 bool     g_processed    = true;
 bool     g_refine       = true;
+bool     g_colorfill    = true;
 int      g_num_kinect   = 1; 
 float    g_voxel_size   = 0.007f;
 float    g_tsdf_limit   = 0.01f;
@@ -231,6 +232,9 @@ void update_gui() {
       if (ImGui::DragFloat("Voxel Size", &g_voxel_size, 0.001f, 0.003f, 0.1f, "%.3f")) {
         g_recon_integration->setVoxelSize(g_voxel_size);
       }
+      if (ImGui::Checkbox("Color hole filling", &g_colorfill)) {
+        g_recon_integration->setColorFilling(g_colorfill);
+      }
     }
     if (ImGui::CollapsingHeader("Processing Performance")) {
       std::uint64_t total = 
@@ -269,9 +273,11 @@ void update_gui() {
           ImGui::Columns(2, NULL, false);
           ImGui::Text("Drawing");
           ImGui::Text("Integration");
+          ImGui::Text("Colorfilling");
           ImGui::NextColumn();
           ImGui::Text("%.3f ms", g_recon_integration->drawTime() / 1000000.0f);
           ImGui::Text("%.3f ms", g_recon_integration->integrationTime() / 1000000.0f);
+          ImGui::Text("%.3f ms", g_recon_integration->holefillTime() / 1000000.0f);
           ImGui::Columns(1);
           ImGui::TreePop();
         }
