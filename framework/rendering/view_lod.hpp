@@ -33,6 +33,7 @@ namespace kinect {
     glm::uvec2 resolution(unsigned i) const;
 
     unsigned getNumLods() const;
+    globjects::Texture const* getColorTex() const;
 
   private:
     void getWidthHeight(unsigned& x, unsigned& y, unsigned& width, unsigned& height);

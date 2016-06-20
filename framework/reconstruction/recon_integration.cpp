@@ -23,8 +23,9 @@ using namespace gl;
 #include <globjects/Shader.h>
 #include <globjects/globjects.h>
 
-namespace kinect{
+// #define VERT_FILL
 
+namespace kinect{
 static int start_image_unit = 3;
 
 ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes const* cv, gloost::BoundingBox const&  bbox, float limit, float size)
@@ -45,6 +46,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
  ,m_num_lods{4}
  ,m_fill_holes{true}
  ,m_timer_integration{}
+ ,m_sampler_fill{glm::uvec3{1280, 720,1}}
 {
   m_program->attach(
     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/tsdf_raymarch.vs"),
@@ -107,12 +109,17 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
   m_program_transfer->setUniform("texture_depth", 16);
 
   m_program_colorfill->attach(
+  #ifdef VERT_FILL
+   globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/tsdf_colorfill.vs")
+  #else
    globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/texture_passthrough.vs")
   ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/tsdf_colorfill.fs")
+  #endif
   );
   m_program_colorfill->setUniform("texture_color", 15);
   m_program_colorfill->setUniform("texture_depth", 16);
   m_program_colorfill->setUniform("num_lods", int(m_num_lods));
+  m_program_colorfill->setUniform("out_tex", start_image_unit);
 
   m_view_inpaint = std::unique_ptr<ViewLod>{new ViewLod(1280, 720, m_num_lods)};
   m_view_inpaint2 = std::unique_ptr<ViewLod>{new ViewLod(1280, 720, m_num_lods)};
@@ -190,13 +197,39 @@ void ReconIntegration::fillColors() {
     m_program_transfer->release();
     std::swap(m_view_inpaint, m_view_inpaint2);
   }
+  #ifdef VERT_FILL
+  // fill colors
+  m_view_inpaint->bindToTextureUnits(15);
+  glEnable(GL_RASTERIZER_DISCARD);
+  m_program_colorfill->use();
+  m_program_colorfill->setUniform("resolution_tex", m_view_inpaint->resolution(0));
+
+  m_view_inpaint2->getColorTex()->bindImageTexture(start_image_unit, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_RGBA32F);
+
+  m_sampler_fill.sample();
+
+  m_program_colorfill->release();
+  glDisable(GL_RASTERIZER_DISCARD);
+  std::swap(m_view_inpaint, m_view_inpaint2);
+
+  // tranfer to default framebuffer
+  m_view_inpaint->bindToTextureUnits(15);
+  m_program_transfer->use();
+  m_program_transfer->setUniform("resolution_tex", m_view_inpaint->resolution(0));
+  m_program_transfer->setUniform("lod", 0);
+
+  ScreenQuad::draw();
+  m_program_transfer->release();  
+  #else
   // tranfer to default framebuffer
   m_view_inpaint->bindToTextureUnits(15);
   m_program_colorfill->use();
   m_program_colorfill->setUniform("resolution_tex", m_view_inpaint->resolution(0));
+  m_program_colorfill->setUniform("lod", 0);
 
   ScreenQuad::draw();
   m_program_colorfill->release();  
+#endif
 }
 
 void ReconIntegration::setVoxelSize(float size) {
@@ -227,6 +260,7 @@ std::uint64_t ReconIntegration::holefillTime() const {
 void ReconIntegration::resize(std::size_t width, std::size_t height) {
   m_view_inpaint->setResolution(width, height);
   m_view_inpaint2->setResolution(width, height);
+  m_sampler_fill.resize(glm::uvec3{width, height, 1});
 }
 
 void ReconIntegration::setColorFilling(bool active) {

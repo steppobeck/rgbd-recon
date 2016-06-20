@@ -47,7 +47,7 @@ void ViewLod::setResolution(unsigned width, unsigned height) {
   m_tex_depth->setParameter(GL_TEXTURE_BASE_LEVEL, 0);
   m_tex_depth->setParameter(GL_TEXTURE_MAX_LEVEL, int(m_resolutions.size() - 1));
   glMemoryBarrier(GL_ALL_BARRIER_BITS);
-  
+
 }
 void ViewLod::enable(unsigned lod, bool clear_color) {
   glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &m_current_fbo);
@@ -110,6 +110,11 @@ glm::uvec2 ViewLod::resolution(unsigned i) const {
 unsigned ViewLod::getNumLods() const {
   return m_resolutions.size();
 }
+
+globjects::Texture const* ViewLod::getColorTex() const {
+  return m_tex_color;
+}
+
 
 void ViewLod::getWidthHeight(unsigned& x, unsigned& y, unsigned& width, unsigned& height){
   GLsizei vp_params[4];
