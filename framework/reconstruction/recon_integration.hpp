@@ -55,8 +55,6 @@ namespace kinect{
     bool m_fill_holes;
     TimerGPU m_timer_integration;
     TimerGPU m_timer_holefill;
-
-    VolumeSampler   m_sampler_fill;
   };
 }
 

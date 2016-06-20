@@ -32,13 +32,15 @@ void ViewLod::setResolution(unsigned width, unsigned height) {
     // glm::uvec2 lod_res{width, height};
     glm::uvec2 lod_res{glm::round(width / glm::pow(2.0f, float(i))), glm::round(height / glm::pow(2.0f, float(i)))};
     lod_res = glm::max(glm::uvec2{64}, lod_res);
-    std::vector<float> test(lod_res.x * lod_res.y * 4, m_resolutions.size()/ float(i + 1.0f));
+    std::vector<float> test(lod_res.x * lod_res.y * 4, float(i));
     std::cout << "lod " << i << " res "<< lod_res.x << ", " << lod_res.y << std::endl; 
     m_tex_color->image2D(i, GL_RGBA32F, lod_res.x, lod_res.y, 0, GL_RGBA, GL_FLOAT, test.data());
     std::vector<float> test2(lod_res.x * lod_res.y, 0.1f);
     m_tex_depth->image2D(i, GL_DEPTH_COMPONENT32, lod_res.x, lod_res.y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, test2.data());    
     m_resolutions[i] = lod_res;
   }
+  m_tex_color->setParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+  m_tex_color->setParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   m_tex_depth->setParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   m_tex_depth->setParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   // set mipmapping values to complete textures
