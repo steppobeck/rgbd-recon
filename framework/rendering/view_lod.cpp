@@ -28,27 +28,27 @@ void ViewLod::setResolution(unsigned width, unsigned height) {
   m_height = height;
   m_width = width;
   // m_resolutions.clear();
+  std::vector<float> test2(m_width * 1.5f * m_height, 0.1f);
+  std::vector<float> test(m_width * 1.5f * m_height * 4, 1.0f);
+  m_tex_color->image2D(0, GL_RGBA32F, width * 1.5f, height, 0, GL_RGBA, GL_FLOAT, test.data());
+  // std::cout << "lod " << i << " res "<< m_width << ", " << m_height << std::endl; 
+  m_tex_depth->image2D(0, GL_DEPTH_COMPONENT32, width * 1.5f, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, test2.data());    
   for(unsigned i = 0; i < m_resolutions.size(); ++i) {
     // glm::uvec2 lod_res{width, height};
-    glm::uvec2 lod_res{glm::round(width / glm::pow(2.0f, float(i))), glm::round(height / glm::pow(2.0f, float(i)))};
-    lod_res = glm::max(glm::uvec2{64}, lod_res);
-    std::vector<float> test(lod_res.x * lod_res.y * 4, float(i));
-    std::cout << "lod " << i << " res "<< lod_res.x << ", " << lod_res.y << std::endl; 
-    m_tex_color->image2D(i, GL_RGBA32F, lod_res.x, lod_res.y, 0, GL_RGBA, GL_FLOAT, test.data());
-    std::vector<float> test2(lod_res.x * lod_res.y, 0.1f);
-    m_tex_depth->image2D(i, GL_DEPTH_COMPONENT32, lod_res.x, lod_res.y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, test2.data());    
+    glm::uvec2 lod_res{glm::floor(width / glm::pow(2.0f, float(i))), glm::floor(height / glm::pow(2.0f, float(i)))};
+    // lod_res = glm::max(glm::uvec2{64}, lod_res);
     m_resolutions[i] = lod_res;
   }
-  m_tex_color->setParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+  // m_tex_color->setParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
   // m_tex_color->setParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-  m_tex_color->setParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+  // m_tex_color->setParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   m_tex_depth->setParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   m_tex_depth->setParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
   // set mipmapping values to complete textures
-  m_tex_color->setParameter(GL_TEXTURE_BASE_LEVEL, 0);
-  m_tex_color->setParameter(GL_TEXTURE_MAX_LEVEL, int(m_resolutions.size() - 1));
-  m_tex_depth->setParameter(GL_TEXTURE_BASE_LEVEL, 0);
-  m_tex_depth->setParameter(GL_TEXTURE_MAX_LEVEL, int(m_resolutions.size() - 1));
+  // m_tex_color->setParameter(GL_TEXTURE_BASE_LEVEL, 0);
+  // m_tex_color->setParameter(GL_TEXTURE_MAX_LEVEL, int(m_resolutions.size() - 1));
+  // m_tex_depth->setParameter(GL_TEXTURE_BASE_LEVEL, 0);
+  // m_tex_depth->setParameter(GL_TEXTURE_MAX_LEVEL, int(m_resolutions.size() - 1));
   glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 }
@@ -56,8 +56,8 @@ void ViewLod::enable(unsigned lod, bool clear_color) {
   glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &m_current_fbo);
 
   m_fbo->bind();
-  m_fbo->attachTexture(GL_COLOR_ATTACHMENT0, m_tex_color, lod);
-  m_fbo->attachTexture(GL_DEPTH_ATTACHMENT, m_tex_depth, lod);
+  m_fbo->attachTexture(GL_COLOR_ATTACHMENT0, m_tex_color);
+  m_fbo->attachTexture(GL_DEPTH_ATTACHMENT, m_tex_depth);
   // m_fbo->printStatus();
   unsigned x;
   unsigned y;
