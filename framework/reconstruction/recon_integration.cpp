@@ -126,9 +126,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
 }
 
 void ReconIntegration::drawF() {
-  m_timer_integration.begin();
-  integrate();
-  m_timer_integration.end();
+  // integrate();
   Reconstruction::drawF();
   
   if (m_fill_holes) {
@@ -163,7 +161,8 @@ void ReconIntegration::draw(){
 }
 
 void ReconIntegration::integrate() {
-  
+  m_timer_integration.begin();
+
   glEnable(GL_RASTERIZER_DISCARD);
   m_program_integration->use();
 
@@ -173,6 +172,8 @@ void ReconIntegration::integrate() {
 
   m_program_integration->release();
   glDisable(GL_RASTERIZER_DISCARD);
+  
+  m_timer_integration.end();
 }
 
 void ReconIntegration::fillColors() {

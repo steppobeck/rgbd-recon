@@ -214,17 +214,18 @@ namespace kinect{
     m_readThread->join();
   }
 
-  void
+  bool
   NetKinectArray::update() {
     // lock pbos before checking status
     std::unique_lock<std::mutex> lock(m_mutex_pbo);
     // skip if no new frame was received
-    if(!m_pbo_colors.dirty || !m_pbo_depths.dirty) return;
+    if(!m_pbo_colors.dirty || !m_pbo_depths.dirty) return false;
 
     m_colorArray->fillLayersFromPBO(m_pbo_colors.get()->id());
     m_depthArray_raw->fillLayersFromPBO(m_pbo_depths.get()->id());
 
     processTextures();
+    return true;
   }
 
 glm::uvec2 NetKinectArray::getDepthResolution() const {

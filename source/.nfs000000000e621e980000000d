@@ -388,16 +388,10 @@ void draw3d(void)
   }
 
   g_stats->startGPU();
-  bool updated_textures = false;
   if (g_play) {
-    updated_textures = g_nka->update();
+    g_nka->update();
   }
   // draw active reconstruction
-  if(g_recon_integration.get() == g_recons.at(g_recon_mode).get()) {
-    if(updated_textures) {
-      g_recon_integration->integrate();
-    }
-  }
   g_recons.at(g_recon_mode)->drawF();
 
   g_stats->stopGPU();
@@ -581,9 +575,9 @@ int main(int argc, char *argv[]) {
     std::exit(EXIT_FAILURE);  
   }
 
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
 #if __APPLE__
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
@@ -612,7 +606,6 @@ int main(int argc, char *argv[]) {
   watch_gl_errors(true);
 
   // set some gl states
-  glEnable(GL_TEXTURE_2D);
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);
   

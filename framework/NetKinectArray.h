@@ -42,7 +42,7 @@ namespace kinect {
 
     ~NetKinectArray();
 
-    void update();
+    bool update();
 
     void processTextures();
     void setStartTextureUnit(unsigned m_start_texture_unit);
