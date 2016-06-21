@@ -19,6 +19,6 @@ void main() {
     if (out_FragColor != vec4(vec3(0.0f), 1.0f) || out_FragColor == vec4(0.0f)) break;
   }
 
-  out_FragColor = textureLod(texture_color, pass_TexCoord, level);
+  out_FragColor = textureLod(texture_color, pass_TexCoord, level > 0 ? level + 0.75f : level);
   gl_FragDepth = texelFetch(texture_depth, ivec2(pass_TexCoord * curr_res), level).r;
 }

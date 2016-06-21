@@ -19,9 +19,6 @@ const float gauss_weights[16] = {
 };
 
 void main() {
-  // vec4 total_color = vec4(0.0f);
-  // float total_depth = 0.0f;
-  // float total_weight = 0.0f;
   vec4 samples[kernel_size * kernel_size];
   for(int x = 0; x < kernel_size; ++x) {
     for(int y = 0; y < kernel_size; ++y) {
@@ -30,13 +27,8 @@ void main() {
       if (color == vec4(0.0f, 0.0f, 0.0f, 1.0f)) {
         color.r = -1.0f;
       }
-        float depth = texelFetch(texture_depth, pos, lod).r;
-        samples[x + y * kernel_size] = vec4(color.rgb, depth);
-        // float weight = gauss_weights[x + kernel_size * y];
-        // total_color += color * weight;
-        // total_depth += depth * weight;
-        // total_weight += weight;
-      // }
+      float depth = texelFetch(texture_depth, pos, lod).r;
+      samples[x + y * kernel_size] = vec4(color.rgb, depth);
     }
   }
 
@@ -55,14 +47,14 @@ void main() {
   float total_weight = 0.0f;
   for(int i = 0; i < kernel_size * kernel_size; ++i) {
     if (samples[i].r >= 0.0f) {
-
-    if (samples[i].a > depth_av) {
-      float weight = gauss_weights[i];
-      total_color.rgb += samples[i].rgb * weight;
-      total_depth += samples[i].a * weight;
-      total_weight += weight;
+      if (samples[i].a > depth_av) {
+        float weight = 1.0f;
+        // float weight = gauss_weights[i];
+        total_color.rgb += samples[i].rgb * weight;
+        total_depth += samples[i].a * weight;
+        total_weight += weight;
+      }
     }
-  }
   }
   out_FragColor = total_color / total_weight;
   out_FragColor.w = 1.0f;

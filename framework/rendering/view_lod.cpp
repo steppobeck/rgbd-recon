@@ -39,7 +39,8 @@ void ViewLod::setResolution(unsigned width, unsigned height) {
     m_tex_depth->image2D(i, GL_DEPTH_COMPONENT32, lod_res.x, lod_res.y, 0, GL_DEPTH_COMPONENT, GL_FLOAT, test2.data());    
     m_resolutions[i] = lod_res;
   }
-  m_tex_color->setParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+  m_tex_color->setParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+  // m_tex_color->setParameter(GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
   m_tex_color->setParameter(GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   m_tex_depth->setParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
   m_tex_depth->setParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
