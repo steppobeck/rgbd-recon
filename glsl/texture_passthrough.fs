@@ -13,11 +13,12 @@ out vec4 out_FragColor;
 
 void main() {
 
-  vec3 coords = vec3(pass_TexCoord, layer);
   if (mode == 0u) {
     out_FragColor = vec4(texture(texture_handle, pass_TexCoord).rgb, 1.0f);
+    // out_FragColor = vec4(0.5f);
   }
   else if (mode == 1u){
+    vec3 coords = vec3(pass_TexCoord, layer);
     out_FragColor = vec4(texture(texture_array, coords).rgb, 1.0f);
   }
   else {

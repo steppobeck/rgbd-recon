@@ -173,6 +173,7 @@ void init(std::vector<std::string> args){
   g_buffer_shading->ref();
   g_buffer_shading->setData(sizeof(shading_data_t), &g_shading_buffer_data, GL_STATIC_DRAW);
   g_buffer_shading->bindBase(GL_UNIFORM_BUFFER, 1);
+
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -432,7 +433,7 @@ void draw3d(void)
   if (g_draw_textures) {
     // TextureBlitter::blit(g_nka->getStartTextureUnit() + g_texture_type, g_num_texture, g_nka->getDepthResolution());
     unsigned num = g_num_texture % g_recon_integration->m_view_inpaint->getNumLods();
-    TextureBlitter::blitLod(15, num, g_recon_integration->m_view_inpaint->resolution(num));
+    TextureBlitter::blit(15, g_recon_integration->m_view_inpaint->resolution(1));
   }
   glMemoryBarrier(GL_ALL_BARRIER_BITS);
 }
@@ -452,6 +453,8 @@ void update_view(GLFWwindow* window, int width, int height){
   }
 
   g_navi.resize(width, height);
+
+
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -581,9 +584,10 @@ int main(int argc, char *argv[]) {
     std::exit(EXIT_FAILURE);  
   }
 
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
+  // glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 #if __APPLE__
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif

@@ -30,7 +30,8 @@ namespace kinect {
     unsigned getHeight(unsigned i) const;
 
     void setResolution(unsigned width, unsigned height);
-    glm::uvec2 resolution(unsigned i) const;
+    glm::uvec2 const& resolution(unsigned i) const;
+    glm::uvec2 const& offset(unsigned i) const;
 
     unsigned getNumLods() const;
     globjects::Texture const* getColorTex() const;
@@ -41,6 +42,7 @@ namespace kinect {
     unsigned m_width;
     unsigned m_height;
     std::vector<glm::uvec2> m_resolutions;
+    std::vector<glm::uvec2> m_offsets;
 
     globjects::ref_ptr<globjects::Framebuffer> m_fbo;
     globjects::ref_ptr<globjects::Texture> m_tex_color;

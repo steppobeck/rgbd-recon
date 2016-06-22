@@ -129,6 +129,8 @@ void ReconIntegration::drawF() {
     fillColors();
     m_timer_holefill.end();
   }
+  m_view_inpaint->bindToTextureUnits(15);
+
 }
 
 void ReconIntegration::draw(){
@@ -146,11 +148,11 @@ void ReconIntegration::draw(){
   m_program->setUniform("CameraPos", camera_texturespace);
 
   if (m_fill_holes) {
-    m_view_inpaint->enable();
+    m_view_inpaint2->enable();
   }
   UnitCube::draw();
   if (m_fill_holes) {
-    m_view_inpaint->disable();
+    m_view_inpaint2->disable();
   }
   m_program->release();  
 }
@@ -173,6 +175,7 @@ void ReconIntegration::integrate() {
 
 void ReconIntegration::fillColors() {
   for(unsigned i = 1; i < m_num_lods; ++i) {
+    m_view_inpaint2->bindToTextureUnits(15);
     // calculate next lod
     m_view_inpaint->enable(i);
     m_program_inpaint->use();
@@ -182,12 +185,12 @@ void ReconIntegration::fillColors() {
     m_view_inpaint->disable();
     m_program_inpaint->release();
     
-    // transfer textures
+  //   // transfer textures
     m_view_inpaint->bindToTextureUnits(15);
-    m_view_inpaint2->enable(i);
+    m_view_inpaint2->enable(0);
     m_program_transfer->use();
-    m_program_transfer->setUniform("resolution_tex", m_view_inpaint->resolution(i));
-    m_program_transfer->setUniform("lod", int(i));
+    m_program_transfer->setUniform("resolution_tex", m_view_inpaint->resolution(0));
+    m_program_transfer->setUniform("lod", int(0));
     ScreenQuad::draw();
     m_view_inpaint2->disable();
     m_program_transfer->release();
@@ -231,6 +234,7 @@ std::uint64_t ReconIntegration::holefillTime() const {
 void ReconIntegration::resize(std::size_t width, std::size_t height) {
   m_view_inpaint->setResolution(width, height);
   m_view_inpaint2->setResolution(width, height);
+  // m_view_inpaint->bindToTextureUnits(15);
 }
 
 void ReconIntegration::setColorFilling(bool active) {
