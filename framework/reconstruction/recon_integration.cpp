@@ -30,6 +30,8 @@ static int start_image_unit = 3;
 
 ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes const* cv, gloost::BoundingBox const&  bbox, float limit, float size)
  :Reconstruction(cfs, cv, bbox)
+ ,m_view_inpaint{new ViewLod(1280, 720)}
+ ,m_view_inpaint2{new ViewLod(1280, 720)}
  ,m_program{new globjects::Program()}
  ,m_program_integration{new globjects::Program()}
  ,m_program_inpaint{new globjects::Program()}
@@ -43,7 +45,6 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
  ,m_mat_vol_to_world{1.0f}
  ,m_limit{limit}
  ,m_voxel_size{size}
- ,m_num_lods{4}
  ,m_fill_holes{true}
  ,m_timer_integration{}
 {
@@ -113,11 +114,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
   );
   m_program_colorfill->setUniform("texture_color", 15);
   m_program_colorfill->setUniform("texture_depth", 16);
-  m_program_colorfill->setUniform("num_lods", int(m_num_lods));
   m_program_colorfill->setUniform("out_tex", start_image_unit);
-
-  m_view_inpaint = std::unique_ptr<ViewLod>{new ViewLod(1280, 720, m_num_lods)};
-  m_view_inpaint2 = std::unique_ptr<ViewLod>{new ViewLod(1280, 720, m_num_lods)};
 }
 
 void ReconIntegration::drawF() {
@@ -129,8 +126,6 @@ void ReconIntegration::drawF() {
     fillColors();
     m_timer_holefill.end();
   }
-  m_view_inpaint->bindToTextureUnits(15);
-
 }
 
 void ReconIntegration::draw(){
@@ -148,11 +143,11 @@ void ReconIntegration::draw(){
   m_program->setUniform("CameraPos", camera_texturespace);
 
   if (m_fill_holes) {
-    m_view_inpaint2->enable();
+    m_view_inpaint->enable();
   }
   UnitCube::draw();
   if (m_fill_holes) {
-    m_view_inpaint2->disable();
+    m_view_inpaint->disable();
   }
   m_program->release();  
 }
@@ -174,22 +169,35 @@ void ReconIntegration::integrate() {
 }
 
 void ReconIntegration::fillColors() {
-  for(unsigned i = 1; i < m_num_lods; ++i) {
-    m_view_inpaint2->bindToTextureUnits(15);
+   // transfer textures
+    m_view_inpaint->bindToTextureUnits(15);
+    m_view_inpaint2->enable(0);
+    m_program_transfer->use();
+    m_program_transfer->setUniform("resolution_tex", m_view_inpaint->resolution_full());
+    m_program_transfer->setUniform("lod", int(0));
+    ScreenQuad::draw();
+    m_view_inpaint2->disable();
+    m_program_transfer->release();
+    std::swap(m_view_inpaint, m_view_inpaint2);
+
+  for(unsigned i = 1; i < m_view_inpaint->numLods(); ++i) {
+    m_view_inpaint->bindToTextureUnits(15);
+    // unsigned i = 1;
     // calculate next lod
-    m_view_inpaint->enable(i);
+    m_view_inpaint2->enable(i, false, false);
     m_program_inpaint->use();
     m_program_inpaint->setUniform("resolution_tex", m_view_inpaint->resolution(i - 1));
     m_program_inpaint->setUniform("lod", int(i - 1));
     ScreenQuad::draw();
-    m_view_inpaint->disable();
+    m_view_inpaint2->disable();
     m_program_inpaint->release();
+    std::swap(m_view_inpaint, m_view_inpaint2);
     
-  //   // transfer textures
+   // transfer textures
     m_view_inpaint->bindToTextureUnits(15);
     m_view_inpaint2->enable(0);
     m_program_transfer->use();
-    m_program_transfer->setUniform("resolution_tex", m_view_inpaint->resolution(0));
+    m_program_transfer->setUniform("resolution_tex", m_view_inpaint->resolution_full());
     m_program_transfer->setUniform("lod", int(0));
     ScreenQuad::draw();
     m_view_inpaint2->disable();
@@ -197,7 +205,7 @@ void ReconIntegration::fillColors() {
     std::swap(m_view_inpaint, m_view_inpaint2);
   }
   // tranfer to default framebuffer
-  m_view_inpaint->bindToTextureUnits(15);
+  m_view_inpaint2->bindToTextureUnits(15);
   m_program_colorfill->use();
   m_program_colorfill->setUniform("resolution_tex", m_view_inpaint->resolution(0));
   m_program_colorfill->setUniform("lod", 0);
@@ -234,6 +242,7 @@ std::uint64_t ReconIntegration::holefillTime() const {
 void ReconIntegration::resize(std::size_t width, std::size_t height) {
   m_view_inpaint->setResolution(width, height);
   m_view_inpaint2->setResolution(width, height);
+  m_program_colorfill->setUniform("num_lods", int(m_view_inpaint->numLods()));
   // m_view_inpaint->bindToTextureUnits(15);
 }
 

@@ -51,7 +51,6 @@ namespace kinect{
 
     float m_limit;
     float m_voxel_size;
-    unsigned m_num_lods;
     bool m_fill_holes;
     TimerGPU m_timer_integration;
     TimerGPU m_timer_holefill;

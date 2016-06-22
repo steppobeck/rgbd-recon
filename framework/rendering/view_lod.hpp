@@ -17,9 +17,9 @@ namespace kinect {
   class ViewLod {
 
   public:
-    ViewLod(unsigned width, unsigned height, unsigned num_lod = 1);
+    ViewLod(unsigned width, unsigned height);
 
-    void enable(unsigned lod = 0, bool clearcolor = true);
+    void enable(unsigned lod = 0, bool clear_color = true, bool clear_depth =  true);
     void disable();
 
     void bindToTextureUnits(unsigned start_texture_unit);
@@ -31,16 +31,16 @@ namespace kinect {
 
     void setResolution(unsigned width, unsigned height);
     glm::uvec2 const& resolution(unsigned i) const;
+    glm::uvec2 const& resolution_full() const;
     glm::uvec2 const& offset(unsigned i) const;
 
-    unsigned getNumLods() const;
+    unsigned numLods() const;
     globjects::Texture const* getColorTex() const;
 
   private:
     void getWidthHeight(unsigned& x, unsigned& y, unsigned& width, unsigned& height);
 
-    unsigned m_width;
-    unsigned m_height;
+    glm::uvec2 m_resolution_full;
     std::vector<glm::uvec2> m_resolutions;
     std::vector<glm::uvec2> m_offsets;
 
