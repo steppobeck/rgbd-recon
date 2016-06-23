@@ -242,8 +242,12 @@ std::uint64_t ReconIntegration::holefillTime() const {
 void ReconIntegration::resize(std::size_t width, std::size_t height) {
   m_view_inpaint->setResolution(width, height);
   m_view_inpaint2->setResolution(width, height);
+
   m_program_colorfill->setUniform("num_lods", int(m_view_inpaint->numLods()));
-  // m_view_inpaint->bindToTextureUnits(15);
+  m_program_colorfill->setUniform("texture_offsets", m_view_inpaint->offsets());
+  m_program_colorfill->setUniform("texture_resolutions", m_view_inpaint->resolutions());
+  m_program_inpaint->setUniform("texture_offsets", m_view_inpaint->offsets());
+  m_program_inpaint->setUniform("texture_resolutions", m_view_inpaint->resolutions());
 }
 
 void ReconIntegration::setColorFilling(bool active) {

@@ -34,16 +34,18 @@ void ViewLod::setResolution(unsigned width, unsigned height) {
   std::vector<float> test2(m_resolution_full.x * m_resolution_full.y, 0.5f);
   m_tex_depth->image2D(0, GL_DEPTH_COMPONENT32, m_resolution_full.x, height, 0, GL_DEPTH_COMPONENT, GL_FLOAT, test2.data());    
 
+  glm::uvec2 offset{width, height};
   for(unsigned i = 0; i < num_lods; ++i) {
     glm::uvec2 lod_res{glm::floor(width / glm::pow(2.0f, float(i))), glm::floor(height / glm::pow(2.0f, float(i)))};
     m_resolutions[i] = lod_res;
 
-    glm::uvec2 offset{0};
     if(i > 0) {
-      offset.x = width;
-      offset.y = height/ glm::pow(2.0f, float(i));
+      offset.y -= lod_res.y;
+      m_offsets[i] = offset;
     }
-    m_offsets[i] = offset;
+    else {
+      m_offsets[i] = glm::uvec2{0};
+    } 
     std::cout << "offset " << offset.x << ", " << offset.y << " resolution " << lod_res.x << ", " << lod_res.y << std::endl;
   }
 
@@ -113,12 +115,20 @@ glm::uvec2 const& ViewLod::resolution(unsigned i) const {
   return m_resolutions[i];
 }
 
+std::vector<glm::uvec2> const& ViewLod::resolutions() const {
+  return m_resolutions;
+}
+
 glm::uvec2 const& ViewLod::resolution_full() const {
   return m_resolution_full;
 }
 
 glm::uvec2 const& ViewLod::offset(unsigned i) const {
   return m_offsets[i];
+}
+
+std::vector<glm::uvec2> const& ViewLod::offsets() const {
+  return m_offsets;
 }
 
 unsigned ViewLod::numLods() const {
