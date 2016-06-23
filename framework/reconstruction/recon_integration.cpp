@@ -173,7 +173,6 @@ void ReconIntegration::fillColors() {
     m_view_inpaint->bindToTextureUnits(15);
     m_view_inpaint2->enable(0);
     m_program_transfer->use();
-    m_program_transfer->setUniform("resolution_tex", m_view_inpaint->resolution_full());
     m_program_transfer->setUniform("lod", int(0));
     ScreenQuad::draw();
     m_view_inpaint2->disable();
@@ -186,7 +185,6 @@ void ReconIntegration::fillColors() {
     // calculate next lod
     m_view_inpaint2->enable(i, false, false);
     m_program_inpaint->use();
-    m_program_inpaint->setUniform("resolution_tex", m_view_inpaint->resolution(i - 1));
     m_program_inpaint->setUniform("lod", int(i - 1));
     ScreenQuad::draw();
     m_view_inpaint2->disable();
@@ -197,7 +195,6 @@ void ReconIntegration::fillColors() {
     m_view_inpaint->bindToTextureUnits(15);
     m_view_inpaint2->enable(0);
     m_program_transfer->use();
-    m_program_transfer->setUniform("resolution_tex", m_view_inpaint->resolution_full());
     m_program_transfer->setUniform("lod", int(0));
     ScreenQuad::draw();
     m_view_inpaint2->disable();
@@ -248,6 +245,10 @@ void ReconIntegration::resize(std::size_t width, std::size_t height) {
   m_program_colorfill->setUniform("texture_resolutions", m_view_inpaint->resolutions());
   m_program_inpaint->setUniform("texture_offsets", m_view_inpaint->offsets());
   m_program_inpaint->setUniform("texture_resolutions", m_view_inpaint->resolutions());
+  
+  m_program_colorfill->setUniform("resolution_inv", 1.0f / glm::fvec2{m_view_inpaint->resolution_full()});
+  m_program_inpaint->setUniform("resolution_inv", 1.0f / glm::fvec2{m_view_inpaint->resolution_full()});
+  m_program_transfer->setUniform("resolution_tex", m_view_inpaint->resolution_full());
 }
 
 void ReconIntegration::setColorFilling(bool active) {

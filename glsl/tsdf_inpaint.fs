@@ -4,7 +4,7 @@ noperspective in vec2 pass_TexCoord;
 
 uniform sampler2D texture_color;
 uniform sampler2D texture_depth;
-uniform uvec2 resolution_tex;
+uniform vec2 resolution_inv;
 uniform int lod;
 
 uniform uvec2[20] texture_offsets;
@@ -27,11 +27,13 @@ ivec2 to_lod_pos(in vec2 pos, in int lod) {
 }
 
 void main() {
+  // "round" coordinate for integer lookup
+  vec2 tex_coord = pass_TexCoord + 0.5f * resolution_inv;
+
   vec4 samples[kernel_size * kernel_size];
   for(int x = 0; x < kernel_size; ++x) {
     for(int y = 0; y < kernel_size; ++y) {
-      const ivec2 pos_tex = ivec2(vec2(to_lod_pos(pass_TexCoord, lod) * vec2(2.0f / 3.0f , 1.0f)) + ivec2(x-4/2+1, y-4/2+1));
-      // const ivec2 pos_tex = to_lod_pos(pass_TexCoord * vec2(2.0f / 3.0f ,1.0f), lod) + ivec2(x-4/2+1, y-4/2+1);
+      const ivec2 pos_tex = ivec2(vec2(to_lod_pos(tex_coord, lod) * vec2(2.0f / 3.0f , 1.0f)) + ivec2(x-4/2+1, y-4/2+1));
       vec4 color = texelFetch(texture_color, pos_tex, 0);
       if (color == vec4(0.0f, 0.0f, 0.0f, -1.0f) || color == vec4(0.0f, 1.0f, 0.0f, 0.0f) || color == vec4(0.0f, 0.0f, 0.0f, 1.0f)) {
         color.r = -1.0f;
