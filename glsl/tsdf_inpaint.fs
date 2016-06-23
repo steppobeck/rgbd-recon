@@ -1,6 +1,7 @@
 #version 430
 #extension GL_EXT_shader_texture_lod : enable
 noperspective in vec2 pass_TexCoord;
+layout(pixel_center_integer) in vec4 gl_FragCoord;
 
 uniform sampler2D texture_color;
 uniform sampler2D texture_depth;
@@ -27,13 +28,21 @@ ivec2 to_lod_pos(in vec2 pos, in int lod) {
 }
 
 void main() {
+
   // "round" coordinate for integer lookup
-  vec2 tex_coord = pass_TexCoord + 0.5f * resolution_inv;
+  vec2 tex_coord = (gl_FragCoord.xy - vec2(texture_offsets[lod + 1])) / vec2(texture_resolutions[lod + 1]);
+  ivec2 pos_int = ivec2(vec2(to_lod_pos(tex_coord, lod)) * vec2(2.0f / 3.0f , 1.0f));
+
+  // out_FragColor = texelFetch(texture_color, pos_int, 0);
+  // gl_FragDepth = texelFetch(texture_depth, pos_int, 0).r;
+  // if (out_FragColor != vec4(0.0f, 0.0f, 0.0f, -1.0f) && out_FragColor != vec4(0.0f, 0.0f, 0.0f, 1.0f) || out_FragColor == vec4(0.0f, 1.0f, 0.0f, 0.0f)) {
+  //   return;
+  // }
 
   vec4 samples[kernel_size * kernel_size];
   for(int x = 0; x < kernel_size; ++x) {
     for(int y = 0; y < kernel_size; ++y) {
-      const ivec2 pos_tex = ivec2(vec2(to_lod_pos(tex_coord, lod) * vec2(2.0f / 3.0f , 1.0f)) + ivec2(x-4/2+1, y-4/2+1));
+      const ivec2 pos_tex = pos_int + ivec2(x- kernel_size * 0.5 + 1, y- kernel_size * 0.5 + 1);
       vec4 color = texelFetch(texture_color, pos_tex, 0);
       if (color == vec4(0.0f, 0.0f, 0.0f, -1.0f) || color == vec4(0.0f, 1.0f, 0.0f, 0.0f) || color == vec4(0.0f, 0.0f, 0.0f, 1.0f)) {
         color.r = -1.0f;

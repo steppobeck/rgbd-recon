@@ -432,8 +432,8 @@ void draw3d(void)
 
   if (g_draw_textures) {
     // TextureBlitter::blit(g_nka->getStartTextureUnit() + g_texture_type, g_num_texture, g_nka->getDepthResolution());
-    unsigned num = g_num_texture % g_recon_integration->m_view_inpaint->numLods();
-    TextureBlitter::blit(15, glm::fvec2{g_recon_integration->m_view_inpaint->resolution_full()} / 2.0f);
+    unsigned num = g_num_texture % 2;
+    TextureBlitter::blit(15 + num, glm::fvec2{g_recon_integration->m_view_inpaint->resolution_full()} / 2.0f);
   }
   glMemoryBarrier(GL_ALL_BARRIER_BITS);
 }
