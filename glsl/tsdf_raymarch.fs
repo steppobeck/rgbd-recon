@@ -38,7 +38,7 @@ out float gl_FragDepth;
 vec3 get_gradient(const vec3 pos);
 bool isInside(const vec3 pos);
 float sample(const vec3 pos);
-vec3 blendColors(const in vec3 sample_pos);
+vec4 blendColors(const in vec3 sample_pos);
 vec3 blendNormals(const in vec3 sample_pos);
 vec3 blendCameras(const in vec3 sample_pos);
 // cube-ray intersection from http://prideout.net/blog/?p=64
@@ -106,8 +106,8 @@ void submitFragment(const in vec3 sample_pos) {
     out_Color = vec4(blendCameras(sample_pos), 1.0f);
   }
   else {
-    vec3 diffuseColor = blendColors(sample_pos);
-    out_Color = vec4(shade(view_pos, view_normal, diffuseColor), 1.0f);
+    vec4 diffuseColor = blendColors(sample_pos);
+    out_Color = vec4(shade(view_pos, view_normal, diffuseColor.rgb), diffuseColor.a);
   }
   // apply projection matrix on z component of view-space position
   gl_FragDepth = (gl_ProjectionMatrix[2].z *view_pos.z + gl_ProjectionMatrix[3].z) / -view_pos.z * 0.5f + 0.5f;
@@ -150,7 +150,7 @@ float[5] getWeights(const in vec3 sample_pos) {
   return weights;
 }
 
-vec3 blendColors(const in vec3 sample_pos) {
+vec4 blendColors(const in vec3 sample_pos) {
   vec3 total_color = vec3(0.0f);
   float total_weight = 0.0f;
   float[5] weights = getWeights(sample_pos);
@@ -163,8 +163,8 @@ vec3 blendColors(const in vec3 sample_pos) {
     total_weight += weights[i];
   }
   total_color /= total_weight;
-  if(total_weight <= 0.0f) total_color = vec3(0.0f);
-  return total_color;
+  if(total_weight <= 0.0f) return vec4(vec3(0.0), -1.0);
+  return vec4(total_color, 1.0);
 }
 
 vec3 blendNormals(const in vec3 sample_pos) {

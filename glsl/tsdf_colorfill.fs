@@ -20,7 +20,7 @@ ivec2 to_lod_pos(in vec2 pos, in int lod) {
 // receives texcoord -> dont reduce resolution
 vec2 to_lod_pos2(in vec2 pos, in int lod) {
   // clamp to prevent interpolating beyond mipmap border
-  return clamp(vec2(texture_offsets[lod]) + vec2(texture_resolutions[lod]) * pos, vec2(texture_offsets[lod]), vec2(texture_offsets[lod] + texture_resolutions[lod] - 1u)); 
+  return clamp(vec2(texture_offsets[lod]) + vec2(texture_resolutions[lod]) * pos, vec2(texture_offsets[lod]) + 0.5, vec2(texture_offsets[lod] + texture_resolutions[lod]) - 0.5); 
 }
 
 void main() {
@@ -32,7 +32,7 @@ void main() {
   for (; level < num_lods; ++level) {
     curr_pos = to_lod_pos(tex_coord, level);
     out_FragColor = texelFetch(texture_color, curr_pos, 0);
-    if ((out_FragColor != vec4(vec3(0.0f), -1.0f) && out_FragColor != vec4(vec3(0.0f), 1.0f) && out_FragColor != vec4(0.0f, 1.0f, 0.0, 0.0)) || out_FragColor == vec4(0.0f) ) break;
+    if (out_FragColor.a > 0.0) break;
   }
 
   if (level > 0) {

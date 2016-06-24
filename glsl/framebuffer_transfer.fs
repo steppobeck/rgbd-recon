@@ -11,6 +11,6 @@ out vec4 out_FragColor;
 out float gl_FragDepth;
 
 void main() {
-  out_FragColor = vec4(texelFetch(texture_color, ivec2(pass_TexCoord * resolution_tex), lod).rgb, 1.0f);
+  out_FragColor = texelFetch(texture_color, ivec2(pass_TexCoord * resolution_tex), lod);
   gl_FragDepth = texelFetch(texture_depth, ivec2(pass_TexCoord * resolution_tex), lod).r;
 }
