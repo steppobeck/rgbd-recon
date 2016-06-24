@@ -1,5 +1,5 @@
 #version 430
-#extension GL_EXT_shader_texture_lod : enable
+
 noperspective in vec2 pass_TexCoord;
 layout(pixel_center_integer) in vec4 gl_FragCoord;
 
@@ -24,12 +24,11 @@ const float gauss_weights[16] = {
 };
 
 ivec2 to_lod_pos(in vec2 pos, in int lod) {
-  return ivec2(vec2(texture_offsets[lod]) + vec2(texture_resolutions[lod] - 1) * pos); 
+  return ivec2(vec2(texture_offsets[lod]) + vec2(texture_resolutions[lod]) * pos); 
 }
 
 void main() {
-
-  // "round" coordinate for integer lookup
+  // get normalized coordinates from integer fragcoord
   vec2 tex_coord = (gl_FragCoord.xy - vec2(texture_offsets[lod + 1])) / vec2(texture_resolutions[lod + 1]);
   ivec2 pos_int = ivec2(vec2(to_lod_pos(tex_coord, lod)) * vec2(2.0f / 3.0f , 1.0f));
 

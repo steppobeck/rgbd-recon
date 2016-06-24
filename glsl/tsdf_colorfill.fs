@@ -1,6 +1,7 @@
-#version 130
+#version 430
 
 noperspective in vec2 pass_TexCoord;
+layout(pixel_center_integer) in vec4 gl_FragCoord;
 
 uniform sampler2D texture_color;
 uniform sampler2D texture_depth;
@@ -12,18 +13,19 @@ uniform uvec2[20] texture_resolutions;
 
 out vec4 out_FragColor;
 out float gl_FragDepth;
-
+// receives fragcoord from 0,0 to width-1, heigh-1 -> dont reduce resolution
 ivec2 to_lod_pos(in vec2 pos, in int lod) {
-  return ivec2(ivec2(texture_offsets[lod]) + vec2(ivec2(texture_resolutions[lod]) - 1) * pos); 
+  return ivec2(ivec2(texture_offsets[lod]) + vec2(ivec2(texture_resolutions[lod])) * pos); 
 }
 // receives texcoord -> dont reduce resolution
 vec2 to_lod_pos2(in vec2 pos, in int lod) {
-  return vec2(texture_offsets[lod]) + vec2(texture_resolutions[lod]) * pos; 
+  // clamp to prevent interpolating beyond mipmap border
+  return clamp(vec2(texture_offsets[lod]) + vec2(texture_resolutions[lod]) * pos, vec2(texture_offsets[lod]), vec2(texture_offsets[lod] + texture_resolutions[lod] - 1u)); 
 }
 
 void main() {
-  // "round" coordinate for integer lookup
-  vec2 tex_coord = pass_TexCoord + 0.5f * resolution_inv;
+  // get normalized coordinates from integer fragcoord
+  vec2 tex_coord = gl_FragCoord.xy / vec2(texture_resolutions[0]);
 
   int level = 0;
   ivec2 curr_pos = ivec2(0);
