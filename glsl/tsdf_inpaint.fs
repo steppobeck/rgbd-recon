@@ -14,7 +14,7 @@ uniform uvec2[20] texture_resolutions;
 out vec4 out_FragColor;
 out float gl_FragDepth;
 
-const int kernel_size = 8;
+const int kernel_size = 4;
 
 const float gauss_weights[16] = {
   0.4, 0.9, 0.9, 0.4,
@@ -28,13 +28,15 @@ ivec2 to_lod_pos(in vec2 pos, in int lod) {
 }
 
 void main() {
+  gl_FragDepth = 1.0f;
   // get normalized coordinates from integer fragcoord
   vec2 tex_coord = (gl_FragCoord.xy - vec2(texture_offsets[lod + 1])) / vec2(texture_resolutions[lod + 1]);
   ivec2 pos_int = ivec2(vec2(to_lod_pos(tex_coord, lod)) * vec2(2.0f / 3.0f , 1.0f));
 
   // out_FragColor = texelFetch(texture_color, pos_int, 0);
   // gl_FragDepth = texelFetch(texture_depth, pos_int, 0).r;
-  // if (out_FragColor != vec4(0.0f, 0.0f, 0.0f, -1.0f) && out_FragColor != vec4(0.0f, 0.0f, 0.0f, 1.0f) || out_FragColor == vec4(0.0f, 1.0f, 0.0f, 0.0f)) {
+  // if (out_FragColor == vec4(0.0f, 0.0f, 0.0f, 1.0f)) {
+  //   out_FragColor = vec4(1.0f);
   //   return;
   // }
 
@@ -43,10 +45,10 @@ void main() {
     for(int y = 0; y < kernel_size; ++y) {
       const ivec2 pos_tex = pos_int + ivec2(x- kernel_size * 0.5 + 1, y- kernel_size * 0.5 + 1);
       vec4 color = texelFetch(texture_color, pos_tex, 0);
-      if (color == vec4(0.0f, 0.0f, 0.0f, -1.0f) || color == vec4(0.0f, 1.0f, 0.0f, 0.0f) || color == vec4(0.0f, 0.0f, 0.0f, 1.0f)) {
+      float depth = texelFetch(texture_depth, pos_tex, 0).r;
+      if (color == vec4(0.0f, 0.0f, 0.0f, -1.0f) || color == vec4(0.0f, 0.0f, 0.0f, 1.0f) || depth == 1.0) {
         color.r = -1.0f;
       }
-      float depth = texelFetch(texture_depth, pos_tex, 0).r;
       samples[x + y * kernel_size] = vec4(color.rgb, depth);
     }
   }
@@ -58,6 +60,17 @@ void main() {
       depth_av += samples[i].a;
         ++num_samples;
     }
+  }
+  if (num_samples == 0) {
+    // gl_FragDepth = 1.0;
+    gl_FragDepth = texelFetch(texture_depth, pos_int, 0).r;
+    if (gl_FragDepth < 1.0) {
+      out_FragColor = vec4(0.0f, 0.0f, 0.0f, -1.0f);
+    }
+    else {
+      out_FragColor = vec4(0.0f, 1.0f, 0.0f, 0.0f);
+    }
+    return;
   }
   depth_av /= float(num_samples);
   
@@ -75,9 +88,9 @@ void main() {
       // }
     }
   }
+
   out_FragColor = total_color / total_weight;
   out_FragColor.w = 1.0f;
-  if(total_weight <= 0.0f) out_FragColor = vec4(0.0f, 0.0f, 0.0f, -1.0f);
-  // out_FragColor = vec4(to_lod_pos(pass_TexCoord, lod), float(lod) / 9.0f, 1.0f);
   gl_FragDepth = total_depth / total_weight;
+  // out_FragColor = vec4(to_lod_pos(pass_TexCoord, lod), float(lod) / 9.0f, 1.0f);
 }

@@ -32,7 +32,7 @@ void main() {
   for (; level < num_lods; ++level) {
     curr_pos = to_lod_pos(tex_coord, level);
     out_FragColor = texelFetch(texture_color, curr_pos, 0);
-    if ((out_FragColor != vec4(vec3(0.0f), -1.0f) && out_FragColor != vec4(vec3(0.0f), 1.0f)) || out_FragColor == vec4(0.0f) ) break;
+    if ((out_FragColor != vec4(vec3(0.0f), -1.0f) && out_FragColor != vec4(vec3(0.0f), 1.0f) && out_FragColor != vec4(0.0f, 1.0f, 0.0, 0.0)) || out_FragColor == vec4(0.0f) ) break;
   }
 
   if (level > 0) {
@@ -47,5 +47,5 @@ void main() {
     out_FragColor = (color_1 * weight_1 + color_2 * weight_2) / (weight_1 + weight_2);
   }
     // out_FragColor = vec4(float(level) / 8.0f);
-  gl_FragDepth = texelFetch(texture_depth, curr_pos, 0).r;
+  gl_FragDepth = texelFetch(texture_depth, to_lod_pos(tex_coord, 0), 0).r;
 }

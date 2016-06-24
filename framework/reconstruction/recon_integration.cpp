@@ -169,15 +169,16 @@ void ReconIntegration::integrate() {
 }
 
 void ReconIntegration::fillColors() {
-   // transfer textures
-    m_view_inpaint->bindToTextureUnits(15);
-    m_view_inpaint2->enable(0);
-    m_program_transfer->use();
-    m_program_transfer->setUniform("lod", int(0));
-    ScreenQuad::draw();
-    m_view_inpaint2->disable();
-    m_program_transfer->release();
-    std::swap(m_view_inpaint, m_view_inpaint2);
+  glDepthFunc(GL_ALWAYS);
+  // transfer textures
+  m_view_inpaint->bindToTextureUnits(15);
+  m_view_inpaint2->enable(0);
+  m_program_transfer->use();
+  m_program_transfer->setUniform("lod", int(0));
+  ScreenQuad::draw();
+  m_view_inpaint2->disable();
+  m_program_transfer->release();
+  std::swap(m_view_inpaint, m_view_inpaint2);
 
   for(unsigned i = 1; i < m_view_inpaint->numLods(); ++i) {
     m_view_inpaint->bindToTextureUnits(15);
@@ -201,6 +202,7 @@ void ReconIntegration::fillColors() {
     m_program_transfer->release();
     std::swap(m_view_inpaint, m_view_inpaint2);
   }
+  glDepthFunc(GL_LESS);
   // tranfer to default framebuffer
   m_view_inpaint2->bindToTextureUnits(15);
   m_program_colorfill->use();
