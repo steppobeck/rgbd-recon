@@ -63,7 +63,8 @@ int      g_num_texture  = 0;
 bool     g_processed    = true;
 bool     g_refine       = true;
 bool     g_colorfill    = true;
-bool     g_bricking    = true;
+bool     g_bricking     = true;
+bool     g_draw_bricks  = false;
 int      g_num_kinect   = 1; 
 float    g_voxel_size   = 0.007f;
 float    g_brick_size   = 0.25f;
@@ -243,6 +244,9 @@ void update_gui() {
       }
       if (ImGui::Checkbox("Volume Bricking", &g_bricking)) {
         g_recon_integration->setUseBricks(g_bricking);
+      }
+      if (ImGui::Checkbox("Draw Bricks", &g_draw_bricks)) {
+        g_recon_integration->setDrawBricks(g_draw_bricks);
       }
     }
     if (ImGui::CollapsingHeader("Processing Performance")) {

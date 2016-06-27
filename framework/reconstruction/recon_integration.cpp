@@ -49,6 +49,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
  ,m_brick_size{0.5f}
  ,m_fill_holes{true}
  ,m_use_bricks{true}
+ ,m_draw_bricks{false}
  ,m_timer_integration{}
 {
   m_program->attach(
@@ -136,7 +137,10 @@ void ReconIntegration::drawF() {
     fillColors();
     m_timer_holefill.end();
   }
-  // drawBricks();
+
+  if (m_draw_bricks) {
+    drawBrickVoxels();
+  }
 }
 
 void ReconIntegration::draw(){
@@ -240,11 +244,13 @@ void ReconIntegration::setVoxelSize(float size) {
   m_volume_tsdf->image3D(0, GL_R32F, glm::ivec3{m_res_volume}, 0, GL_RED, GL_FLOAT, nullptr);
   m_volume_tsdf->bindActive(GL_TEXTURE0 + 29);
   std::cout << "resolution " << m_res_volume.x << ", " << m_res_volume.y << ", " << m_res_volume.z << std::endl;
+
+  divideBox();
 }
 
-bool pos_in_brick(glm::fvec3 const& pos, brick const& b) {
-  return pos.x >= b.pos.x && pos.y >= b.pos.y && pos.z >= b.pos.z
-      && pos.x <= b.pos.x + b.size.x && pos.y <= b.pos.y + b.size.y && pos.z <= b.pos.z + b.size.z;
+bool point_in_brick(glm::fvec3 const& point, brick const& b) {
+  return point.x >= b.pos.x && point.y >= b.pos.y && point.z >= b.pos.z
+      && point.x <= b.pos.x + b.size.x && point.y <= b.pos.y + b.size.y && point.z <= b.pos.z + b.size.z;
 }
 
 void ReconIntegration::divideBox() {
@@ -259,7 +265,7 @@ void ReconIntegration::divideBox() {
         auto& curr_brick = m_bricks.back();
         for(unsigned i = 0; i < m_sampler.voxelPositions().size(); ++i) {
           auto const& curr_pos = m_sampler.voxelPositions()[i];
-          if (pos_in_brick(curr_pos, curr_brick)) {
+          if (point_in_brick(curr_pos, curr_brick)) {
             curr_brick.indices.push_back(i);
           }
         }
@@ -279,6 +285,16 @@ void ReconIntegration::drawBricks() const {
     glm::fmat4 transform = glm::scale(glm::translate(glm::fmat4{1.0f}, brick.pos), brick.size);
     m_program_solid->setUniform("transform", transform);
     UnitCube::drawWire();
+  }
+  m_program_solid->release();
+}
+
+void ReconIntegration::drawBrickVoxels() const {
+  m_program_solid->use();
+  for(auto const& brick: m_bricks) {
+    glm::fmat4 transform = glm::scale(glm::translate(glm::fmat4{1.0f}, brick.pos), brick.size);
+    m_program_solid->setUniform("transform", transform);
+    m_sampler.sample(brick.indices);
   }
   m_program_solid->release();
 }
@@ -323,6 +339,10 @@ void ReconIntegration::setColorFilling(bool active) {
 
 void ReconIntegration::setUseBricks(bool active) {
   m_use_bricks = active;
+}
+
+void ReconIntegration::setDrawBricks(bool active) {
+  m_draw_bricks = active;
 }
 
 }
