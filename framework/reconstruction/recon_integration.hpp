@@ -19,10 +19,12 @@ namespace kinect{
     brick(glm::fvec3 const& p, glm::fvec3 const& s)
      :pos{p}
      ,size{s}
+     ,indices{}
     {}
 
     glm::fvec3 pos;
     glm::fvec3 size;
+    std::vector<unsigned> indices;
   };
 
   class ViewLod;
@@ -36,6 +38,7 @@ namespace kinect{
     void drawF() override;
     void integrate();
     void setColorFilling(bool active);
+    void setUseBricks(bool active);
     void setVoxelSize(float size);
     void setTsdfLimit(float limit);
     void setBrickSize(float limit);
@@ -67,6 +70,7 @@ namespace kinect{
     float m_voxel_size;
     float m_brick_size;
     bool m_fill_holes;
+    bool m_use_bricks;
     TimerGPU m_timer_integration;
     TimerGPU m_timer_holefill;
   };

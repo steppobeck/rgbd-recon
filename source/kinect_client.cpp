@@ -63,6 +63,7 @@ int      g_num_texture  = 0;
 bool     g_processed    = true;
 bool     g_refine       = true;
 bool     g_colorfill    = true;
+bool     g_bricking    = true;
 int      g_num_kinect   = 1; 
 float    g_voxel_size   = 0.007f;
 float    g_brick_size   = 0.25f;
@@ -239,6 +240,9 @@ void update_gui() {
       }
       if (ImGui::Checkbox("Color hole filling", &g_colorfill)) {
         g_recon_integration->setColorFilling(g_colorfill);
+      }
+      if (ImGui::Checkbox("Volume Bricking", &g_bricking)) {
+        g_recon_integration->setUseBricks(g_bricking);
       }
     }
     if (ImGui::CollapsingHeader("Processing Performance")) {

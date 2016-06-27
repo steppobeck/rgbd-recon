@@ -48,6 +48,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
  ,m_voxel_size{size}
  ,m_brick_size{0.5f}
  ,m_fill_holes{true}
+ ,m_use_bricks{true}
  ,m_timer_integration{}
 {
   m_program->attach(
@@ -135,7 +136,7 @@ void ReconIntegration::drawF() {
     fillColors();
     m_timer_holefill.end();
   }
-  drawBricks();
+  // drawBricks();
 }
 
 void ReconIntegration::draw(){
@@ -167,10 +168,16 @@ void ReconIntegration::integrate() {
 
   glEnable(GL_RASTERIZER_DISCARD);
   m_program_integration->use();
-
   m_volume_tsdf->bindImageTexture(start_image_unit, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_R32F);
-
-  m_sampler.sample();
+  
+  if (m_use_bricks) {
+    for(auto const& brick : m_bricks) {
+      m_sampler.sample(brick.indices);
+    }
+  }
+  else {
+    m_sampler.sample();
+  }
 
   m_program_integration->release();
   glDisable(GL_RASTERIZER_DISCARD);
@@ -235,6 +242,11 @@ void ReconIntegration::setVoxelSize(float size) {
   std::cout << "resolution " << m_res_volume.x << ", " << m_res_volume.y << ", " << m_res_volume.z << std::endl;
 }
 
+bool pos_in_brick(glm::fvec3 const& pos, brick const& b) {
+  return pos.x >= b.pos.x && pos.y >= b.pos.y && pos.z >= b.pos.z
+      && pos.x <= b.pos.x + b.size.x && pos.y <= b.pos.y + b.size.y && pos.z <= b.pos.z + b.size.z;
+}
+
 void ReconIntegration::divideBox() {
   m_bricks.clear();
   glm::fvec3 min{m_bbox.getPMin()};
@@ -244,6 +256,13 @@ void ReconIntegration::divideBox() {
     while(size.y - start.y  + min.y > 0.0f) {
       while(size.x - start.x  + min.x > 0.0f) {
         m_bricks.emplace_back(start, glm::min(glm::fvec3{m_brick_size}, size - start + min));
+        auto& curr_brick = m_bricks.back();
+        for(unsigned i = 0; i < m_sampler.voxelPositions().size(); ++i) {
+          auto const& curr_pos = m_sampler.voxelPositions()[i];
+          if (pos_in_brick(curr_pos, curr_brick)) {
+            curr_brick.indices.push_back(i);
+          }
+        }
         start.x += m_brick_size;
       }
       start.x = min.x;
@@ -300,6 +319,10 @@ void ReconIntegration::resize(std::size_t width, std::size_t height) {
 
 void ReconIntegration::setColorFilling(bool active) {
   m_fill_holes = active;
+}
+
+void ReconIntegration::setUseBricks(bool active) {
+  m_use_bricks = active;
 }
 
 }
