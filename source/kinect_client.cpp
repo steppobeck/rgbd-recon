@@ -65,6 +65,7 @@ bool     g_refine       = true;
 bool     g_colorfill    = true;
 int      g_num_kinect   = 1; 
 float    g_voxel_size   = 0.007f;
+float    g_brick_size   = 0.25f;
 float    g_tsdf_limit   = 0.01f;
 double   g_time_prev    = 0.0f;
 
@@ -232,6 +233,9 @@ void update_gui() {
       }
       if (ImGui::DragFloat("Voxel Size", &g_voxel_size, 0.001f, 0.003f, 0.1f, "%.3f")) {
         g_recon_integration->setVoxelSize(g_voxel_size);
+      }
+      if (ImGui::DragFloat("Brick Size", &g_brick_size, 0.1f, 0.3f, 1.0f, "%.3f")) {
+        g_recon_integration->setBrickSize(g_brick_size);
       }
       if (ImGui::Checkbox("Color hole filling", &g_colorfill)) {
         g_recon_integration->setColorFilling(g_colorfill);

@@ -236,6 +236,7 @@ void ReconIntegration::setVoxelSize(float size) {
 }
 
 void ReconIntegration::divideBox() {
+  m_bricks.clear();
   glm::fvec3 min{m_bbox.getPMin()};
   glm::fvec3 size{glm::fvec3{m_bbox.getPMax()} - min}; 
   glm::fvec3 start{min};
@@ -255,12 +256,10 @@ void ReconIntegration::divideBox() {
 
 void ReconIntegration::drawBricks() const {
   m_program_solid->use();
-  int i = 0;
   for(auto const& brick: m_bricks) {
     glm::fmat4 transform = glm::scale(glm::translate(glm::fmat4{1.0f}, brick.pos), brick.size);
     m_program_solid->setUniform("transform", transform);
     UnitCube::drawWire();
-    ++i;
   }
   m_program_solid->release();
 }
@@ -269,6 +268,11 @@ void ReconIntegration::setTsdfLimit(float limit) {
   m_limit = limit;
   m_program->setUniform("limit", m_limit);
   m_program_integration->setUniform("limit", m_limit);
+}
+
+void ReconIntegration::setBrickSize(float size) {
+  m_brick_size = size;
+  divideBox();
 }
 
 std::uint64_t ReconIntegration::integrationTime() const {

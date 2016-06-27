@@ -38,6 +38,7 @@ namespace kinect{
     void setColorFilling(bool active);
     void setVoxelSize(float size);
     void setTsdfLimit(float limit);
+    void setBrickSize(float limit);
 
     std::uint64_t integrationTime() const;
     std::uint64_t holefillTime() const;
