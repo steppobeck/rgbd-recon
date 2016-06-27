@@ -37,6 +37,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
  ,m_program_inpaint{new globjects::Program()}
  ,m_program_colorfill{new globjects::Program()}
  ,m_program_transfer{new globjects::Program()}
+ ,m_program_solid{new globjects::Program()}
  ,m_res_volume{glm::ceil(glm::fvec3{bbox.getPMax()[0] - bbox.getPMin()[0],
                                     bbox.getPMax()[1] - bbox.getPMin()[1],
                                     bbox.getPMax()[2] - bbox.getPMin()[2]} / size)}
@@ -45,6 +46,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
  ,m_mat_vol_to_world{1.0f}
  ,m_limit{limit}
  ,m_voxel_size{size}
+ ,m_brick_size{0.5f}
  ,m_fill_holes{true}
  ,m_timer_integration{}
 {
@@ -115,6 +117,13 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
   m_program_colorfill->setUniform("texture_color", 15);
   m_program_colorfill->setUniform("texture_depth", 16);
   m_program_colorfill->setUniform("out_tex", start_image_unit);
+
+  m_program_solid->attach(
+    globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/solid.vs"),
+    globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/solid.fs")
+  );
+
+  divideBox();
 }
 
 void ReconIntegration::drawF() {
@@ -126,6 +135,7 @@ void ReconIntegration::drawF() {
     fillColors();
     m_timer_holefill.end();
   }
+  drawBricks();
 }
 
 void ReconIntegration::draw(){
@@ -224,6 +234,37 @@ void ReconIntegration::setVoxelSize(float size) {
   m_volume_tsdf->bindActive(GL_TEXTURE0 + 29);
   std::cout << "resolution " << m_res_volume.x << ", " << m_res_volume.y << ", " << m_res_volume.z << std::endl;
 }
+
+void ReconIntegration::divideBox() {
+  glm::fvec3 min{m_bbox.getPMin()};
+  glm::fvec3 size{glm::fvec3{m_bbox.getPMax()} - min}; 
+  glm::fvec3 start{min};
+  while(size.z - start.z  + min.z > 0.0f) {
+    while(size.y - start.y  + min.y > 0.0f) {
+      while(size.x - start.x  + min.x > 0.0f) {
+        m_bricks.emplace_back(start, glm::min(glm::fvec3{m_brick_size}, size - start + min));
+        start.x += m_brick_size;
+      }
+      start.x = min.x;
+      start.y += m_brick_size;
+    }
+    start.y = min.y;
+    start.z += m_brick_size;
+  }
+}
+
+void ReconIntegration::drawBricks() const {
+  m_program_solid->use();
+  int i = 0;
+  for(auto const& brick: m_bricks) {
+    glm::fmat4 transform = glm::scale(glm::translate(glm::fmat4{1.0f}, brick.pos), brick.size);
+    m_program_solid->setUniform("transform", transform);
+    UnitCube::drawWire();
+    ++i;
+  }
+  m_program_solid->release();
+}
+
 void ReconIntegration::setTsdfLimit(float limit) {
   m_limit = limit;
   m_program->setUniform("limit", m_limit);
