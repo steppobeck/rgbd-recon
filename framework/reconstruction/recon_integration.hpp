@@ -46,6 +46,7 @@ namespace kinect{
 
     std::uint64_t integrationTime() const;
     std::uint64_t holefillTime() const;
+    unsigned numBricks() const;
     
     void resize(std::size_t width, std::size_t height) override;
     void drawBricks() const;
@@ -57,6 +58,7 @@ namespace kinect{
     void drawBrickVoxels() const;
 
     std::unique_ptr<ViewLod>               m_view_inpaint2;
+    globjects::ref_ptr<globjects::Buffer>  m_buffer_bricks;
     globjects::ref_ptr<globjects::Program> m_program;
     globjects::ref_ptr<globjects::Program> m_program_integration;
     globjects::ref_ptr<globjects::Program> m_program_inpaint;

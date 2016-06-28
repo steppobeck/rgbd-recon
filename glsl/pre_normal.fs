@@ -1,5 +1,6 @@
 #version 130
 #extension GL_ARB_explicit_attrib_location : enable
+#extension GL_ARB_shader_storage_buffer_object : enable
 
 noperspective in vec2 pass_TexCoord;
 
@@ -9,6 +10,11 @@ uniform vec2 texSizeInv;
 
 uniform sampler3D[5] cv_xyz;
 uniform sampler3D[5] cv_uv;
+
+uniform uint num_bricks;
+layout (std430, binding = 3) buffer Bricks {
+  uint[] bricks;
+};
 
 layout(location = 0) out vec3 out_Normal;
 

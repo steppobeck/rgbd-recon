@@ -32,6 +32,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
  :Reconstruction(cfs, cv, bbox)
  ,m_view_inpaint{new ViewLod(1280, 720)}
  ,m_view_inpaint2{new ViewLod(1280, 720)}
+ ,m_buffer_bricks{new globjects::Buffer()}
  ,m_program{new globjects::Program()}
  ,m_program_integration{new globjects::Program()}
  ,m_program_inpaint{new globjects::Program()}
@@ -126,6 +127,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
   );
 
   divideBox();
+
 }
 
 void ReconIntegration::drawF() {
@@ -176,9 +178,15 @@ void ReconIntegration::integrate() {
   m_volume_tsdf->bindImageTexture(start_image_unit, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_R32F);
   
   if (m_use_bricks) {
+    std::vector<unsigned> bricks(m_bricks.size(), 0);
+    m_buffer_bricks->getSubData(0, bricks.size() * sizeof(unsigned), bricks.data());
+    unsigned i  = 0;
     for(auto const& brick : m_bricks) {
       m_sampler.sample(brick.indices);
+      std::cout << bricks[i] << ",";
+      ++i;
     }
+    std::cout << std::endl;
   }
   else {
     m_sampler.sample();
@@ -273,6 +281,14 @@ void ReconIntegration::divideBox() {
     start.y = min.y;
     start.z += m_brick_size;
   }
+
+  std::vector<unsigned> bricks(m_bricks.size(), 0);
+  for(unsigned i = 0; i < bricks.size(); ++i) {
+    bricks[i] = i + 1;
+  }
+  m_buffer_bricks->setData(sizeof(unsigned) * bricks.size(), bricks.data(), GL_DYNAMIC_READ);
+  m_buffer_bricks->bindRange(GL_SHADER_STORAGE_BUFFER, 3, 0, sizeof(unsigned) * bricks.size());
+  // m_program_integration->setUniform("num_bricks", unsigned(m_bricks.size()));
 }
 
 void ReconIntegration::drawBricks() const {
