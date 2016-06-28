@@ -63,15 +63,19 @@ namespace kinect{
     void divideBox();
     void fillColors();
     void drawBrickVoxels() const;
+    void updatePBO();
 
     std::unique_ptr<ViewLod>               m_view_inpaint2;
     globjects::ref_ptr<globjects::Buffer>  m_buffer_bricks;
+    globjects::ref_ptr<globjects::Buffer>  m_pbo_volume;
+
     globjects::ref_ptr<globjects::Program> m_program;
     globjects::ref_ptr<globjects::Program> m_program_integration;
     globjects::ref_ptr<globjects::Program> m_program_inpaint;
     globjects::ref_ptr<globjects::Program> m_program_colorfill;
     globjects::ref_ptr<globjects::Program> m_program_transfer;
     globjects::ref_ptr<globjects::Program> m_program_solid;
+
     glm::uvec3          m_res_volume;
     glm::uvec3          m_res_bricks;
     VolumeSampler       m_sampler;

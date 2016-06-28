@@ -1,6 +1,7 @@
 #version 130
 #extension GL_ARB_explicit_attrib_location : enable
 #extension GL_ARB_shader_storage_buffer_object : enable
+#extension GL_ARB_shading_language_include : require
 
 noperspective in vec2 pass_TexCoord;
 
@@ -12,6 +13,7 @@ uniform sampler3D[5] cv_xyz;
 uniform sampler3D[5] cv_uv;
 
 #include </inc_bbox_test.glsl>
+
 layout (std430, binding = 3) buffer Bricks {
   float brick_size;
   uint pad[3];

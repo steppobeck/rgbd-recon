@@ -23,11 +23,11 @@ double_pbo::double_pbo(std::size_t s)
  ,dirty{false}
 {
   front->setData(size, nullptr, GL_DYNAMIC_DRAW);
-  front->bind(GL_PIXEL_PACK_BUFFER);
+  front->bind(GL_PIXEL_UNPACK_BUFFER);
   back->setData(size, nullptr, GL_DYNAMIC_DRAW);
-  back->bind(GL_PIXEL_PACK_BUFFER);
+  back->bind(GL_PIXEL_UNPACK_BUFFER);
   // unbind to prevent interference with downloads
-  globjects::Buffer::unbind(GL_PIXEL_PACK_BUFFER);
+  globjects::Buffer::unbind(GL_PIXEL_UNPACK_BUFFER);
 
   map();
 }
