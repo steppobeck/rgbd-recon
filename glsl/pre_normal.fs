@@ -11,12 +11,21 @@ uniform vec2 texSizeInv;
 uniform sampler3D[5] cv_xyz;
 uniform sampler3D[5] cv_uv;
 
-uniform uint num_bricks;
+#include </inc_bbox_test.glsl>
+// uniform uint num_bricks;
 layout (std430, binding = 3) buffer Bricks {
+  float brick_size;
+  uvec3 resolution;
   uint[] bricks;
 };
 
 layout(location = 0) out vec3 out_Normal;
+
+void mark_brick(in vec3 pos) {
+  pos -= bbox_min;
+  uvec3 index = uvec3(floor(pos / brick_size));
+  bricks[index.z * resolution.y * resolution.x + index.y * resolution.x + index.x] = 1u;
+}
 
 bool is_outside(float d){
   return (d <= 0.0f) || (d >= 1.0f);
@@ -27,6 +36,8 @@ vec3 calculate_normal(const in vec2 tex_pos) {
   if(is_outside(depth)) {
     return vec3(0.0f);
   }
+  vec3 world = texture(cv_xyz[layer], vec3(tex_pos, depth)).xyz;
+  mark_brick(world);
   // the valid range scales with depth
   // float dist_range_max = 1.0f / depth;
   float dist_range_max = 0.009f;

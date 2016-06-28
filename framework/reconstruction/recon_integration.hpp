@@ -66,6 +66,7 @@ namespace kinect{
     globjects::ref_ptr<globjects::Program> m_program_transfer;
     globjects::ref_ptr<globjects::Program> m_program_solid;
     glm::uvec3          m_res_volume;
+    glm::uvec3          m_res_bricks;
     VolumeSampler       m_sampler;
     globjects::ref_ptr<globjects::Texture> m_volume_tsdf;
 
