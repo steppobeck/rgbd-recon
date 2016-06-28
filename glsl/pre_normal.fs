@@ -12,10 +12,11 @@ uniform sampler3D[5] cv_xyz;
 uniform sampler3D[5] cv_uv;
 
 #include </inc_bbox_test.glsl>
-// uniform uint num_bricks;
 layout (std430, binding = 3) buffer Bricks {
   float brick_size;
+  uint pad[3];
   uvec3 resolution;
+  uint pad2[1];
   uint[] bricks;
 };
 

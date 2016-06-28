@@ -27,6 +27,13 @@ namespace kinect{
     std::vector<unsigned> indices;
   };
 
+  
+  // struct brick_buffer_t {
+  //   float brick_size = 0;
+  //   glm::uvec3 res_bricks{0};
+  //   unsigned[] active_bricks;
+  // }
+
   class ViewLod;
 
   class ReconIntegration : public Reconstruction {
@@ -72,6 +79,7 @@ namespace kinect{
 
     glm::fmat4          m_mat_vol_to_world;
     std::vector<brick> m_bricks;
+    std::vector<unsigned> m_active_bricks;
     float m_limit;
     float m_voxel_size;
     float m_brick_size;

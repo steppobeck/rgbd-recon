@@ -143,7 +143,7 @@ void ReconIntegration::drawF() {
 
   if (m_draw_bricks) {
     drawBricks();
-    drawBrickVoxels();
+    // drawBrickVoxels();
   }
 }
 
@@ -182,21 +182,22 @@ void ReconIntegration::integrate() {
   m_volume_tsdf->bindImageTexture(start_image_unit, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_R32F);
   
   if (m_use_bricks) {
-    std::vector<unsigned> bricks(m_bricks.size() + 4, 0);
+    std::vector<unsigned> bricks(m_bricks.size() + 8, 0);
     m_buffer_bricks->getSubData(0, bricks.size() * sizeof(unsigned), bricks.data());
+    m_buffer_bricks->getSubData(sizeof(unsigned) * 8, m_active_bricks.size() * sizeof(unsigned), m_active_bricks.data());
     float size = 0.0f;
     std::memcpy(&size, &bricks[0], sizeof(float));
     glm::uvec3 read_size{0};
-    std::memcpy(&read_size, &bricks[1], sizeof(unsigned) * 3);
+    std::memcpy(&read_size, &bricks[4], sizeof(unsigned) * 3);
 
     // std::cout << "size " << m_brick_size << " buffer " << size << "res " << m_res_bricks << " buffer " << read_size << std::endl;
     for(unsigned i = 0; i < m_bricks.size(); ++i) {
-      if(bricks[i + 4] > 0) {
+      if(m_active_bricks[i] > 0) {
         m_sampler.sample(m_bricks[i].indices);
       }
-      std::cout << bricks[i + 4] << ",";
+      // std::cout << m_active_bricks[i] << ",";
     }
-    std::cout << std::endl;
+    // std::cout << std::endl;
   }
   else {
     m_sampler.sample();
@@ -207,7 +208,7 @@ void ReconIntegration::integrate() {
   
   m_timer_integration.end();
   static std::vector<unsigned> empty(m_bricks.size(), 0);
-  m_buffer_bricks->setSubData(sizeof(unsigned) * 4, empty.size() * sizeof(unsigned), empty.data());
+  m_buffer_bricks->setSubData(sizeof(unsigned) * 8, empty.size() * sizeof(unsigned), empty.data());
 }
 
 void ReconIntegration::fillColors() {
@@ -295,23 +296,29 @@ void ReconIntegration::divideBox() {
   }
   m_res_bricks = glm::uvec3{glm::ceil(size / m_brick_size)};
   std::cout << "brick res " << m_res_bricks.x << ", " << m_res_bricks.y << ", " << m_res_bricks.z << std::endl;
-  std::vector<unsigned> bricks(m_bricks.size() + 4, 0);
+  std::vector<unsigned> bricks(m_bricks.size() + 8, 0);
   std::memcpy(&bricks[0], &m_brick_size, sizeof(float));
-  std::memcpy(&bricks[1], &m_res_bricks, sizeof(unsigned) * 3);
+  std::memcpy(&bricks[4], &m_res_bricks, sizeof(unsigned) * 3);
   // bricks[1] = m_brick_size;
   // for(unsigned i = 5; i < bricks.size(); ++i) {
   //   bricks[i] = i;
   // }
   m_buffer_bricks->setData(sizeof(unsigned) * bricks.size(), bricks.data(), GL_DYNAMIC_READ);
   m_buffer_bricks->bindRange(GL_SHADER_STORAGE_BUFFER, 3, 0, sizeof(unsigned) * bricks.size());
+  m_active_bricks.resize(m_bricks.size());
 }
 
 void ReconIntegration::drawBricks() const {
   m_program_solid->use();
-  m_program_solid->setUniform("Color", glm::fvec3{0.0f, 0.0f, 1.0f});
-  for(auto const& brick : m_bricks) {
-    glm::fmat4 transform = glm::scale(glm::translate(glm::fmat4{1.0f}, brick.pos), brick.size);
+  for(unsigned i = 0; i < m_bricks.size(); ++i) {
+    glm::fmat4 transform = glm::scale(glm::translate(glm::fmat4{1.0f}, m_bricks[i].pos), m_bricks[i].size);
     m_program_solid->setUniform("transform", transform);
+    if(m_active_bricks[i] > 0) {
+      m_program_solid->setUniform("Color", glm::fvec3{1.0f, 0.0f, 0.0f});
+    }
+    else {
+      m_program_solid->setUniform("Color", glm::fvec3{0.0f, 0.0f, 1.0f});
+    }
     UnitCube::drawWire();
   }
   m_program_solid->release();

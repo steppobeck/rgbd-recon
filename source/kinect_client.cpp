@@ -67,7 +67,7 @@ bool     g_bricking     = true;
 bool     g_draw_bricks  = false;
 int      g_num_kinect   = 1; 
 float    g_voxel_size   = 0.007f;
-float    g_brick_size   = 0.25f;
+float    g_brick_size   = 0.5f;
 float    g_tsdf_limit   = 0.01f;
 double   g_time_prev    = 0.0f;
 
