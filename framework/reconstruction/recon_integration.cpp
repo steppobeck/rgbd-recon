@@ -139,6 +139,7 @@ void ReconIntegration::drawF() {
   }
 
   if (m_draw_bricks) {
+    drawBricks();
     drawBrickVoxels();
   }
 }
@@ -276,21 +277,23 @@ void ReconIntegration::divideBox() {
 
 void ReconIntegration::drawBricks() const {
   m_program_solid->use();
-  for(auto const& brick: m_bricks) {
-    glm::fmat4 transform = glm::scale(glm::translate(glm::fmat4{1.0f}, brick.pos), brick.size);
+  m_program_solid->setUniform("Color", glm::fvec3{0.0f, 0.0f, 1.0f});
+  // for(auto const& brick: m_bricks) {
+    glm::fmat4 transform = glm::scale(glm::translate(glm::fmat4{1.0f}, m_bricks[5].pos), m_bricks[5].size);
     m_program_solid->setUniform("transform", transform);
     UnitCube::drawWire();
-  }
+  // }
   m_program_solid->release();
 }
 
 void ReconIntegration::drawBrickVoxels() const {
   m_program_solid->use();
-  for(auto const& brick: m_bricks) {
-    glm::fmat4 transform = glm::scale(glm::translate(glm::fmat4{1.0f}, brick.pos), brick.size);
+  m_program_solid->setUniform("Color", glm::fvec3{0.0f, 1.0f, 0.0f});
+  // for(auto const& brick: m_bricks) {
+    glm::fmat4 transform = glm::scale(glm::translate(glm::fmat4{1.0f}, glm::fvec3{m_bbox.getPMin()}), glm::fvec3{m_bbox.getPMax()} - glm::fvec3{m_bbox.getPMin()});
     m_program_solid->setUniform("transform", transform);
-    m_sampler.sample(brick.indices);
-  }
+    m_sampler.sample(m_bricks[5].indices);
+  // }
   m_program_solid->release();
 }
 

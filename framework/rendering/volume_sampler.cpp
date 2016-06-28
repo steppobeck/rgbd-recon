@@ -14,9 +14,9 @@ VolumeSampler::VolumeSampler(glm::uvec3 const& dimensions)
   float stepX = 1.0f / m_dimensions.x;
   float stepY = 1.0f / m_dimensions.y;
   float stepZ = 1.0f / m_dimensions.z;
-  for(unsigned y = 0; y < m_dimensions.y; ++y) {
-    for(unsigned x = 0; x < m_dimensions.x; ++x) {
-      for(unsigned z = 0; z < m_dimensions.z; ++z) {
+  for(unsigned z = 0; z < m_dimensions.z; ++z) {
+    for(unsigned y = 0; y < m_dimensions.y; ++y) {
+      for(unsigned x = 0; x < m_dimensions.x; ++x) {
         m_pos_voxels.emplace_back(( x+ 0.5f) * stepX, (y + 0.5f) * stepY, (z + 0.5f) * stepZ);
       }
     }
@@ -36,9 +36,9 @@ void VolumeSampler::resize(glm::uvec3 const& dimensions) {
   float stepX = 1.0f / m_dimensions.x;
   float stepY = 1.0f / m_dimensions.y;
   float stepZ = 1.0f / m_dimensions.z;
-  for(unsigned y = 0; y < m_dimensions.y; ++y) {
-    for(unsigned x = 0; x < m_dimensions.x; ++x) {
-      for(unsigned z = 0; z < m_dimensions.z; ++z) {
+  for(unsigned z = 0; z < m_dimensions.z; ++z) {
+    for(unsigned y = 0; y < m_dimensions.y; ++y) {
+      for(unsigned x = 0; x < m_dimensions.x; ++x) {
         m_pos_voxels.emplace_back(( x+ 0.5f) * stepX, (y + 0.5f) * stepY, (z + 0.5f) * stepZ);
       }
     }
