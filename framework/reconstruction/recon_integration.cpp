@@ -248,9 +248,9 @@ void ReconIntegration::setVoxelSize(float size) {
   divideBox();
 }
 
-bool point_in_brick(glm::fvec3 const& point, brick const& b) {
-  return point.x >= b.pos.x && point.y >= b.pos.y && point.z >= b.pos.z
-      && point.x <= b.pos.x + b.size.x && point.y <= b.pos.y + b.size.y && point.z <= b.pos.z + b.size.z;
+bool point_in_brick(glm::fvec3 const& point, glm::fvec3 const& pos_n, glm::fvec3 const& size_n) {
+  return point.x >= pos_n.x && point.y >= pos_n.y && point.z >= pos_n.z
+      && point.x <= pos_n.x + size_n.x && point.y <= pos_n.y + size_n.y && point.z <= pos_n.z + size_n.z;
 }
 
 void ReconIntegration::divideBox() {
@@ -263,12 +263,7 @@ void ReconIntegration::divideBox() {
       while(size.x - start.x  + min.x > 0.0f) {
         m_bricks.emplace_back(start, glm::min(glm::fvec3{m_brick_size}, size - start + min));
         auto& curr_brick = m_bricks.back();
-        for(unsigned i = 0; i < m_sampler.voxelPositions().size(); ++i) {
-          auto const& curr_pos = m_sampler.voxelPositions()[i];
-          if (point_in_brick(curr_pos, curr_brick)) {
-            curr_brick.indices.push_back(i);
-          }
-        }
+        curr_brick.indices = m_sampler.containedVoxels((curr_brick.pos - min) / size, curr_brick.size / size);
         start.x += m_brick_size;
       }
       start.x = min.x;
