@@ -33,7 +33,6 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
  ,m_view_inpaint{new ViewLod(1280, 720)}
  ,m_view_inpaint2{new ViewLod(1280, 720)}
  ,m_buffer_bricks{new globjects::Buffer()}
- ,m_pbo_volume{new globjects::Buffer()}
  ,m_program{new globjects::Program()}
  ,m_program_integration{new globjects::Program()}
  ,m_program_inpaint{new globjects::Program()}
@@ -171,9 +170,9 @@ void ReconIntegration::integrate() {
   glEnable(GL_RASTERIZER_DISCARD);
   m_program_integration->use();
 
-  m_pbo_volume->bind(GL_PIXEL_UNPACK_BUFFER);
-  m_volume_tsdf->subImage3D(0, glm::ivec3{0}, glm::ivec3{m_res_volume}, GL_RED, GL_FLOAT, 0);
-  globjects::Buffer::unbind(GL_PIXEL_UNPACK_BUFFER);
+  // clearing costs 0,4 ms on titan
+  float negative = -m_limit;
+  m_volume_tsdf->clearImage(0, GL_RED, GL_FLOAT, &negative);
 
   m_volume_tsdf->bindImageTexture(start_image_unit, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_R32F);
   
@@ -261,7 +260,6 @@ void ReconIntegration::setVoxelSize(float size) {
     << " - " << (m_res_volume.x * m_res_volume.y * m_res_volume.z) / 1000 << "k voxels" << std::endl;
 
   divideBox();
-  updatePBO();
 }
 
 bool point_in_brick(glm::fvec3 const& point, glm::fvec3 const& pos_n, glm::fvec3 const& size_n) {
@@ -335,20 +333,12 @@ void ReconIntegration::setTsdfLimit(float limit) {
   m_limit = limit;
   m_program->setUniform("limit", m_limit);
   m_program_integration->setUniform("limit", m_limit);
-  updatePBO();
 }
 
 void ReconIntegration::setBrickSize(float size) {
   m_brick_size = size;
   divideBox();
 }
-
-void ReconIntegration::updatePBO() {
-  // update blank pbo
-  std::vector<float> empty_volume(m_res_volume.x * m_res_volume.y * m_res_volume.z, - m_limit);
-  m_pbo_volume->setData(sizeof(float) * empty_volume.size(), empty_volume.data(), GL_STATIC_DRAW);
-}
-
 
 std::uint64_t ReconIntegration::integrationTime() const {
   return m_timer_integration.duration();

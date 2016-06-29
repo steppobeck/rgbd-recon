@@ -27,13 +27,6 @@ namespace kinect{
     std::vector<unsigned> indices;
   };
 
-  
-  // struct brick_buffer_t {
-  //   float brick_size = 0;
-  //   glm::uvec3 res_bricks{0};
-  //   unsigned[] active_bricks;
-  // }
-
   class ViewLod;
 
   class ReconIntegration : public Reconstruction {
@@ -64,11 +57,9 @@ namespace kinect{
     void divideBox();
     void fillColors();
     void drawBrickVoxels() const;
-    void updatePBO();
 
     std::unique_ptr<ViewLod>               m_view_inpaint2;
     globjects::ref_ptr<globjects::Buffer>  m_buffer_bricks;
-    globjects::ref_ptr<globjects::Buffer>  m_pbo_volume;
 
     globjects::ref_ptr<globjects::Program> m_program;
     globjects::ref_ptr<globjects::Program> m_program_integration;
