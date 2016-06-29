@@ -51,7 +51,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
  ,m_brick_size{0.1f}
  ,m_fill_holes{true}
  ,m_use_bricks{true}
- ,m_draw_bricks{false}
+ ,m_skip_space{false}
  ,m_timer_integration{}
  ,m_timer_holefill{}
  ,m_timer_brickdraw{}
@@ -144,9 +144,8 @@ void ReconIntegration::drawF() {
     m_timer_holefill.end();
   }
 
-  if (m_draw_bricks) {
+  if (m_skip_space && m_use_bricks) {
     drawBricks();
-    // drawBrickVoxels();
   }
 }
 
@@ -313,11 +312,25 @@ void ReconIntegration::divideBox() {
 }
 
 void ReconIntegration::drawBricks() {
-  m_timer_brickdraw.begin();
   m_view_depth->enable();
+  gloost::Matrix projection_matrix;
+  glGetFloatv(GL_PROJECTION_MATRIX, projection_matrix.data());
+  gloost::Matrix viewport_translate;
+  viewport_translate.setIdentity();
+  viewport_translate.setTranslate(1.0,1.0,1.0);
+  gloost::Matrix viewport_scale;
+  viewport_scale.setIdentity();
+  
+  glm::uvec4 viewport_vals{getViewport()};
+  viewport_scale.setScale(viewport_vals[2] * 0.5, viewport_vals[3] * 0.5, 0.5f);
+  gloost::Matrix image_to_eye =  viewport_scale * viewport_translate * projection_matrix;
+  image_to_eye.invert();
+  m_program->setUniform("img_to_eye_curr", image_to_eye);
+
+  m_timer_brickdraw.begin();
   m_program_bricks->use();
   glEnable(GL_BLEND);
-  glBlendEquation(GL_MAX);
+  glBlendEquation(GL_MIN);
 
   for(unsigned i = 0; i < m_bricks.size(); ++i) {
     if(m_active_bricks[i] > 0) {
@@ -377,6 +390,8 @@ void ReconIntegration::resize(std::size_t width, std::size_t height) {
   m_view_inpaint->setResolution(width, height);
   m_view_inpaint2->setResolution(width, height);
   m_view_depth->setResolution(width, height);
+  
+  m_program->setUniform("viewportSizeInv", glm::fvec2(1.0f/width, 1.0f/height));
 
   m_program_colorfill->setUniform("num_lods", int(m_view_inpaint->numLods()));
   m_program_colorfill->setUniform("texture_offsets", m_view_inpaint->offsets());
@@ -397,8 +412,9 @@ void ReconIntegration::setUseBricks(bool active) {
   m_use_bricks = active;
 }
 
-void ReconIntegration::setDrawBricks(bool active) {
-  m_draw_bricks = active;
+void ReconIntegration::setSpaceSkip(bool active) {
+  m_program->setUniform("skipSpace", active);
+  m_skip_space = active;
 }
 
 }

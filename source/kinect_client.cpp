@@ -64,7 +64,7 @@ bool     g_processed    = true;
 bool     g_refine       = true;
 bool     g_colorfill    = true;
 bool     g_bricking     = true;
-bool     g_draw_bricks  = false;
+bool     g_skip_space   = false;
 bool     g_watch_errors = true;
 int      g_num_kinect   = 1; 
 float    g_voxel_size   = 0.007f;
@@ -254,17 +254,20 @@ void update_gui() {
         ImGui::NextColumn();
         ImGui::Text("%.3f %% occupied", g_recon_integration->occupiedRatio() * 100.0f);
         ImGui::Columns(1);
+        
+        if(g_bricking) {
+          if (ImGui::Checkbox("Skip empty Spaces", &g_skip_space)) {
+            g_recon_integration->setSpaceSkip(g_skip_space);
+          }
+        }        
       }
       else {
         if (ImGui::Checkbox("Volume Bricking", &g_bricking)) {
           g_recon_integration->setUseBricks(g_bricking);
-        }        
-      }
-      if (ImGui::Checkbox("Draw Bricks", &g_draw_bricks)) {
-        g_recon_integration->setDrawBricks(g_draw_bricks);
+        }
       }
       if (ImGui::Checkbox("Draw TSDF", &g_draw_calibvis)) {
-        // g_recon_integration->setDrawBricks(g_draw_bricks);
+        // g_recon_integration->setDrawBricks(g_skip_space);
       }
     }
     if (ImGui::CollapsingHeader("Processing Performance")) {
@@ -305,14 +308,14 @@ void update_gui() {
           ImGui::Text("Drawing");
           ImGui::Text("Integration");
           ImGui::Text("Colorfilling");
-          if(g_draw_bricks) {
+          if(g_skip_space) {
             ImGui::Text("Brickdrawing");
           }
           ImGui::NextColumn();
           ImGui::Text("%.3f ms", g_recon_integration->drawTime() / 1000000.0f);
           ImGui::Text("%.3f ms", g_recon_integration->integrationTime() / 1000000.0f);
           ImGui::Text("%.3f ms", g_recon_integration->holefillTime() / 1000000.0f);
-          if(g_draw_bricks) {
+          if(g_skip_space) {
             ImGui::Text("%.3f ms", g_recon_integration->brickDrawTime() / 1000000.0f);
           }
           ImGui::Columns(1);
@@ -469,7 +472,7 @@ void draw3d(void)
   if (g_draw_textures) {
     // TextureBlitter::blit(g_nka->getStartTextureUnit() + g_texture_type, g_num_texture, g_nka->getDepthResolution());
     unsigned num = g_num_texture % 2;
-    TextureBlitter::blit(15 + num, glm::fvec2{g_recon_integration->m_view_inpaint->resolution_full()} / 2.0f);
+    TextureBlitter::blit(17 + num, glm::fvec2{g_recon_integration->m_view_inpaint->resolution_full()} / 2.0f);
   }
   glMemoryBarrier(GL_ALL_BARRIER_BITS);
 }

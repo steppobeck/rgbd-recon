@@ -23,6 +23,11 @@ uniform mat4 vol_to_world;
 uniform sampler3D volume_tsdf;
 uniform vec3 CameraPos;
 
+uniform bool skipSpace;
+uniform sampler2D depth_peels;
+uniform vec2 viewportSizeInv;
+uniform mat4 img_to_eye_curr;
+
 float sampleDistance = limit * 0.5f;
 const float IsoValue = 0.0f;
 const int refinement_num = 4;
@@ -44,6 +49,7 @@ vec3 blendCameras(const in vec3 sample_pos);
 // cube-ray intersection from http://prideout.net/blog/?p=64
 bool intersectBox(const vec3 origin, const vec3 dir, out float t0, out float t1);
 void submitFragment(const in vec3 sample_pos);
+vec3 getStartPos(ivec2 coords);
 
 void main() {
   // multiply with dimensions to scale direction by dimension relation
@@ -56,7 +62,11 @@ void main() {
   t_near = (t_near < 0.0f ? 0.0f : t_near * 1.0000001f);
 
   vec3 sample_pos = CameraPos + sampleStep * t_near;
-
+  if (skipSpace) { 
+    sample_pos = getStartPos(ivec2(gl_FragCoord.xy));
+  }
+  // out_Color.rgb = sample_pos;
+  // return;
   bool inside = isInside(sample_pos);  
   // cache value of previous sample
   float prev_density = sample(sample_pos); 
@@ -211,4 +221,12 @@ bool intersectBox(const vec3 origin, const vec3 dir, out float t0, out float t1)
     t = min(tmax.xx, tmax.yz);
     t1 = min(t.x, t.y);
     return t0 <= t1;
+}
+
+vec3 getStartPos(ivec2 coords) {
+  vec2 depthMinMax = texelFetch(depth_peels, coords, 0).rg;
+  vec4 position_curr = img_to_eye_curr * vec4(gl_FragCoord.xy + vec2(0.5,0.5),depthMinMax.r,1.0);
+  vec4 position_curr_es = vec4(position_curr.xyz / position_curr.w, 1.0);
+  vec4 position_curr_ws = inverse(gl_ModelViewMatrix) * position_curr_es;
+  return (inverse(vol_to_world) * position_curr_ws).xyz;
 }

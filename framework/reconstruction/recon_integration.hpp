@@ -40,7 +40,7 @@ namespace kinect{
     void integrate();
     void setColorFilling(bool active);
     void setUseBricks(bool active);
-    void setDrawBricks(bool active);
+    void setSpaceSkip(bool active);
     void setVoxelSize(float size);
     void setTsdfLimit(float limit);
     void setBrickSize(float limit);
@@ -85,7 +85,7 @@ namespace kinect{
     float m_brick_size;
     bool m_fill_holes;
     bool m_use_bricks;
-    bool m_draw_bricks;
+    bool m_skip_space;
     TimerGPU m_timer_integration;
     TimerGPU m_timer_holefill;
     TimerGPU m_timer_brickdraw;
