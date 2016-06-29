@@ -46,7 +46,7 @@ void ViewLod::setResolution(unsigned width, unsigned height) {
     else {
       m_offsets[i] = glm::uvec2{0};
     } 
-    std::cout << "offset " << offset.x << ", " << offset.y << " resolution " << lod_res.x << ", " << lod_res.y << std::endl;
+    // std::cout << "offset " << offset.x << ", " << offset.y << " resolution " << lod_res.x << ", " << lod_res.y << std::endl;
   }
 
   m_tex_color->setParameter(GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT);

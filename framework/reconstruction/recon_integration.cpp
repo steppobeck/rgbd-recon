@@ -40,16 +40,14 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
  ,m_program_colorfill{new globjects::Program()}
  ,m_program_transfer{new globjects::Program()}
  ,m_program_solid{new globjects::Program()}
- ,m_res_volume{glm::ceil(glm::fvec3{bbox.getPMax()[0] - bbox.getPMin()[0],
-                                    bbox.getPMax()[1] - bbox.getPMin()[1],
-                                    bbox.getPMax()[2] - bbox.getPMin()[2]} / size)}
+ ,m_res_volume{0}
  ,m_res_bricks{0}
- ,m_sampler{m_res_volume}
+ ,m_sampler{glm::uvec3{0}}
  ,m_volume_tsdf{globjects::Texture::createDefault(GL_TEXTURE_3D)}
  ,m_mat_vol_to_world{1.0f}
  ,m_limit{limit}
  ,m_voxel_size{size}
- ,m_brick_size{0.5f}
+ ,m_brick_size{0.1f}
  ,m_fill_holes{true}
  ,m_use_bricks{true}
  ,m_draw_bricks{false}
@@ -94,12 +92,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
 
   m_program_integration->setUniform("num_kinects", m_num_kinects);
   m_program_integration->setUniform("res_depth", glm::uvec2{m_cf->getWidth(), m_cf->getHeight()});
-  m_program_integration->setUniform("res_tsdf", m_res_volume);
   m_program_integration->setUniform("limit", m_limit);
-
-  m_volume_tsdf->image3D(0, GL_R32F, glm::ivec3{m_res_volume}, 0, GL_RED, GL_FLOAT, nullptr);
-  m_volume_tsdf->bindActive(GL_TEXTURE0 + 29);
-  std::cout << "resolution " << m_res_volume.x << ", " << m_res_volume.y << ", " << m_res_volume.z << std::endl;
   
   m_program_inpaint->attach(
     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/texture_passthrough.vs"),
@@ -128,8 +121,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
     globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/solid.fs")
   );
 
-  divideBox();
-  updatePBO();
+  setVoxelSize(m_voxel_size);
 }
 
 void ReconIntegration::drawF() {
@@ -185,13 +177,13 @@ void ReconIntegration::integrate() {
   m_volume_tsdf->bindImageTexture(start_image_unit, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_R32F);
   
   if (m_use_bricks) {
-    std::vector<unsigned> bricks(m_bricks.size() + 8, 0);
-    m_buffer_bricks->getSubData(0, bricks.size() * sizeof(unsigned), bricks.data());
+    // std::vector<unsigned> bricks(m_bricks.size() + 8, 0);
+    // m_buffer_bricks->getSubData(0, bricks.size() * sizeof(unsigned), bricks.data());
     m_buffer_bricks->getSubData(sizeof(unsigned) * 8, m_active_bricks.size() * sizeof(unsigned), m_active_bricks.data());
-    float size = 0.0f;
-    std::memcpy(&size, &bricks[0], sizeof(float));
-    glm::uvec3 read_size{0};
-    std::memcpy(&read_size, &bricks[4], sizeof(unsigned) * 3);
+    // float size = 0.0f;
+    // std::memcpy(&size, &bricks[0], sizeof(float));
+    // glm::uvec3 read_size{0};
+    // std::memcpy(&read_size, &bricks[4], sizeof(unsigned) * 3);
 
     // std::cout << "size " << m_brick_size << " buffer " << size << "res " << m_res_bricks << " buffer " << read_size << std::endl;
     for(unsigned i = 0; i < m_bricks.size(); ++i) {
@@ -210,8 +202,9 @@ void ReconIntegration::integrate() {
   glDisable(GL_RASTERIZER_DISCARD);
   
   m_timer_integration.end();
-  static std::vector<unsigned> empty(m_bricks.size(), 0);
-  m_buffer_bricks->setSubData(sizeof(unsigned) * 8, empty.size() * sizeof(unsigned), empty.data());
+  // clear active bricks
+  static unsigned zero = 0;
+  m_buffer_bricks->clearSubData(GL_R32UI, sizeof(unsigned) * 8, m_bricks.size() * sizeof(unsigned), GL_RED_INTEGER, GL_UNSIGNED_INT, &zero);
 }
 
 void ReconIntegration::fillColors() {
@@ -268,7 +261,8 @@ void ReconIntegration::setVoxelSize(float size) {
   m_program_integration->setUniform("res_tsdf", m_res_volume);
   m_volume_tsdf->image3D(0, GL_R32F, glm::ivec3{m_res_volume}, 0, GL_RED, GL_FLOAT, nullptr);
   m_volume_tsdf->bindActive(GL_TEXTURE0 + 29);
-  std::cout << "resolution " << m_res_volume.x << ", " << m_res_volume.y << ", " << m_res_volume.z << std::endl;
+  std::cout << "resolution " << m_res_volume.x << ", " << m_res_volume.y << ", " << m_res_volume.z
+    << ", " << (m_res_volume.x * m_res_volume.y * m_res_volume.z) / 1000 << "k voxels" << std::endl;
 
   divideBox();
   updatePBO();
@@ -299,7 +293,6 @@ void ReconIntegration::divideBox() {
     start.z += m_brick_size;
   }
   m_res_bricks = glm::uvec3{glm::ceil(size / m_brick_size)};
-  std::cout << "brick res " << m_res_bricks.x << ", " << m_res_bricks.y << ", " << m_res_bricks.z << std::endl;
   std::vector<unsigned> bricks(m_bricks.size() + 8, 0);
   std::memcpy(&bricks[0], &m_brick_size, sizeof(float));
   std::memcpy(&bricks[4], &m_res_bricks, sizeof(unsigned) * 3);
@@ -310,6 +303,9 @@ void ReconIntegration::divideBox() {
   m_buffer_bricks->setData(sizeof(unsigned) * bricks.size(), bricks.data(), GL_DYNAMIC_READ);
   m_buffer_bricks->bindRange(GL_SHADER_STORAGE_BUFFER, 3, 0, sizeof(unsigned) * bricks.size());
   m_active_bricks.resize(m_bricks.size());
+
+  std::cout << "brick res " << m_res_bricks.x << ", " << m_res_bricks.y << ", " << m_res_bricks.z
+    << m_bricks.front().indices.size() << " voxels per brick" << std::endl;
 }
 
 void ReconIntegration::drawBricks() const {
