@@ -305,10 +305,16 @@ void update_gui() {
           ImGui::Text("Drawing");
           ImGui::Text("Integration");
           ImGui::Text("Colorfilling");
+          if(g_draw_bricks) {
+            ImGui::Text("Brickdrawing");
+          }
           ImGui::NextColumn();
           ImGui::Text("%.3f ms", g_recon_integration->drawTime() / 1000000.0f);
           ImGui::Text("%.3f ms", g_recon_integration->integrationTime() / 1000000.0f);
           ImGui::Text("%.3f ms", g_recon_integration->holefillTime() / 1000000.0f);
+          if(g_draw_bricks) {
+            ImGui::Text("%.3f ms", g_recon_integration->brickDrawTime() / 1000000.0f);
+          }
           ImGui::Columns(1);
           ImGui::TreePop();
         }

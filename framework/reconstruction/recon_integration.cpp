@@ -51,6 +51,8 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
  ,m_use_bricks{true}
  ,m_draw_bricks{false}
  ,m_timer_integration{}
+ ,m_timer_holefill{}
+ ,m_timer_brickdraw{}
  ,m_ratio_occupied{0.0f}
 {
   m_program->attach(
@@ -302,20 +304,24 @@ void ReconIntegration::divideBox() {
     << " - " << m_bricks.front().indices.size() << " voxels per brick" << std::endl;
 }
 
-void ReconIntegration::drawBricks() const {
+void ReconIntegration::drawBricks() {
+  m_timer_brickdraw.begin();
+
   m_program_solid->use();
+  m_program_solid->setUniform("Color", glm::fvec3{1.0f, 0.0f, 0.0f});
   for(unsigned i = 0; i < m_bricks.size(); ++i) {
-    glm::fmat4 transform = glm::scale(glm::translate(glm::fmat4{1.0f}, m_bricks[i].pos), m_bricks[i].size);
-    m_program_solid->setUniform("transform", transform);
     if(m_active_bricks[i] > 0) {
-      m_program_solid->setUniform("Color", glm::fvec3{1.0f, 0.0f, 0.0f});
+      glm::fmat4 transform = glm::scale(glm::translate(glm::fmat4{1.0f}, m_bricks[i].pos), m_bricks[i].size);
+      m_program_solid->setUniform("transform", transform);
+      UnitCube::drawWire();
     }
-    else {
-      m_program_solid->setUniform("Color", glm::fvec3{0.0f, 0.0f, 1.0f});
-    }
-    UnitCube::drawWire();
+    // else {
+    //   m_program_solid->setUniform("Color", glm::fvec3{0.0f, 0.0f, 1.0f});
+    // }
   }
   m_program_solid->release();
+ 
+  m_timer_brickdraw.end();
 }
 
 void ReconIntegration::drawBrickVoxels() const {
@@ -346,6 +352,10 @@ std::uint64_t ReconIntegration::integrationTime() const {
 
 std::uint64_t ReconIntegration::holefillTime() const {
   return m_timer_holefill.duration();
+}
+
+std::uint64_t ReconIntegration::brickDrawTime() const {
+  return m_timer_brickdraw.duration();
 }
 
 float ReconIntegration::occupiedRatio() const {
