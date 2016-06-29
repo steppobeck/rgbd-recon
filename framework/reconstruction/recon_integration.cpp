@@ -32,6 +32,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
  :Reconstruction(cfs, cv, bbox)
  ,m_view_inpaint{new ViewLod(1280, 720)}
  ,m_view_inpaint2{new ViewLod(1280, 720)}
+ ,m_view_depth{new View(1280, 720, false)}
  ,m_buffer_bricks{new globjects::Buffer()}
  ,m_program{new globjects::Program()}
  ,m_program_integration{new globjects::Program()}
@@ -39,6 +40,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
  ,m_program_colorfill{new globjects::Program()}
  ,m_program_transfer{new globjects::Program()}
  ,m_program_solid{new globjects::Program()}
+ ,m_program_bricks{new globjects::Program()}
  ,m_res_volume{0}
  ,m_res_bricks{0}
  ,m_sampler{glm::uvec3{0}}
@@ -78,6 +80,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
   m_program->setUniform("camera_positions", m_cv->getCameraPositions());
   m_program->setUniform("num_kinects", m_num_kinects);
   m_program->setUniform("limit", m_limit);
+  m_program->setUniform("depth_peels", 17);
   
   m_program_integration->attach(
     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/tsdf_integration.vs")
@@ -121,6 +124,11 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
   m_program_solid->attach(
     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/solid.vs"),
     globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/solid.fs")
+  );
+
+  m_program_bricks->attach(
+    globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/solid.vs"),
+    globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/bricks.fs")
   );
 
   setVoxelSize(m_voxel_size);
@@ -246,7 +254,7 @@ void ReconIntegration::fillColors() {
   m_program_colorfill->setUniform("lod", 0);
 
   ScreenQuad::draw();
-  m_program_colorfill->release();  
+  m_program_colorfill->release();
 }
 
 void ReconIntegration::setVoxelSize(float size) {
@@ -306,21 +314,24 @@ void ReconIntegration::divideBox() {
 
 void ReconIntegration::drawBricks() {
   m_timer_brickdraw.begin();
+  m_view_depth->enable();
+  m_program_bricks->use();
+  glEnable(GL_BLEND);
+  glBlendEquation(GL_MAX);
 
-  m_program_solid->use();
-  m_program_solid->setUniform("Color", glm::fvec3{1.0f, 0.0f, 0.0f});
   for(unsigned i = 0; i < m_bricks.size(); ++i) {
     if(m_active_bricks[i] > 0) {
       glm::fmat4 transform = glm::scale(glm::translate(glm::fmat4{1.0f}, m_bricks[i].pos), m_bricks[i].size);
-      m_program_solid->setUniform("transform", transform);
-      UnitCube::drawWire();
+      m_program_bricks->setUniform("transform", transform);
+      UnitCube::draw();
     }
-    // else {
-    //   m_program_solid->setUniform("Color", glm::fvec3{0.0f, 0.0f, 1.0f});
-    // }
   }
-  m_program_solid->release();
+  m_program_bricks->release();
  
+  m_view_depth->disable();
+  m_view_depth->bindToTextureUnits(17);
+  glDisable(GL_BLEND);
+  
   m_timer_brickdraw.end();
 }
 
@@ -365,6 +376,7 @@ float ReconIntegration::occupiedRatio() const {
 void ReconIntegration::resize(std::size_t width, std::size_t height) {
   m_view_inpaint->setResolution(width, height);
   m_view_inpaint2->setResolution(width, height);
+  m_view_depth->setResolution(width, height);
 
   m_program_colorfill->setUniform("num_lods", int(m_view_inpaint->numLods()));
   m_program_colorfill->setUniform("texture_offsets", m_view_inpaint->offsets());

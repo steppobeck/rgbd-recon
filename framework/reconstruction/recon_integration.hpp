@@ -4,6 +4,7 @@
 #include "reconstruction.hpp"
 #include "volume_sampler.hpp"
 #include "view_lod.hpp"
+#include "view.hpp"
 
 #include <globjects/base/ref_ptr.h>
 namespace globjects {
@@ -60,6 +61,7 @@ namespace kinect{
     void drawBrickVoxels() const;
 
     std::unique_ptr<ViewLod>               m_view_inpaint2;
+    std::unique_ptr<View>                  m_view_depth;
     globjects::ref_ptr<globjects::Buffer>  m_buffer_bricks;
 
     globjects::ref_ptr<globjects::Program> m_program;
@@ -68,6 +70,7 @@ namespace kinect{
     globjects::ref_ptr<globjects::Program> m_program_colorfill;
     globjects::ref_ptr<globjects::Program> m_program_transfer;
     globjects::ref_ptr<globjects::Program> m_program_solid;
+    globjects::ref_ptr<globjects::Program> m_program_bricks;
 
     glm::uvec3          m_res_volume;
     glm::uvec3          m_res_bricks;
