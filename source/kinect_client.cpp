@@ -65,6 +65,7 @@ bool     g_refine       = true;
 bool     g_colorfill    = true;
 bool     g_bricking     = true;
 bool     g_draw_bricks  = false;
+bool     g_watch_errors = true;
 int      g_num_kinect   = 1; 
 float    g_voxel_size   = 0.007f;
 float    g_brick_size   = 0.1f;
@@ -201,6 +202,9 @@ void update_gui() {
     if (ImGui::Button("Show textures")) {
       g_gui_texture_settings.emplace_back(0, 0);
     }
+    if (ImGui::Checkbox("Watch OpenGL errors", &g_watch_errors)) {
+      watch_gl_errors(g_watch_errors);
+    } 
     ImGui::Text("%.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
     if (ImGui::CollapsingHeader("Reconstruction Mode",ImGuiTreeNodeFlags_DefaultOpen)) {
       ImGui::RadioButton("Points", &g_recon_mode, 0);
@@ -258,6 +262,9 @@ void update_gui() {
       }
       if (ImGui::Checkbox("Draw Bricks", &g_draw_bricks)) {
         g_recon_integration->setDrawBricks(g_draw_bricks);
+      }
+      if (ImGui::Checkbox("Draw TSDF", &g_draw_calibvis)) {
+        // g_recon_integration->setDrawBricks(g_draw_bricks);
       }
     }
     if (ImGui::CollapsingHeader("Processing Performance")) {
@@ -636,7 +643,7 @@ int main(int argc, char *argv[]) {
   // Initialize globjects (internally initializes glbinding, and registers the current context)
   globjects::init();
 
-  watch_gl_errors(true);
+  watch_gl_errors(g_watch_errors);
 
   // set some gl states
   glEnable(GL_TEXTURE_2D);
