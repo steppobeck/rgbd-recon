@@ -54,6 +54,7 @@ namespace kinect{
     std::uint64_t integrationTime() const;
     std::uint64_t holefillTime() const;
     unsigned numBricks() const;
+    float occupiedRatio() const;
     
     void resize(std::size_t width, std::size_t height) override;
     void drawBricks() const;
@@ -92,6 +93,7 @@ namespace kinect{
     bool m_draw_bricks;
     TimerGPU m_timer_integration;
     TimerGPU m_timer_holefill;
+    float m_ratio_occupied;
   };
 }
 

@@ -242,8 +242,19 @@ void update_gui() {
       if (ImGui::Checkbox("Color hole filling", &g_colorfill)) {
         g_recon_integration->setColorFilling(g_colorfill);
       }
-      if (ImGui::Checkbox("Volume Bricking", &g_bricking)) {
-        g_recon_integration->setUseBricks(g_bricking);
+      if(g_recons[g_recon_mode].get() == g_recon_integration.get() &&g_bricking) {
+        ImGui::Columns(2, NULL, false);
+        if (ImGui::Checkbox("Volume Bricking", &g_bricking)) {
+          g_recon_integration->setUseBricks(g_bricking);
+        }
+        ImGui::NextColumn();
+        ImGui::Text("%.3f %% occupied", g_recon_integration->occupiedRatio() * 100.0f);
+        ImGui::Columns(1);
+      }
+      else {
+        if (ImGui::Checkbox("Volume Bricking", &g_bricking)) {
+          g_recon_integration->setUseBricks(g_bricking);
+        }        
       }
       if (ImGui::Checkbox("Draw Bricks", &g_draw_bricks)) {
         g_recon_integration->setDrawBricks(g_draw_bricks);

@@ -52,6 +52,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
  ,m_use_bricks{true}
  ,m_draw_bricks{false}
  ,m_timer_integration{}
+ ,m_ratio_occupied{0.0f}
 {
   m_program->attach(
     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/tsdf_raymarch.vs"),
@@ -177,22 +178,17 @@ void ReconIntegration::integrate() {
   m_volume_tsdf->bindImageTexture(start_image_unit, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_R32F);
   
   if (m_use_bricks) {
-    // std::vector<unsigned> bricks(m_bricks.size() + 8, 0);
-    // m_buffer_bricks->getSubData(0, bricks.size() * sizeof(unsigned), bricks.data());
+    // load occupied brick info
     m_buffer_bricks->getSubData(sizeof(unsigned) * 8, m_active_bricks.size() * sizeof(unsigned), m_active_bricks.data());
-    // float size = 0.0f;
-    // std::memcpy(&size, &bricks[0], sizeof(float));
-    // glm::uvec3 read_size{0};
-    // std::memcpy(&read_size, &bricks[4], sizeof(unsigned) * 3);
 
-    // std::cout << "size " << m_brick_size << " buffer " << size << "res " << m_res_bricks << " buffer " << read_size << std::endl;
+    unsigned num_occupied = 0;
     for(unsigned i = 0; i < m_bricks.size(); ++i) {
       if(m_active_bricks[i] > 0) {
         m_sampler.sample(m_bricks[i].indices);
+        ++num_occupied;
       }
-      // std::cout << m_active_bricks[i] << ",";
     }
-    // std::cout << std::endl;
+    m_ratio_occupied = num_occupied / float(m_active_bricks.size());
   }
   else {
     m_sampler.sample();
@@ -262,7 +258,7 @@ void ReconIntegration::setVoxelSize(float size) {
   m_volume_tsdf->image3D(0, GL_R32F, glm::ivec3{m_res_volume}, 0, GL_RED, GL_FLOAT, nullptr);
   m_volume_tsdf->bindActive(GL_TEXTURE0 + 29);
   std::cout << "resolution " << m_res_volume.x << ", " << m_res_volume.y << ", " << m_res_volume.z
-    << ", " << (m_res_volume.x * m_res_volume.y * m_res_volume.z) / 1000 << "k voxels" << std::endl;
+    << " - " << (m_res_volume.x * m_res_volume.y * m_res_volume.z) / 1000 << "k voxels" << std::endl;
 
   divideBox();
   updatePBO();
@@ -305,7 +301,7 @@ void ReconIntegration::divideBox() {
   m_active_bricks.resize(m_bricks.size());
 
   std::cout << "brick res " << m_res_bricks.x << ", " << m_res_bricks.y << ", " << m_res_bricks.z
-    << m_bricks.front().indices.size() << " voxels per brick" << std::endl;
+    << " - " << m_bricks.front().indices.size() << " voxels per brick" << std::endl;
 }
 
 void ReconIntegration::drawBricks() const {
@@ -360,6 +356,10 @@ std::uint64_t ReconIntegration::integrationTime() const {
 
 std::uint64_t ReconIntegration::holefillTime() const {
   return m_timer_holefill.duration();
+}
+
+float ReconIntegration::occupiedRatio() const {
+  return m_ratio_occupied;
 }
 
 void ReconIntegration::resize(std::size_t width, std::size_t height) {
