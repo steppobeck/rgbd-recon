@@ -64,7 +64,8 @@ bool     g_processed    = true;
 bool     g_refine       = true;
 bool     g_colorfill    = true;
 bool     g_bricking     = true;
-bool     g_skip_space   = false;
+bool     g_skip_space   = true;
+bool     g_draw_bricks  = false;
 bool     g_watch_errors = true;
 int      g_num_kinect   = 1; 
 float    g_voxel_size   = 0.007f;
@@ -258,6 +259,9 @@ void update_gui() {
         if(g_bricking) {
           if (ImGui::Checkbox("Skip empty Spaces", &g_skip_space)) {
             g_recon_integration->setSpaceSkip(g_skip_space);
+          }
+          if (ImGui::Checkbox("Draw occupied bricks", &g_draw_bricks)) {
+            g_recon_integration->setDrawBricks(g_draw_bricks);
           }
         }        
       }

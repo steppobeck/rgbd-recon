@@ -51,7 +51,8 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
  ,m_brick_size{0.1f}
  ,m_fill_holes{true}
  ,m_use_bricks{true}
- ,m_skip_space{false}
+ ,m_skip_space{true}
+ ,m_draw_bricks{false}
  ,m_timer_integration{}
  ,m_timer_holefill{}
  ,m_timer_brickdraw{}
@@ -144,7 +145,12 @@ void ReconIntegration::drawF() {
     m_timer_holefill.end();
   }
 
+  // draw depth limits for space skipping
   if (m_skip_space && m_use_bricks) {
+    drawDepthLimits();
+  }
+  
+  if (m_draw_bricks) {
     drawBricks();
   }
 }
@@ -311,7 +317,7 @@ void ReconIntegration::divideBox() {
     << " - " << m_bricks.front().indices.size() << " voxels per brick" << std::endl;
 }
 
-void ReconIntegration::drawBricks() {
+void ReconIntegration::drawDepthLimits() {
   m_view_depth->enable();
   gloost::Matrix projection_matrix;
   glGetFloatv(GL_PROJECTION_MATRIX, projection_matrix.data());
@@ -346,6 +352,20 @@ void ReconIntegration::drawBricks() {
   glDisable(GL_BLEND);
   
   m_timer_brickdraw.end();
+}
+
+void ReconIntegration::drawBricks() {
+  m_program_solid->use();
+  m_program_solid->setUniform("Color", glm::fvec3{1.0f, 0.0f, 0.0f});
+
+  for(unsigned i = 0; i < m_bricks.size(); ++i) {
+    if(m_active_bricks[i] > 0) {
+      glm::fmat4 transform = glm::scale(glm::translate(glm::fmat4{1.0f}, m_bricks[i].pos), m_bricks[i].size);
+      m_program_bricks->setUniform("transform", transform);
+      UnitCube::drawWire();
+    }
+  }
+  m_program_bricks->release();
 }
 
 void ReconIntegration::drawBrickVoxels() const {
@@ -410,6 +430,10 @@ void ReconIntegration::setColorFilling(bool active) {
 
 void ReconIntegration::setUseBricks(bool active) {
   m_use_bricks = active;
+}
+
+void ReconIntegration::setDrawBricks(bool active) {
+  m_draw_bricks = active;
 }
 
 void ReconIntegration::setSpaceSkip(bool active) {

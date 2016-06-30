@@ -41,6 +41,7 @@ namespace kinect{
     void setColorFilling(bool active);
     void setUseBricks(bool active);
     void setSpaceSkip(bool active);
+    void setDrawBricks(bool active);
     void setVoxelSize(float size);
     void setTsdfLimit(float limit);
     void setBrickSize(float limit);
@@ -52,10 +53,11 @@ namespace kinect{
     float occupiedRatio() const;
     
     void resize(std::size_t width, std::size_t height) override;
-    void drawBricks();
 
     std::unique_ptr<ViewLod>               m_view_inpaint;
   private:
+    void drawBricks();
+    void drawDepthLimits();
     void divideBox();
     void fillColors();
     void drawBrickVoxels() const;
@@ -86,6 +88,7 @@ namespace kinect{
     bool m_fill_holes;
     bool m_use_bricks;
     bool m_skip_space;
+    bool m_draw_bricks;
     TimerGPU m_timer_integration;
     TimerGPU m_timer_holefill;
     TimerGPU m_timer_brickdraw;
