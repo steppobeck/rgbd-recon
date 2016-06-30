@@ -82,6 +82,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
   m_program->setUniform("num_kinects", m_num_kinects);
   m_program->setUniform("limit", m_limit);
   m_program->setUniform("depth_peels", 17);
+  m_program->setUniform("skipSpace", m_skip_space);
   
   m_program_integration->attach(
     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/tsdf_integration.vs")
@@ -136,7 +137,11 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
 }
 
 void ReconIntegration::drawF() {
-  // integrate();
+  // draw depth limits for space skipping
+  if (m_skip_space && m_use_bricks) {
+    drawDepthLimits();
+  }
+
   Reconstruction::drawF();
   
   if (m_fill_holes) {
@@ -145,11 +150,7 @@ void ReconIntegration::drawF() {
     m_timer_holefill.end();
   }
 
-  // draw depth limits for space skipping
-  if (m_skip_space && m_use_bricks) {
-    drawDepthLimits();
-  }
-  
+
   if (m_draw_bricks) {
     drawBricks();
   }

@@ -49,7 +49,7 @@ vec3 blendCameras(const in vec3 sample_pos);
 // cube-ray intersection from http://prideout.net/blog/?p=64
 bool intersectBox(const vec3 origin, const vec3 dir, out float t0, out float t1);
 void submitFragment(const in vec3 sample_pos);
-vec3 getStartPos(ivec2 coords);
+vec4 getStartPos(ivec2 coords);
 
 void main() {
   // multiply with dimensions to scale direction by dimension relation
@@ -62,8 +62,10 @@ void main() {
   t_near = (t_near < 0.0f ? 0.0f : t_near * 1.0000001f);
 
   vec3 sample_pos = CameraPos + sampleStep * t_near;
+  float end = 0.0;
   if (skipSpace) { 
-    sample_pos = getStartPos(ivec2(gl_FragCoord.xy));
+    vec4 posEnd = getStartPos(ivec2(gl_FragCoord.xy));
+    sample_pos = posEnd.xyz;
   }
   // out_Color.rgb = sample_pos;
   // return;
@@ -124,9 +126,10 @@ void submitFragment(const in vec3 sample_pos) {
 }
 
 bool isInside(const vec3 pos) {
-  return pos.x >= 0.0f && pos.x <= 1.0f
-      && pos.y >= 0.0f && pos.y <= 1.0f
-      && pos.z >= 0.0f && pos.z <= 1.0f;
+  // add tolarance for bricks at bbox borders
+  return pos.x >= -0.001 && pos.x <= 1.001
+      && pos.y >= -0.001 && pos.y <= 1.001
+      && pos.z >= -0.001 && pos.z <= 1.001;
 }
 
 float sample(const vec3 pos) {
@@ -223,10 +226,18 @@ bool intersectBox(const vec3 origin, const vec3 dir, out float t0, out float t1)
     return t0 <= t1;
 }
 
-vec3 getStartPos(ivec2 coords) {
-  vec2 depthMinMax = texelFetch(depth_peels, coords, 0).rg;
-  vec4 position_curr = img_to_eye_curr * vec4(gl_FragCoord.xy + vec2(0.5,0.5),depthMinMax.r,1.0);
+
+vec3 screenToVol(vec3 frag_coord) {
+  vec4 position_curr = img_to_eye_curr * vec4(frag_coord,1.0);
   vec4 position_curr_es = vec4(position_curr.xyz / position_curr.w, 1.0);
   vec4 position_curr_ws = inverse(gl_ModelViewMatrix) * position_curr_es;
-  return (inverse(vol_to_world) * position_curr_ws).xyz;
+  vec3 position_vol = (inverse(vol_to_world) * position_curr_ws).xyz;
+  return position_vol;  
+}
+
+vec4 getStartPos(ivec2 coords) {
+  vec2 depthMinMax = texelFetch(depth_peels, coords, 0).rg;
+  vec3 pos_front = screenToVol(vec3(gl_FragCoord.xy + vec2(0.5,0.5),depthMinMax.r));
+  vec3 pos_back = screenToVol(vec3(gl_FragCoord.xy + vec2(0.5,0.5),-depthMinMax.g));
+  return vec4(pos_front, distance(pos_front, pos_back));
 }

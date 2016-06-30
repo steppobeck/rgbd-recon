@@ -52,7 +52,7 @@ void View::enable(bool clear_color, bool clear_depth) {
   m_viewport_current.set(x,y,w,h);
   glViewport(0, 0, m_resolution.x, m_resolution.y);
   if(clear_color) {
-    m_fbo->clearBuffer(GL_COLOR, 0, glm::fvec4{1.0f, -1.0f, 0.0f, 0.0f});
+    m_fbo->clearBuffer(GL_COLOR, 0, glm::fvec4{1.0f, 0.0f, 0.0f, 0.0f});
   }
   if(clear_depth && m_tex_depth.get() != nullptr) {
     glClear(GL_DEPTH_BUFFER_BIT);
