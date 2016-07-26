@@ -18,6 +18,7 @@ namespace kinect {
 
   public:
     View(unsigned width, unsigned height, bool depth = true);
+    View(unsigned width, unsigned height, std::vector<GLenum> const& layers, bool depth = true);
 
     void enable(bool clear_color = true, bool clear_depth =  true);
     void disable();
@@ -33,7 +34,7 @@ namespace kinect {
     void setClearColor(glm::fvec4 const& color);
     glm::uvec2 const& resolution() const;
 
-    globjects::Texture const* getColorTex() const;
+    globjects::Texture const* getColorTex(unsigned i) const;
 
   private:
     void getWidthHeight(unsigned& x, unsigned& y, unsigned& width, unsigned& height);
@@ -41,8 +42,9 @@ namespace kinect {
     glm::uvec2 m_resolution;
     glm::fvec4 m_color_clear;
     globjects::ref_ptr<globjects::Framebuffer> m_fbo;
-    globjects::ref_ptr<globjects::Texture> m_tex_color;
+    std::vector<globjects::ref_ptr<globjects::Texture>> m_texs_color;
     globjects::ref_ptr<globjects::Texture> m_tex_depth;
+    std::vector<GLenum> m_layers;
 
     int m_current_fbo;
     gloost::Viewport m_viewport_current;
