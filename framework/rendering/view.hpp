@@ -30,6 +30,7 @@ namespace kinect {
     unsigned getHeight(unsigned i) const;
 
     void setResolution(unsigned width, unsigned height);
+    void setClearColor(glm::fvec4 const& color);
     glm::uvec2 const& resolution() const;
 
     globjects::Texture const* getColorTex() const;
@@ -38,7 +39,7 @@ namespace kinect {
     void getWidthHeight(unsigned& x, unsigned& y, unsigned& width, unsigned& height);
 
     glm::uvec2 m_resolution;
-
+    glm::fvec4 m_color_clear;
     globjects::ref_ptr<globjects::Framebuffer> m_fbo;
     globjects::ref_ptr<globjects::Texture> m_tex_color;
     globjects::ref_ptr<globjects::Texture> m_tex_depth;

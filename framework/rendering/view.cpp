@@ -9,12 +9,13 @@ using namespace gl;
 namespace kinect {
 
 View::View(unsigned width, unsigned height, bool depth)
-  :m_resolution{width, height}
-   ,m_fbo{new globjects::Framebuffer()}
-   ,m_tex_color{globjects::Texture::createDefault(GL_TEXTURE_2D)}
-   ,m_tex_depth{depth ? globjects::Texture::createDefault(GL_TEXTURE_2D) : nullptr}
-   ,m_current_fbo(0)
-   ,m_viewport_current(0,0,width, height)
+ :m_resolution{width, height}
+ ,m_color_clear{0.0f}
+ ,m_fbo{new globjects::Framebuffer()}
+ ,m_tex_color{globjects::Texture::createDefault(GL_TEXTURE_2D)}
+ ,m_tex_depth{depth ? globjects::Texture::createDefault(GL_TEXTURE_2D) : nullptr}
+ ,m_current_fbo(0)
+ ,m_viewport_current(0,0,width, height)
 {
   setResolution(width, height);
 
@@ -52,7 +53,7 @@ void View::enable(bool clear_color, bool clear_depth) {
   m_viewport_current.set(x,y,w,h);
   glViewport(0, 0, m_resolution.x, m_resolution.y);
   if(clear_color) {
-    m_fbo->clearBuffer(GL_COLOR, 0, glm::fvec4{1.0f, 0.0f, 0.0f, 0.0f});
+    m_fbo->clearBuffer(GL_COLOR, 0, m_color_clear);
   }
   if(clear_depth && m_tex_depth.get() != nullptr) {
     glClear(GL_DEPTH_BUFFER_BIT);
@@ -85,6 +86,10 @@ void View::bindToTextureUnitRGBA(unsigned start_texture_unit){
 
 glm::uvec2 const& View::resolution() const {
   return m_resolution;
+}
+
+void View::setClearColor(glm::fvec4 const& color) {
+  m_color_clear = color;
 }
 
 globjects::Texture const* View::getColorTex() const {
