@@ -31,7 +31,10 @@ uniform mat4 img_to_eye_curr;
 float sampleDistance = limit * 0.5f;
 const float IsoValue = 0.0f;
 const int refinement_num = 4;
+
 out vec4 out_Color;
+out float out_Samples;
+
 out float gl_FragDepth;
 
 #include </shading.glsl>
@@ -52,6 +55,7 @@ void submitFragment(const in vec3 sample_pos);
 vec4 getStartPos(ivec2 coords);
 
 void main() {
+  out_Samples = 0.0;
   // multiply with dimensions to scale direction by dimension relation
   vec3 sampleStep = normalize(pass_Position - CameraPos) * sampleDistance;
   // get ray beginning in volume cube
@@ -74,22 +78,12 @@ void main() {
   float prev_density = sample(sample_pos); 
 
   while (inside) {
+    ++out_Samples;
      // get sample
     float density = sample(sample_pos);
 
     // check if cell is inside contour
     if (density > IsoValue && prev_density <= IsoValue) {
-      //  bool in_surface = true;
-      // for (float i = 1; i <= refinement_num; ++i) {
-      //   if (in_surface) {
-      //     sample_pos -= sampleStep * pow(0.5, i);
-      //   }
-      //   else {
-      //     sample_pos += sampleStep * pow(0.5, i);
-      //   }
-      //   in_surface = sample(sample_pos) >= IsoValue;
-      // }
-
       // approximate ray-cell intersection
       sample_pos = (sample_pos - sampleStep) - sampleStep * (prev_density / (density - prev_density));
 
@@ -237,7 +231,7 @@ vec3 screenToVol(vec3 frag_coord) {
 
 vec4 getStartPos(ivec2 coords) {
   vec2 depthMinMax = texelFetch(depth_peels, coords, 0).rg;
-  vec3 pos_front = screenToVol(vec3(gl_FragCoord.xy, depthMinMax.r));
-  vec3 pos_back = screenToVol(vec3(gl_FragCoord.xy, -depthMinMax.g));
+  vec3 pos_front = screenToVol(vec3(gl_FragCoord.xy,depthMinMax.r));
+  vec3 pos_back = screenToVol(vec3(gl_FragCoord.xy,-depthMinMax.g));
   return vec4(pos_front, distance(pos_front, pos_back));
 }

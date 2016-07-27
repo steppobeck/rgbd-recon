@@ -24,12 +24,14 @@ View::View(unsigned width, unsigned height, std::vector<GLenum> const& layers, b
  ,m_current_fbo(0)
  ,m_viewport_current(0,0,width, height)
 {
+  std::vector<GLenum> draw_buffers{};
   for (unsigned i = 0; i < m_layers.size(); ++i) {
     m_texs_color.emplace_back(globjects::Texture::createDefault(GL_TEXTURE_2D));
+    draw_buffers.emplace_back(GL_COLOR_ATTACHMENT0 + i);
   }
   setResolution(width, height);
 
-  m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT0});
+  m_fbo->setDrawBuffers(draw_buffers);
 }
 
 void View::setResolution(unsigned width, unsigned height) {
@@ -64,6 +66,9 @@ void View::enable(bool clear_color, bool clear_depth) {
   glViewport(0, 0, m_resolution.x, m_resolution.y);
   if(clear_color) {
     m_fbo->clearBuffer(GL_COLOR, 0, m_color_clear);
+    for(unsigned i = 1; i < m_layers.size(); ++i) {
+      m_fbo->clearBuffer(GL_COLOR, i, glm::fvec4{0.0f});
+    }
   }
   if(clear_depth && m_tex_depth.get() != nullptr) {
     glClear(GL_DEPTH_BUFFER_BIT);
@@ -77,7 +82,7 @@ void View::disable(){
 
 void View::bindToTextureUnits(unsigned start_texture_unit){
   bindToTextureUnitRGBA(start_texture_unit);
-  bindToTextureUnitDepth(start_texture_unit + 1);
+  bindToTextureUnitDepth(start_texture_unit + m_layers.size());
 }
 
 void View::bindToTextureUnitDepth(unsigned start_texture_unit){

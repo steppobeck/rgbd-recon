@@ -32,6 +32,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
  :Reconstruction(cfs, cv, bbox)
  ,m_view_inpaint{new ViewLod(1280, 720)}
  ,m_view_inpaint2{new ViewLod(1280, 720)}
+ ,m_view_raymarch{new View(1280, 720, {GL_RGBA32F, GL_R32F})}
  ,m_view_depth{new View(1280, 720, false)}
  ,m_buffer_bricks{new globjects::Buffer()}
  ,m_program{new globjects::Program()}
@@ -129,7 +130,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
   );
 
   m_program_bricks->attach(
-    globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/solid.vs"),
+    globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/bricks.vs"),
     globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/bricks.fs")
   );
 
@@ -172,14 +173,30 @@ void ReconIntegration::draw(){
 
   m_program->setUniform("CameraPos", camera_texturespace);
 
+  m_view_raymarch->enable();
   if (m_fill_holes) {
-    m_view_inpaint->enable();
+    // m_view_inpaint->enable();
   }
   UnitCube::draw();
+  m_program->release();
+  m_view_raymarch->disable();
+  m_view_raymarch->bindToTextureUnits(15);
+  m_program_transfer->setUniform("resolution_tex", m_view_raymarch->resolution());
+  m_program_transfer->setUniform("texture_depth", 17);
+  m_program_transfer->use();
+  m_program_transfer->setUniform("lod", int(0));
   if (m_fill_holes) {
+    // m_view_inpaint->disable();
+    m_view_inpaint->enable(0);
+    ScreenQuad::draw();
     m_view_inpaint->disable();
   }
-  m_program->release();  
+  else {
+    ScreenQuad::draw(); 
+  }
+  m_program_transfer->release();  
+  m_program_transfer->setUniform("resolution_tex", m_view_inpaint->resolution_full());
+  m_program_transfer->setUniform("texture_depth", 16);
 }
 
 void ReconIntegration::integrate() {
@@ -412,6 +429,7 @@ float ReconIntegration::occupiedRatio() const {
 void ReconIntegration::resize(std::size_t width, std::size_t height) {
   m_view_inpaint->setResolution(width, height);
   m_view_inpaint2->setResolution(width, height);
+  m_view_raymarch->setResolution(width, height);
   m_view_depth->setResolution(width, height);
   
   m_program->setUniform("viewportSizeInv", glm::fvec2(1.0f/width, 1.0f/height));

@@ -63,6 +63,7 @@ namespace kinect{
     void drawBrickVoxels() const;
 
     std::unique_ptr<ViewLod>               m_view_inpaint2;
+    std::unique_ptr<View>               m_view_raymarch;
     std::unique_ptr<View>                  m_view_depth;
     globjects::ref_ptr<globjects::Buffer>  m_buffer_bricks;
 
