@@ -81,7 +81,7 @@ void View::disable(){
 }
 
 void View::bindToTextureUnits(unsigned start_texture_unit){
-  bindToTextureUnitRGBA(start_texture_unit);
+  bindToTextureUnitsRGBA(start_texture_unit);
   bindToTextureUnitDepth(start_texture_unit + m_layers.size());
 }
 
@@ -93,7 +93,7 @@ void View::bindToTextureUnitDepth(unsigned start_texture_unit){
   }
 }
 
-void View::bindToTextureUnitRGBA(unsigned start_texture_unit){
+void View::bindToTextureUnitsRGBA(unsigned start_texture_unit){
   // m_texs_color->bindActive(start_texture_unit);
   for (unsigned i = 0; i < m_layers.size(); ++i) {
     glActiveTexture(GL_TEXTURE0 + start_texture_unit + i);

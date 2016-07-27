@@ -25,7 +25,7 @@ namespace kinect {
 
     void bindToTextureUnits(unsigned start_texture_unit);
     void bindToTextureUnitDepth(unsigned start_texture_unit);
-    void bindToTextureUnitRGBA(unsigned start_texture_unit);
+    void bindToTextureUnitsRGBA(unsigned start_texture_unit);
 
     unsigned getWidth(unsigned i) const;
     unsigned getHeight(unsigned i) const;

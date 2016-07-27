@@ -157,6 +157,9 @@ void ReconIntegration::drawF() {
   if (m_draw_bricks) {
     drawBricks();
   }
+  // bind to units for displaying in gui
+  m_view_raymarch->bindToTextureUnitsRGBA(16);
+  m_view_depth->bindToTextureUnits(16);
 }
 
 void ReconIntegration::draw(){
