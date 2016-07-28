@@ -63,7 +63,6 @@ namespace kinect{
     void drawBrickVoxels() const;
 
     std::unique_ptr<ViewLod>               m_view_inpaint2;
-    std::unique_ptr<View>               m_view_raymarch;
     std::unique_ptr<View>                  m_view_depth;
     globjects::ref_ptr<globjects::Buffer>  m_buffer_bricks;
 
@@ -79,6 +78,7 @@ namespace kinect{
     glm::uvec3          m_res_bricks;
     VolumeSampler       m_sampler;
     globjects::ref_ptr<globjects::Texture> m_volume_tsdf;
+    globjects::ref_ptr<globjects::Texture> m_tex_num_samples;
 
     glm::fmat4          m_mat_vol_to_world;
     std::vector<brick> m_bricks;

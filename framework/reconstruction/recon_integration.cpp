@@ -32,7 +32,6 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
  :Reconstruction(cfs, cv, bbox)
  ,m_view_inpaint{new ViewLod(1280, 720)}
  ,m_view_inpaint2{new ViewLod(1280, 720)}
- ,m_view_raymarch{new View(1280, 720, {GL_RGBA32F, GL_R32F})}
  ,m_view_depth{new View(1280, 720, false)}
  ,m_buffer_bricks{new globjects::Buffer()}
  ,m_program{new globjects::Program()}
@@ -46,6 +45,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
  ,m_res_bricks{0}
  ,m_sampler{glm::uvec3{0}}
  ,m_volume_tsdf{globjects::Texture::createDefault(GL_TEXTURE_3D)}
+ ,m_tex_num_samples{globjects::Texture::createDefault(GL_TEXTURE_2D)}
  ,m_mat_vol_to_world{1.0f}
  ,m_limit{limit}
  ,m_voxel_size{size}
@@ -84,6 +84,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
   m_program->setUniform("limit", m_limit);
   m_program->setUniform("depth_peels", 17);
   m_program->setUniform("skipSpace", m_skip_space);
+  m_program->setUniform("tex_num_samples", start_image_unit + 1);
   
   m_program_integration->attach(
     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/tsdf_integration.vs")
@@ -158,7 +159,7 @@ void ReconIntegration::drawF() {
     drawBricks();
   }
   // bind to units for displaying in gui
-  m_view_raymarch->bindToTextureUnitsRGBA(16);
+  m_tex_num_samples->bindActive(17);
   m_view_depth->bindToTextureUnits(16);
 }
 
@@ -175,31 +176,21 @@ void ReconIntegration::draw(){
   glm::vec3 camera_texturespace{glm::inverse(m_mat_vol_to_world) * camera_world};
 
   m_program->setUniform("CameraPos", camera_texturespace);
+  // bind texture for sample counts
+  static const float zero = 0.0f; 
+  m_tex_num_samples->clearImage(0, GL_RED, GL_FLOAT, &zero);
+  m_tex_num_samples->bindImageTexture(start_image_unit + 1, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
 
-  m_view_raymarch->enable();
   if (m_fill_holes) {
-    // m_view_inpaint->enable();
+    m_view_inpaint->enable();
   }
+
   UnitCube::draw();
   m_program->release();
-  m_view_raymarch->disable();
-  m_view_raymarch->bindToTextureUnits(15);
-  m_program_transfer->setUniform("resolution_tex", m_view_raymarch->resolution());
-  m_program_transfer->setUniform("texture_depth", 17);
-  m_program_transfer->use();
-  m_program_transfer->setUniform("lod", int(0));
+  
   if (m_fill_holes) {
-    // m_view_inpaint->disable();
-    m_view_inpaint->enable(0);
-    ScreenQuad::draw();
     m_view_inpaint->disable();
   }
-  else {
-    ScreenQuad::draw(); 
-  }
-  m_program_transfer->release();  
-  m_program_transfer->setUniform("resolution_tex", m_view_inpaint->resolution_full());
-  m_program_transfer->setUniform("texture_depth", 16);
 }
 
 void ReconIntegration::integrate() {
@@ -434,8 +425,9 @@ float ReconIntegration::occupiedRatio() const {
 void ReconIntegration::resize(std::size_t width, std::size_t height) {
   m_view_inpaint->setResolution(width, height);
   m_view_inpaint2->setResolution(width, height);
-  m_view_raymarch->setResolution(width, height);
   m_view_depth->setResolution(width, height);
+
+  m_tex_num_samples->image2D(0, GL_R32F, width, height, 0, GL_RED, GL_FLOAT, nullptr);
   
   m_program->setUniform("viewportSizeInv", glm::fvec2(1.0f/width, 1.0f/height));
 

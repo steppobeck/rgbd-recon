@@ -1,5 +1,6 @@
 #version 330
 #extension GL_ARB_shading_language_include : require
+#extension GL_ARB_shader_image_load_store : require
 
 in vec3 pass_Position;
 // input
@@ -28,12 +29,13 @@ uniform sampler2D depth_peels;
 uniform vec2 viewportSizeInv;
 uniform mat4 img_to_eye_curr;
 
+layout(r32f) uniform image2D tex_num_samples;
+
 float sampleDistance = limit * 0.5f;
 const float IsoValue = 0.0f;
 const int refinement_num = 4;
 
 out vec4 out_Color;
-out float out_Samples;
 
 out float gl_FragDepth;
 
@@ -54,7 +56,7 @@ void submitFragment(const in vec3 sample_pos);
 vec4 getStartPos(ivec2 coords);
 
 void main() {
-  out_Samples = 0.0;
+  float num_samples = 0.0;
   // multiply with dimensions to scale direction by dimension relation
   vec3 sampleStep = normalize(pass_Position - CameraPos) * sampleDistance;
   // get ray beginning in volume cube
@@ -90,7 +92,9 @@ void main() {
       sample_pos = (sample_pos - sampleStep) - sampleStep * (prev_density / (density - prev_density));
 
       submitFragment(sample_pos);
-      out_Samples *= 0.005;
+
+      num_samples *= 0.005; 
+      imageStore(tex_num_samples, ivec2(gl_FragCoord.xy), vec4(num_samples, 0.0, 0.0, 0.0));
       return;
     }
 
@@ -99,6 +103,7 @@ void main() {
     num_steps += 1.0;
   }
   // no surface found 
+  imageStore(tex_num_samples, ivec2(gl_FragCoord.xy), vec4(num_samples, 0.0, 0.0, 0.0));
   discard;
 }
 
