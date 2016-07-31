@@ -44,7 +44,6 @@ out float gl_FragDepth;
 #define GRAD_NORMALS
 
 vec3 get_gradient(const vec3 pos);
-bool isInside(const vec3 pos);
 float sample(const vec3 pos);
 vec4 blendColors(const in vec3 sample_pos);
 vec3 blendNormals(const in vec3 sample_pos);
@@ -64,20 +63,23 @@ void main() {
   float t_near = (is_t0 ? t0 : t1);
   // if camera is within cube, start from camera, else move inside a little
   t_near = (t_near < 0.0f ? 0.0f : t_near * 1.0000001f);
+  float t_far = (is_t0 ? t1 : t0);
 
   vec3 sample_pos = CameraPos + sampleStep * t_near;
-  float end = 0.0;
+  float max_dist = abs(t_far - t_near);
+
   if (skipSpace) { 
     vec4 posEnd = getStartPos(ivec2(gl_FragCoord.xy));
+
     sample_pos = posEnd.xyz;
+    max_dist = posEnd.w / sampleDistance;
   }
-  // out_Color.rgb = sample_pos;
-  // return;
-  bool inside = isInside(sample_pos);  
+
   // cache value of previous sample
   float prev_density = sample(sample_pos); 
 
-  while (inside) {
+  float num_steps = 0.0;
+  while (num_steps < max_dist) {
     ++out_Samples;
      // get sample
     float density = sample(sample_pos);
@@ -88,12 +90,13 @@ void main() {
       sample_pos = (sample_pos - sampleStep) - sampleStep * (prev_density / (density - prev_density));
 
       submitFragment(sample_pos);
+      out_Samples *= 0.005;
       return;
     }
 
     prev_density = density;
     sample_pos += sampleStep;
-    inside = isInside(sample_pos); 
+    num_steps += 1.0;
   }
   // no surface found 
   discard;
@@ -117,13 +120,6 @@ void submitFragment(const in vec3 sample_pos) {
   }
   // apply projection matrix on z component of view-space position
   gl_FragDepth = (gl_ProjectionMatrix[2].z *view_pos.z + gl_ProjectionMatrix[3].z) / -view_pos.z * 0.5f + 0.5f;
-}
-
-bool isInside(const vec3 pos) {
-  // add tolarance for bricks at bbox borders
-  return pos.x >= -0.001 && pos.x <= 1.001
-      && pos.y >= -0.001 && pos.y <= 1.001
-      && pos.z >= -0.001 && pos.z <= 1.001;
 }
 
 float sample(const vec3 pos) {
@@ -208,18 +204,17 @@ vec3 blendCameras(const in vec3 sample_pos) {
 }
 
 bool intersectBox(const vec3 origin, const vec3 dir, out float t0, out float t1) {
-    vec3 invR = 1.0f / dir;
-    vec3 tbot = invR * (vec3(0.0f) - origin);
-    vec3 ttop = invR * (vec3(1.0f) - origin);
-    vec3 tmin = min(ttop, tbot);
-    vec3 tmax = max(ttop, tbot);
-    vec2 t = max(tmin.xx, tmin.yz);
-    t0 = max(t.x, t.y);
-    t = min(tmax.xx, tmax.yz);
-    t1 = min(t.x, t.y);
-    return t0 <= t1;
+  vec3 invR = 1.0f / dir;
+  vec3 tbot = invR * (vec3(0.0f) - origin);
+  vec3 ttop = invR * (vec3(1.0f) - origin);
+  vec3 tmin = min(ttop, tbot);
+  vec3 tmax = max(ttop, tbot);
+  vec2 t = max(tmin.xx, tmin.yz);
+  t0 = max(t.x, t.y);
+  t = min(tmax.xx, tmax.yz);
+  t1 = min(t.x, t.y);
+  return t0 <= t1;
 }
-
 
 vec3 screenToVol(vec3 frag_coord) {
   vec4 position_curr = img_to_eye_curr * vec4(frag_coord,1.0);
@@ -233,5 +228,6 @@ vec4 getStartPos(ivec2 coords) {
   vec2 depthMinMax = texelFetch(depth_peels, coords, 0).rg;
   vec3 pos_front = screenToVol(vec3(gl_FragCoord.xy,depthMinMax.r));
   vec3 pos_back = screenToVol(vec3(gl_FragCoord.xy,-depthMinMax.g));
-  return vec4(pos_front, distance(pos_front, pos_back));
+  pos_back = depthMinMax.r >= 1.0 ? pos_front : pos_back; 
+  return vec4(pos_front, length(pos_front- pos_back));
 }
