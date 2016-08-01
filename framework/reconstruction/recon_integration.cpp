@@ -130,7 +130,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
   );
 
   m_program_bricks->attach(
-    globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/bricks.vs"),
+    globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/solid.vs"),
     globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/bricks.fs")
   );
 
@@ -358,6 +358,7 @@ void ReconIntegration::drawDepthLimits() {
 
   m_timer_brickdraw.begin();
   m_program_bricks->use();
+  glDisable(GL_CULL_FACE);
   glEnable(GL_BLEND);
   glBlendEquation(GL_MIN);
 
@@ -373,6 +374,7 @@ void ReconIntegration::drawDepthLimits() {
   m_view_depth->disable();
   m_view_depth->bindToTextureUnits(17);
   glDisable(GL_BLEND);
+  glEnable(GL_CULL_FACE);
   
   m_timer_brickdraw.end();
 }

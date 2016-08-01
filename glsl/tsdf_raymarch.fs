@@ -225,9 +225,12 @@ vec3 screenToVol(vec3 frag_coord) {
 }
 
 vec4 getStartPos(ivec2 coords) {
-  vec2 depthMinMax = texelFetch(depth_peels, coords, 0).rg;
+  vec3 depthMinMax = texelFetch(depth_peels, coords, 0).rgb;
+  // if closest back face is closest face -> front face culled
+  depthMinMax.r = (depthMinMax.r >= depthMinMax.b) ? gl_DepthRange.near : depthMinMax.r;
   vec3 pos_front = screenToVol(vec3(gl_FragCoord.xy,depthMinMax.r));
   vec3 pos_back = screenToVol(vec3(gl_FragCoord.xy,-depthMinMax.g));
+  //no valid closest face found
   pos_back = depthMinMax.r >= 1.0 ? pos_front : pos_back; 
   return vec4(pos_front, length(pos_front- pos_back));
 }
