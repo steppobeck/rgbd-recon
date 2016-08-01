@@ -137,7 +137,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
 
   setVoxelSize(m_voxel_size);
   // initialize with 1 to get minimal depth
-  m_view_depth->setClearColor(glm::fvec4{1.0f, 0.0f, 0.0f, 0.0f});
+  m_view_depth->setClearColor(glm::fvec4{1.0f, 0.0f, 1.0f, 0.0f});
 }
 
 void ReconIntegration::drawF() {

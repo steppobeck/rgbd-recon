@@ -54,35 +54,40 @@ vec3 blendCameras(const in vec3 sample_pos);
 bool intersectBox(const vec3 origin, const vec3 dir, out float t0, out float t1);
 void submitFragment(const in vec3 sample_pos);
 vec4 getStartPos(ivec2 coords);
+void writeNumSamples(uint num_samples);
 
 void main() {
-  float num_samples = 0.0;
   // multiply with dimensions to scale direction by dimension relation
   vec3 sampleStep = normalize(pass_Position - CameraPos) * sampleDistance;
-  // get ray beginning in volume cube
-  float t0, t1 = 0.0f;
-  bool is_t0 = intersectBox(CameraPos, sampleStep, t0, t1);
-  float t_near = (is_t0 ? t0 : t1);
-  // if camera is within cube, start from camera, else move inside a little
-  t_near = (t_near < 0.0f ? 0.0f : t_near * 1.0000001f);
-  float t_far = (is_t0 ? t1 : t0);
 
-  vec3 sample_pos = CameraPos + sampleStep * t_near;
-  float max_dist = abs(t_far - t_near);
+  uint max_num_samples = 0u;
+  vec3 sample_pos = vec3(0.0);
 
   if (skipSpace) { 
     vec4 posEnd = getStartPos(ivec2(gl_FragCoord.xy));
 
     sample_pos = posEnd.xyz;
-    max_dist = posEnd.w / sampleDistance;
+    max_num_samples = uint(ceil(posEnd.w / sampleDistance));
+  }
+  else {
+    // get ray beginning in volume cube
+    float t0, t1 = 0.0f;
+    bool is_t0 = intersectBox(CameraPos, sampleStep, t0, t1);
+    float t_near = (is_t0 ? t0 : t1);
+    // if camera is within cube, start from camera, else move inside a little
+    t_near = (t_near < 0.0f ? 0.0f : t_near);
+    float t_far = (is_t0 ? t1 : t0);
+
+    sample_pos = CameraPos + sampleStep * t_near;
+    max_num_samples = uint(ceil(abs(t_far - t_near)));
   }
 
   // cache value of previous sample
   float prev_density = sample(sample_pos); 
 
-  float num_steps = 0.0;
-  while (num_steps < max_dist) {
-    ++out_Samples;
+  uint num_samples = 0u;
+  while (num_samples < max_num_samples) {
+    num_samples += 1u;
      // get sample
     float density = sample(sample_pos);
 
@@ -93,17 +98,15 @@ void main() {
 
       submitFragment(sample_pos);
 
-      num_samples *= 0.005; 
-      imageStore(tex_num_samples, ivec2(gl_FragCoord.xy), vec4(num_samples, 0.0, 0.0, 0.0));
+      writeNumSamples(num_samples);
       return;
     }
 
     prev_density = density;
     sample_pos += sampleStep;
-    num_steps += 1.0;
   }
   // no surface found 
-  imageStore(tex_num_samples, ivec2(gl_FragCoord.xy), vec4(num_samples, 0.0, 0.0, 0.0));
+  writeNumSamples(num_samples);
   discard;
 }
 
@@ -236,6 +239,11 @@ vec4 getStartPos(ivec2 coords) {
   vec3 pos_front = screenToVol(vec3(gl_FragCoord.xy,depthMinMax.r));
   vec3 pos_back = screenToVol(vec3(gl_FragCoord.xy,-depthMinMax.g));
   //no valid closest face found
-  pos_back = depthMinMax.r >= 1.0 ? pos_front : pos_back; 
-  return vec4(pos_front, length(pos_front- pos_back));
+  pos_back = (depthMinMax.r >= 1.0) ? pos_front : pos_back; 
+  return vec4(pos_front, distance(pos_front, pos_back));
+}
+
+void writeNumSamples(uint num_samples) {
+  float samples = float(num_samples) * 0.005; 
+  imageStore(tex_num_samples, ivec2(gl_FragCoord.xy), vec4(samples, 0.0, 0.0, 0.0));
 }
