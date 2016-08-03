@@ -56,11 +56,10 @@ namespace kinect{
 
     std::unique_ptr<ViewLod>               m_view_inpaint;
   private:
-    void drawBricks();
+    void drawOccupiedBricks() const;
     void drawDepthLimits();
     void divideBox();
     void fillColors();
-    void drawBrickVoxels() const;
 
     std::unique_ptr<ViewLod>               m_view_inpaint2;
     std::unique_ptr<View>                  m_view_depth;

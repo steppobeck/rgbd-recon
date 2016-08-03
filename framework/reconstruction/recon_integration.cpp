@@ -131,8 +131,9 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
   );
 
   m_program_bricks->attach(
-    globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/solid.vs"),
-    globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/bricks.fs")
+    globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/bricks.vs"),
+    globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/bricks.fs"),
+    globjects::Shader::fromFile(GL_GEOMETRY_SHADER, "glsl/bricks.gs")
   );
 
   setVoxelSize(m_voxel_size);
@@ -156,7 +157,7 @@ void ReconIntegration::drawF() {
 
 
   if (m_draw_bricks) {
-    drawBricks();
+    drawOccupiedBricks();
   }
   // bind to units for displaying in gui
   m_tex_num_samples->bindActive(17);
@@ -166,6 +167,20 @@ void ReconIntegration::drawF() {
 void ReconIntegration::draw(){
   m_program->use();
 
+  gloost::Matrix projection_matrix;
+  glGetFloatv(GL_PROJECTION_MATRIX, projection_matrix.data());
+  gloost::Matrix viewport_translate;
+  viewport_translate.setIdentity();
+  viewport_translate.setTranslate(1.0,1.0,1.0);
+  gloost::Matrix viewport_scale;
+  viewport_scale.setIdentity();
+  
+  glm::uvec4 viewport_vals{getViewport()};
+  viewport_scale.setScale(viewport_vals[2] * 0.5, viewport_vals[3] * 0.5, 0.5f);
+  gloost::Matrix image_to_eye =  viewport_scale * viewport_translate * projection_matrix;
+  image_to_eye.invert();
+  m_program->setUniform("img_to_eye_curr", image_to_eye);
+  
   gloost::Matrix modelview;
   glGetFloatv(GL_MODELVIEW_MATRIX, modelview.data());
   glm::fmat4 model_view{modelview};
@@ -333,19 +348,6 @@ void ReconIntegration::divideBox() {
 
 void ReconIntegration::drawDepthLimits() {
   m_view_depth->enable();
-  gloost::Matrix projection_matrix;
-  glGetFloatv(GL_PROJECTION_MATRIX, projection_matrix.data());
-  gloost::Matrix viewport_translate;
-  viewport_translate.setIdentity();
-  viewport_translate.setTranslate(1.0,1.0,1.0);
-  gloost::Matrix viewport_scale;
-  viewport_scale.setIdentity();
-  
-  glm::uvec4 viewport_vals{getViewport()};
-  viewport_scale.setScale(viewport_vals[2] * 0.5, viewport_vals[3] * 0.5, 0.5f);
-  gloost::Matrix image_to_eye =  viewport_scale * viewport_translate * projection_matrix;
-  image_to_eye.invert();
-  m_program->setUniform("img_to_eye_curr", image_to_eye);
 
   m_timer_brickdraw.begin();
   m_program_bricks->use();
@@ -355,8 +357,7 @@ void ReconIntegration::drawDepthLimits() {
 
   for(unsigned i = 0; i < m_bricks.size(); ++i) {
     if(m_active_bricks[i] > 0) {
-      glm::fmat4 transform = glm::scale(glm::translate(glm::fmat4{1.0f}, m_bricks[i].pos), m_bricks[i].size);
-      m_program_bricks->setUniform("transform", transform);
+      m_program_bricks->setUniform("id", i);
       UnitCube::draw();
     }
   }
@@ -370,28 +371,17 @@ void ReconIntegration::drawDepthLimits() {
   m_timer_brickdraw.end();
 }
 
-void ReconIntegration::drawBricks() {
+void ReconIntegration::drawOccupiedBricks() const {
   m_program_solid->use();
   m_program_solid->setUniform("Color", glm::fvec3{1.0f, 0.0f, 0.0f});
 
   for(unsigned i = 0; i < m_bricks.size(); ++i) {
     if(m_active_bricks[i] > 0) {
       glm::fmat4 transform = glm::scale(glm::translate(glm::fmat4{1.0f}, m_bricks[i].pos), m_bricks[i].size);
-      m_program_bricks->setUniform("transform", transform);
+      m_program_solid->setUniform("transform", transform);
       UnitCube::drawWire();
     }
   }
-  m_program_bricks->release();
-}
-
-void ReconIntegration::drawBrickVoxels() const {
-  m_program_solid->use();
-  m_program_solid->setUniform("Color", glm::fvec3{0.0f, 1.0f, 0.0f});
-  // for(auto const& brick: m_bricks) {
-    glm::fmat4 transform = glm::scale(glm::translate(glm::fmat4{1.0f}, glm::fvec3{m_bbox.getPMin()}), glm::fvec3{m_bbox.getPMax()} - glm::fvec3{m_bbox.getPMin()});
-    m_program_solid->setUniform("transform", transform);
-    m_sampler.sample(m_bricks[5].indices);
-  // }
   m_program_solid->release();
 }
 
