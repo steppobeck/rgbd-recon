@@ -180,7 +180,7 @@ void ReconIntegration::draw(){
   gloost::Matrix image_to_eye =  viewport_scale * viewport_translate * projection_matrix;
   image_to_eye.invert();
   m_program->setUniform("img_to_eye_curr", image_to_eye);
-  
+
   gloost::Matrix modelview;
   glGetFloatv(GL_MODELVIEW_MATRIX, modelview.data());
   glm::fmat4 model_view{modelview};
@@ -347,10 +347,11 @@ void ReconIntegration::divideBox() {
 }
 
 void ReconIntegration::drawDepthLimits() {
-  m_view_depth->enable();
-
   m_timer_brickdraw.begin();
+
+  m_view_depth->enable();
   m_program_bricks->use();
+
   glDisable(GL_CULL_FACE);
   glEnable(GL_BLEND);
   glBlendEquation(GL_MIN);
@@ -361,10 +362,11 @@ void ReconIntegration::drawDepthLimits() {
       UnitCube::draw();
     }
   }
-  m_program_bricks->release();
  
+  m_program_bricks->release();
   m_view_depth->disable();
   m_view_depth->bindToTextureUnits(17);
+  
   glDisable(GL_BLEND);
   glEnable(GL_CULL_FACE);
   

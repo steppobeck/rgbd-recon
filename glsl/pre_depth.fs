@@ -133,8 +133,8 @@ void main(void) {
   vec3 pos_world = texture(cv_xyz[layer], vec3(pass_TexCoord, depth_norm)).xyz;
   bool is_in_box = in_bbox(pos_world);
   
+  out_Color = rgb_to_lab(get_color(vec3(pass_TexCoord, (depth_norm <= 0.0f || depth_norm >= 1.0) ? 1.0f : depth_norm)));
   if (!is_in_box) {
-    out_Color = rgb_to_lab(get_color(vec3(pass_TexCoord, (depth_norm <= 0.0f) ? 0.0f : 1.0f)));
     out_Depth = vec2(0.0f);
     return;
   }
@@ -145,5 +145,4 @@ void main(void) {
   else {
     out_Depth = bilateral_filter(vec3(pass_TexCoord, depth));
   }
-  out_Color = rgb_to_lab(get_color(vec3(pass_TexCoord, (out_Depth.x <= 0.0f) ? 0.0f : 1.0f)));  
 }

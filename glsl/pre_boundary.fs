@@ -25,7 +25,7 @@ const int total_samples = (kernel_size * 2) * (kernel_size * 2);
 #include </inc_color.glsl>
 
 const float min_range = 0.65f;
-bool foreground(float depth) {
+bool valid_range(float depth) {
   return depth > min_range;
 }
 
@@ -42,7 +42,7 @@ float get_color_diff(vec2 coords) {
     for(int x = -kernel_size; x < kernel_end; ++x){
       vec2 coords_s = coords + vec2(x, y) * texSizeInv;
       vec2 depth_s = texture(kinect_depths, vec3(coords_s, layer)).rg;
-      if(depth_s.x > 0.0f && foreground(depth_s.y)) {
+      if(depth_s.x > 0.0f && valid_range(depth_s.y)) {
         num_samples += 1.0f;
         vec3 color_s = texture(kinect_colors_lab, vec3(coords_s, layer)).rgb;
         total_dist += distance(color, color_s);
@@ -62,7 +62,7 @@ float recompute_depth(vec2 coords) {
     for(int x = -kernel_size; x < kernel_end; ++x){
       vec2 coords_s = coords + vec2(x, y) * texSizeInv;
       vec2 depth_s = texture(kinect_depths, vec3(coords_s, layer)).rg;
-      if(depth_s.x > 0.0f && foreground(depth_s.y)) {
+      if(depth_s.x > 0.0f && valid_range(depth_s.y)) {
         num_samples += 1;
         vec3 color_s = texture(kinect_colors_lab, vec3(coords_s, layer)).rgb;
         total_color += color_s;
@@ -88,24 +88,19 @@ void main(void) {
   out_Silhouette = 1.0f;
   // pixel is outside of box
   if(depth.x <= 0.0f) {
-    float new_depth = recompute_depth(pass_TexCoord);
-    if(refine && new_depth > 0.0f) {
-      depth.x = new_depth;
-      depth.y = 0.5f;
-    }
-    else {
+    // float new_depth = recompute_depth(pass_TexCoord);
+    // if(refine && new_depth > 0.0f) {
+    //   depth.x = new_depth;
+    //   depth.y = 0.5f;
+    // }
+    // else {
       depth.y = 0.0f;
       out_Silhouette = 0.0f;
-    }
+    // }
   }
   // pixel was discarded in depth filtering
-  else if(!foreground(depth.y)) {
-    if(depth.y > 0.65) {
-      out_Silhouette = 1.0f;
-    }
-    else {
-      out_Silhouette = 0.0f;
-    }
+  else if(!valid_range(depth.y)) {
+    out_Silhouette = 0.0f;
     float color_dist = get_color_diff(pass_TexCoord);
     if(color_dist > max_color_dist || !refine) {
       depth.x = -1.0f;
