@@ -38,6 +38,7 @@ using namespace gl;
 #include <KinectCalibrationFile.h>
 #include <Statistics.h>
 
+#include "timer_database.hpp"
 #include "reconstruction.hpp"
 #include "recon_trigrid.hpp"
 #include "recon_points.hpp"
@@ -276,11 +277,11 @@ void update_gui() {
     }
     if (ImGui::CollapsingHeader("Processing Performance")) {
       std::uint64_t total = 
-        g_nka->getStageTime("morph")
-        + g_nka->getStageTime("bilateral")
-        + g_nka->getStageTime("boundary")
-        + g_nka->getStageTime("normal")
-        + g_nka->getStageTime("quality");
+      TimerDatabase::instance().duration("morph")
+      + TimerDatabase::instance().duration("bilateral")
+      + TimerDatabase::instance().duration("boundary")
+      + TimerDatabase::instance().duration("normal")
+      + TimerDatabase::instance().duration("quality");
 
       if (ImGui::TreeNode("Texture Processing")) {
         ImGui::SameLine();
@@ -292,11 +293,11 @@ void update_gui() {
         ImGui::Text("Normal Computation");
         ImGui::Text("Quality Computation");
         ImGui::NextColumn();
-        ImGui::Text("%.3f ms", g_nka->getStageTime("morph") / 1000000.0f);
-        ImGui::Text("%.3f ms", g_nka->getStageTime("bilateral") / 1000000.0f);
-        ImGui::Text("%.3f ms", g_nka->getStageTime("boundary") / 1000000.0f);
-        ImGui::Text("%.3f ms", g_nka->getStageTime("normal") / 1000000.0f);
-        ImGui::Text("%.3f ms", g_nka->getStageTime("quality") / 1000000.0f);
+        ImGui::Text("%.3f ms", TimerDatabase::instance().duration("morph") / 1000000.0f);
+        ImGui::Text("%.3f ms", TimerDatabase::instance().duration("bilateral") / 1000000.0f);
+        ImGui::Text("%.3f ms", TimerDatabase::instance().duration("boundary") / 1000000.0f);
+        ImGui::Text("%.3f ms", TimerDatabase::instance().duration("normal") / 1000000.0f);
+        ImGui::Text("%.3f ms", TimerDatabase::instance().duration("quality") / 1000000.0f);
         ImGui::Columns(1);
         ImGui::TreePop();
       }

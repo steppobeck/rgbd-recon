@@ -16,7 +16,7 @@ class TimerGPU {
   void end();
   // in ns
   std::uint64_t duration() const;
-  
+  bool outdated() const;
  private:
   globjects::ref_ptr<globjects::Query> m_query;
   mutable std::uint64_t m_start;

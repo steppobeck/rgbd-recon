@@ -4,7 +4,6 @@
 #include "DataTypes.h"
 #include "double_buffer.hpp"
 #include "double_pixel_buffer.hpp"
-#include "timer_gpu.hpp"
 
 #include <glm/gtc/type_precision.hpp>
 
@@ -63,7 +62,6 @@ namespace kinect {
     glm::uvec2 getColorResolution() const;
 
     int getTextureUnit(std::string const& name) const; 
-    std::size_t getStageTime(std::string const& name) const; 
 
   private:
     void bindToTextureUnits() const;
@@ -90,11 +88,9 @@ namespace kinect {
     globjects::ref_ptr<globjects::Texture> m_textures_silhouette;
     globjects::ref_ptr<globjects::Framebuffer> m_fbo;
     std::unique_ptr<TextureArray>  m_colorArray_back;
-    TimerGPU m_timer;
 
     std::map<std::string, globjects::ref_ptr<globjects::Program>> m_programs;
     std::map<std::string, unsigned> m_texture_unit_offsets;
-    std::map<std::string, std::size_t> m_times_stages;
 
     unsigned m_colorsize; // per frame
     unsigned m_depthsize; // per frame

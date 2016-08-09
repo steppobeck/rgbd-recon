@@ -8,6 +8,7 @@
 #include <KinectCalibrationFile.h>
 #include "CalibVolumes.hpp"
 #include <DXTCompressor.h>
+#include "timer_database.hpp"
 
 #include <glbinding/gl/gl.h>
 #include <glbinding/gl/functions-patches.h>
@@ -200,11 +201,11 @@ namespace kinect{
     globjects::NamedString::create("/inc_bbox_test.glsl", new globjects::File("glsl/inc_bbox_test.glsl"));
     globjects::NamedString::create("/inc_color.glsl", new globjects::File("glsl/inc_color.glsl"));
 
-    m_times_stages["morph"] = 0;
-    m_times_stages["bilateral"] = 0;
-    m_times_stages["boundary"] = 0;
-    m_times_stages["normal"] = 0;
-    m_times_stages["quality"] = 0;
+    TimerDatabase::instance().addTimer("morph");
+    TimerDatabase::instance().addTimer("bilateral");
+    TimerDatabase::instance().addTimer("boundary");
+    TimerDatabase::instance().addTimer("normal");
+    TimerDatabase::instance().addTimer("quality");
 
     return true;
   }
@@ -237,10 +238,6 @@ glm::uvec2 NetKinectArray::getColorResolution() const {
 
 int NetKinectArray::getTextureUnit(std::string const& name) const {
   return m_texture_unit_offsets.at(name);
-} 
-
-std::size_t NetKinectArray::getStageTime(std::string const& name) const {
-  return m_times_stages.at(name);
 } 
 
 void NetKinectArray::processDepth() {
@@ -314,12 +311,12 @@ void NetKinectArray::processTextures(){
   m_depthArray_raw->bind();
 
   m_fbo->bind();
-  m_timer.begin();
+  TimerDatabase::instance().begin("morph");
   processDepth();
-  m_timer.end();
-  m_times_stages.at("morph") = m_timer.duration();
+  TimerDatabase::instance().end("morph");
 
-  m_timer.begin();
+  TimerDatabase::instance().begin("bilateral");
+
   m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1});
 
   m_programs.at("filter")->use();
@@ -348,11 +345,11 @@ void NetKinectArray::processTextures(){
   }
   
   m_programs.at("filter")->release();
-  m_timer.end();
-  m_times_stages.at("bilateral") = m_timer.duration();
+  TimerDatabase::instance().end("bilateral");
 
 // boundary
-  m_timer.begin();
+  TimerDatabase::instance().begin("boundary");
+
   m_programs.at("boundary")->use();
 
   m_programs.at("boundary")->setUniform("cv_uv", m_calib_vols->getUVVolumeUnits());
@@ -368,12 +365,11 @@ void NetKinectArray::processTextures(){
     ScreenQuad::draw();
   }
   m_programs.at("boundary")->release();
-  m_timer.end();
-  m_times_stages.at("boundary") = m_timer.duration();
+  TimerDatabase::instance().end("boundary");
 
   m_textures_depth_b->bindActive(getTextureUnit("depth"));
 // normals
-  m_timer.begin();
+  TimerDatabase::instance().begin("normal");
   m_programs.at("normal")->use();
   m_programs.at("normal")->setUniform("cv_xyz", m_calib_vols->getXYZVolumeUnits());
   m_programs.at("normal")->setUniform("cv_uv", m_calib_vols->getUVVolumeUnits());
@@ -389,11 +385,10 @@ void NetKinectArray::processTextures(){
   }
   
   m_programs.at("normal")->release();
-  m_timer.end();
-  m_times_stages.at("normal") = m_timer.duration();
+  TimerDatabase::instance().end("normal");
 
 // quality
-  m_timer.begin();
+  TimerDatabase::instance().begin("quality");
   m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT0});
   m_programs.at("quality")->use();
   m_programs.at("quality")->setUniform("cv_xyz", m_calib_vols->getXYZVolumeUnits());
@@ -407,8 +402,7 @@ void NetKinectArray::processTextures(){
     ScreenQuad::draw();
   }
   m_programs.at("quality")->release();
-  m_timer.end();
-  m_times_stages.at("quality") = m_timer.duration();
+  TimerDatabase::instance().end("quality");
 
   if(m_num_frame < s_num_bg_frames && m_curr_frametime < 0.5) {
     // processBackground();

@@ -41,7 +41,6 @@ UnitCube::UnitCube()
 
 void UnitCube::draw() {
   static UnitCube instance{};
-  glDisable(GL_CULL_FACE);
   static unsigned num_indices = 14;
   static std::vector<GLubyte> indices {
     3, 2, 6, 7, 4, 2, 0,
@@ -49,7 +48,6 @@ void UnitCube::draw() {
   };
   // instance.m_cube->drawElements(GL_TRIANGLE_STRIP, num_indices, GL_UNSIGNED_BYTE, nullptr);
   instance.m_cube->drawElements(GL_TRIANGLE_STRIP, indices.size(), GL_UNSIGNED_BYTE, indices.data());
-  glEnable(GL_CULL_FACE);
 }
 
 void UnitCube::drawWire() {

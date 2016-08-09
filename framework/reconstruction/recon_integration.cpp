@@ -199,8 +199,9 @@ void ReconIntegration::draw(){
   if (m_fill_holes) {
     m_view_inpaint->enable();
   }
-
+  glDisable(GL_CULL_FACE);
   UnitCube::draw();
+  glEnable(GL_CULL_FACE);
   m_program->release();
   
   if (m_fill_holes) {
