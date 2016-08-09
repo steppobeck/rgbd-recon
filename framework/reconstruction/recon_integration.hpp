@@ -53,6 +53,7 @@ namespace kinect{
 
     std::unique_ptr<ViewLod>               m_view_inpaint;
   private:
+    void updateOccupiedBricks();
     void drawOccupiedBricks() const;
     void drawDepthLimits();
     void divideBox();
@@ -61,6 +62,7 @@ namespace kinect{
     std::unique_ptr<ViewLod>               m_view_inpaint2;
     std::unique_ptr<View>                  m_view_depth;
     globjects::ref_ptr<globjects::Buffer>  m_buffer_bricks;
+    globjects::ref_ptr<globjects::Buffer>  m_buffer_occupied;
 
     globjects::ref_ptr<globjects::Program> m_program;
     globjects::ref_ptr<globjects::Program> m_program_integration;

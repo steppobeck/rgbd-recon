@@ -12,23 +12,11 @@ uniform vec2 texSizeInv;
 uniform sampler3D[5] cv_xyz;
 uniform sampler3D[5] cv_uv;
 
-#include </inc_bbox_test.glsl>
-
-layout (std430, binding = 3) buffer Bricks {
-  float brick_size;
-  uint pad[3];
-  uvec3 resolution;
-  uint pad2[1];
-  uint[] bricks;
-};
 
 layout(location = 0) out vec3 out_Normal;
 
-void mark_brick(in vec3 pos) {
-  pos -= bbox_min;
-  uvec3 index = uvec3(floor(pos / brick_size));
-  bricks[index.z * resolution.y * resolution.x + index.y * resolution.x + index.x] = 1u;
-}
+#include </inc_bbox_test.glsl>
+#include </bricks.glsl>
 
 bool is_outside(float d){
   return (d <= 0.0) || (d >= 1.0);

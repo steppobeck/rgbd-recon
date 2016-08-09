@@ -36,7 +36,6 @@ using namespace gl;
 #include <calibration_files.hpp>
 #include <NetKinectArray.h>
 #include <KinectCalibrationFile.h>
-#include <Statistics.h>
 
 #include "timer_database.hpp"
 #include "reconstruction.hpp"
@@ -78,7 +77,6 @@ gloost::BoundingBox     g_bbox{};
 std::vector<std::pair<int, int>> g_gui_texture_settings{};
 gloost::PerspectiveCamera g_camera{50.0, g_aspect, 0.1, 200.0};
 pmd::CameraNavigator g_navi{0.1f};
-std::unique_ptr<mvt::Statistics> g_stats{};
 std::unique_ptr<kinect::NetKinectArray> g_nka;
 std::unique_ptr<kinect::CalibVolumes> g_cv;
 std::unique_ptr<kinect::CalibrationFiles> g_calib_files;
@@ -98,9 +96,6 @@ std::vector<std::shared_ptr<kinect::Reconstruction>> g_recons;// 4
 std::unique_ptr<kinect::ReconCalibs> g_calibvis;// 4
 //////////////////////////////////////////////////////////////////////////////////////////
 void init(std::vector<std::string> args){
-  g_stats.reset(new mvt::Statistics{});
-  g_stats->setInfoSlot("Volume Based Mapping", 0);
-
   std::string file_name{};
   for(unsigned i = 0; i < args.size(); ++i){
     const std::string ext(args[i].substr(args[i].find_last_of(".") + 1));
@@ -433,7 +428,6 @@ void draw3d(void)
     glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
   }
 
-  g_stats->startGPU();
   bool updated_textures = false;
   if (g_play) {
     updated_textures = g_nka->update();
@@ -445,8 +439,6 @@ void draw3d(void)
     }
   }
   g_recons.at(g_recon_mode)->drawF();
-
-  g_stats->stopGPU();
 
   if (g_draw_calibvis) {
     g_calibvis->draw();

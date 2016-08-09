@@ -24,8 +24,6 @@ using namespace gl;
 #include <globjects/Shader.h>
 #include <globjects/globjects.h>
 
-// #define VERT_FILL
-
 namespace kinect{
 static int start_image_unit = 3;
 
@@ -35,6 +33,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
  ,m_view_inpaint2{new ViewLod(1280, 720)}
  ,m_view_depth{new View(1280, 720, false)}
  ,m_buffer_bricks{new globjects::Buffer()}
+ ,m_buffer_occupied{new globjects::Buffer()}
  ,m_program{new globjects::Program()}
  ,m_program_integration{new globjects::Program()}
  ,m_program_inpaint{new globjects::Program()}
@@ -228,6 +227,7 @@ void ReconIntegration::integrate() {
   if (m_use_bricks) {
     // load occupied brick info
     m_buffer_bricks->getSubData(sizeof(unsigned) * 8, m_active_bricks.size() * sizeof(unsigned), m_active_bricks.data());
+    updateOccupiedBricks();
 
     unsigned num_occupied = 0;
     for(unsigned i = 0; i < m_bricks.size(); ++i) {
@@ -350,6 +350,7 @@ void ReconIntegration::divideBox() {
   m_buffer_bricks->bindRange(GL_SHADER_STORAGE_BUFFER, 3, 0, sizeof(unsigned) * bricks.size());
   m_active_bricks.resize(m_bricks.size());
 
+  m_buffer_occupied->setData(sizeof(unsigned) * bricks.size(), bricks.data(), GL_DYNAMIC_DRAW);
   std::cout << "brick res " << m_res_bricks.x << ", " << m_res_bricks.y << ", " << m_res_bricks.z
     << " - " << m_bricks.front().indices.size() << " voxels per brick" << std::endl;
 }
@@ -386,6 +387,16 @@ void ReconIntegration::drawDepthLimits() {
   static unsigned zerou = 0;
   m_buffer_bricks->clearSubData(GL_R32UI, sizeof(unsigned) * 8, m_bricks.size() * sizeof(unsigned), GL_RED_INTEGER, GL_UNSIGNED_INT, &zerou);
   glMemoryBarrier(GL_ALL_BARRIER_BITS);
+}
+
+void ReconIntegration::updateOccupiedBricks() {
+  std::vector<unsigned> occupied;
+  for(unsigned i = 0; i < m_active_bricks.size(); ++i) {
+    if(m_active_bricks[i] > 0) {
+      occupied.emplace_back(i);
+    }
+  }
+  m_buffer_occupied->bindRange(GL_SHADER_STORAGE_BUFFER, 4, 0, sizeof(unsigned) * occupied.size());
 }
 
 void ReconIntegration::drawOccupiedBricks() const {

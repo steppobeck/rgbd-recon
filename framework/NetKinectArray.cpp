@@ -25,6 +25,9 @@ using namespace gl;
 #include <globjects/base/File.h>
 #include <globjects/Query.h>
 
+#include <globjects/NamedString.h>
+#include <globjects/base/File.h>
+
 #include "squish/squish.h"
 #include <zmq.hpp>
 
@@ -81,6 +84,8 @@ namespace kinect{
     else{
       m_readThread = std::unique_ptr<std::thread>{new std::thread(std::bind(&NetKinectArray::readLoop, this))};
     }
+
+    globjects::NamedString::create("/bricks.glsl", new globjects::File("glsl/inc_bricks.glsl"));
 
     m_programs.at("filter")->attach(
      globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/texture_passthrough.vs")
