@@ -241,9 +241,12 @@ void ReconIntegration::integrate() {
   glDisable(GL_RASTERIZER_DISCARD);
   
   m_timer_integration.end();
-  // clear active bricks
-  static unsigned zero = 0;
-  m_buffer_bricks->clearSubData(GL_R32UI, sizeof(unsigned) * 8, m_bricks.size() * sizeof(unsigned), GL_RED_INTEGER, GL_UNSIGNED_INT, &zero);
+
+  if(!m_skip_space && m_use_bricks) {
+    // clear active bricks
+    static unsigned zero = 0;
+    m_buffer_bricks->clearSubData(GL_R32UI, sizeof(unsigned) * 8, m_bricks.size() * sizeof(unsigned), GL_RED_INTEGER, GL_UNSIGNED_INT, &zero);
+  }
 }
 
 void ReconIntegration::fillColors() {
@@ -338,7 +341,7 @@ void ReconIntegration::divideBox() {
   // for(unsigned i = 5; i < bricks.size(); ++i) {
   //   bricks[i] = i;
   // }
-  m_buffer_bricks->setData(sizeof(unsigned) * bricks.size(), bricks.data(), GL_DYNAMIC_READ);
+  m_buffer_bricks->setData(sizeof(unsigned) * bricks.size(), bricks.data(), GL_DYNAMIC_COPY);
   m_buffer_bricks->bindRange(GL_SHADER_STORAGE_BUFFER, 3, 0, sizeof(unsigned) * bricks.size());
   m_active_bricks.resize(m_bricks.size());
 
@@ -371,6 +374,12 @@ void ReconIntegration::drawDepthLimits() {
   glEnable(GL_CULL_FACE);
   
   m_timer_brickdraw.end();
+
+  glMemoryBarrier(GL_ALL_BARRIER_BITS);
+  // clear active bricks
+  static unsigned zerou = 0;
+  m_buffer_bricks->clearSubData(GL_R32UI, sizeof(unsigned) * 8, m_bricks.size() * sizeof(unsigned), GL_RED_INTEGER, GL_UNSIGNED_INT, &zerou);
+  glMemoryBarrier(GL_ALL_BARRIER_BITS);
 }
 
 void ReconIntegration::drawOccupiedBricks() const {

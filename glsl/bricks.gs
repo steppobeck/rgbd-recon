@@ -13,7 +13,6 @@ uniform uint id;
 ///////////////////////////////////////////////////////////////////////////////
 // output
 ///////////////////////////////////////////////////////////////////////////////
-out vec3 pass_texcoord;
 ///////////////////////////////////////////////////////////////////////////////
 // main
 ///////////////////////////////////////////////////////////////////////////////
@@ -57,39 +56,26 @@ vec3 to_world(vec3 position, uvec3 index) {
 
 void main() {
   vec3 sum = geo_Position[0] + geo_Position[1] + geo_Position[2];
-  uvec3 index = index_3d(id);
-  if (sum.x <= 0.0) {
-    if (brick_occupied(get_id(index - uvec3(1u, 0u, 0u)))) {
+
+  if (sum.x < 1.0 || sum.x > 2.0) {
+    uvec3 index = index_3d(id);
+    if (brick_occupied(get_id(index + ivec3(sum.x / 3.0 * 2.0 - 1.0, 0, 0)))) {
       return;
     }
   }
-  else if (sum.x >= 3.0) {
-    if (brick_occupied(get_id(index + uvec3(1u, 0u, 0u)))) {
+  else if (sum.y < 1.0 || sum.y > 2.0) {
+    uvec3 index = index_3d(id);
+    if (brick_occupied(get_id(index + ivec3(0, sum.y / 3.0 * 2.0 - 1.0, 0)))) {
+      return;
+    }
+  }
+  else if (sum.z < 1.0 || sum.z > 2.0) {
+    uvec3 index = index_3d(id);
+    if (brick_occupied(get_id(index + ivec3(0, 0,sum.z / 3.0 * 2.0 - 1.0)))) {
       return;
     }
   }
 
-  else if (sum.y <= 0.0) {
-    if (brick_occupied(get_id(index - uvec3(0u, 1u, 0u)))) {
-      return;
-    }
-  }
-  else if (sum.y >= 3.0) {
-    if (brick_occupied(get_id(index + uvec3(0u, 1u, 0u)))) {
-      return;
-    }
-  }
-
-  else if (sum.z <= 0.0) {
-    if (brick_occupied(get_id(index - uvec3(0u, 0u, 1u)))) {
-      return;
-    }
-  }
-  else if (sum.z >= 3.0) {
-    if (brick_occupied(get_id(index + uvec3(0u, 0u, 1u)))) {
-      return;
-    }
-  }
   for(uint i = 0u; i < 3; ++i) {
     gl_Position   = gl_in[i].gl_Position;
     

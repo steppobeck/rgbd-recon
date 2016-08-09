@@ -82,8 +82,8 @@ void main() {
     max_num_samples = uint(ceil(abs(t_far - t_near)));
   }
 
-  // cache value of previous sample
-  float prev_density = sample(sample_pos); 
+  // initial sample is assumed to be outside the object 
+  float prev_density = -limit; 
 
   uint num_samples = 0u;
   while (num_samples < max_num_samples) {
@@ -92,7 +92,7 @@ void main() {
     float density = sample(sample_pos);
 
     // check if cell is inside contour
-    if (density > IsoValue && prev_density <= IsoValue) {
+    if (density > IsoValue) {
       // approximate ray-cell intersection
       sample_pos = (sample_pos - sampleStep) - sampleStep * (prev_density / (density - prev_density));
 

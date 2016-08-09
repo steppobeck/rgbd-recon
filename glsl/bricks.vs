@@ -47,5 +47,5 @@ vec3 to_world(vec3 position, uvec3 index) {
 
 void main() {
   geo_Position = in_Position;
-  gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * vec4(to_world(in_Position, index_3d(id)), 1.0);
+  gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * vec4(to_world(geo_Position, index_3d(id)), 1.0);
 }
