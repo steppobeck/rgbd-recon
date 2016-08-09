@@ -2,6 +2,7 @@
 
 #include "calibration_files.hpp"
 #include "CalibVolumes.hpp"
+#include "timer_database.hpp"
 
 #include <glbinding/gl/gl.h>
 using namespace gl;
@@ -18,9 +19,10 @@ Reconstruction::Reconstruction(CalibrationFiles const& cfs, CalibVolumes const* 
  ,m_num_kinects{cfs.num()}
  ,m_min_length{cfs.minLength()}
  ,m_bbox{bbox}
- ,m_timer_draw{}
 {
    globjects::NamedString::create("/shading.glsl", new globjects::File("glsl/shading.glsl"));
+   TimerDatabase::instance().addTimer("recon");
+   TimerDatabase::instance().addTimer("draw");
 }
 
 void Reconstruction::reload() {
@@ -30,13 +32,9 @@ void Reconstruction::reload() {
 void  Reconstruction::resize(std::size_t width, std::size_t height) {
 }
 void Reconstruction::drawF() {
-  m_timer_draw.begin();
+  TimerDatabase::instance().begin("draw");
   draw();
-  m_timer_draw.end();
-}
-
-std::uint64_t Reconstruction::drawTime() const {
-  return m_timer_draw.duration();
+  TimerDatabase::instance().end("draw");
 }
 
 glm::uvec2 Reconstruction::getViewportRes() {

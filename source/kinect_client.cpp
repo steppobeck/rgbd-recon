@@ -306,9 +306,10 @@ void update_gui() {
         ImGui::Text("   %.3f ms", total / 1000000.0f);
       }
       if(g_recons[g_recon_mode].get() == g_recon_integration.get()) {
+        std::uint64_t full = TimerDatabase::instance().duration("recon") + TimerDatabase::instance().duration("integrate");
         if (ImGui::TreeNode("Reconstruction")) {
           ImGui::SameLine();
-          ImGui::Text("   %.3f ms", (g_recon_integration->drawTime() + g_recon_integration->integrationTime()) / 1000000.0f);
+          ImGui::Text("   %.3f ms", full / 1000000.0f);
           ImGui::Columns(2, NULL, false);
           ImGui::Text("Drawing");
           ImGui::Text("Integration");
@@ -317,24 +318,24 @@ void update_gui() {
             ImGui::Text("Brickdrawing");
           }
           ImGui::NextColumn();
-          ImGui::Text("%.3f ms", g_recon_integration->drawTime() / 1000000.0f);
-          ImGui::Text("%.3f ms", g_recon_integration->integrationTime() / 1000000.0f);
-          ImGui::Text("%.3f ms", g_recon_integration->holefillTime() / 1000000.0f);
+          ImGui::Text("%.3f ms", TimerDatabase::instance().duration("draw") / 1000000.0f);
+          ImGui::Text("%.3f ms", TimerDatabase::instance().duration("integrate") / 1000000.0f);
+          ImGui::Text("%.3f ms", TimerDatabase::instance().duration("holefill") / 1000000.0f);
           if(g_skip_space) {
-            ImGui::Text("%.3f ms", g_recon_integration->brickDrawTime() / 1000000.0f);
+            ImGui::Text("%.3f ms", TimerDatabase::instance().duration("brickdraw") / 1000000.0f);
           }
           ImGui::Columns(1);
           ImGui::TreePop();
         }
         else {
           ImGui::SameLine();
-          ImGui::Text("   %.3f ms", (g_recon_integration->drawTime() + g_recon_integration->integrationTime()) / 1000000.0f);          
+          ImGui::Text("   %.3f ms", full / 1000000.0f);          
         }
       }
       else {
         ImGui::Text("   Reconstruction");
         ImGui::SameLine();
-        ImGui::Text("   %.3f ms", g_recons[g_recon_mode]->drawTime() / 1000000.0f);
+        ImGui::Text("   %.3f ms", TimerDatabase::instance().duration("draw") / 1000000.0f);
       }
     }
     ImGui::End();

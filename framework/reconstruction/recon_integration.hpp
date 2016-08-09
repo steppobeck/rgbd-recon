@@ -46,9 +46,6 @@ namespace kinect{
     void setTsdfLimit(float limit);
     void setBrickSize(float limit);
 
-    std::uint64_t integrationTime() const;
-    std::uint64_t holefillTime() const;
-    std::uint64_t brickDrawTime() const;
     unsigned numBricks() const;
     float occupiedRatio() const;
     
@@ -89,9 +86,6 @@ namespace kinect{
     bool m_use_bricks;
     bool m_skip_space;
     bool m_draw_bricks;
-    TimerGPU m_timer_integration;
-    TimerGPU m_timer_holefill;
-    TimerGPU m_timer_brickdraw;
     float m_ratio_occupied;
   };
 }

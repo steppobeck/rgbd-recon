@@ -7,6 +7,7 @@
 #include "CalibVolumes.hpp"
 #include "view_lod.hpp"
 #include "texture_blitter.hpp"
+#include "timer_database.hpp"
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
@@ -54,9 +55,6 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
  ,m_use_bricks{true}
  ,m_skip_space{true}
  ,m_draw_bricks{false}
- ,m_timer_integration{}
- ,m_timer_holefill{}
- ,m_timer_brickdraw{}
  ,m_ratio_occupied{0.0f}
 {
   m_program->attach(
@@ -139,9 +137,14 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
   setVoxelSize(m_voxel_size);
   // initialize with 1 to get minimal depth
   m_view_depth->setClearColor(glm::fvec4{1.0f, 0.0f, 1.0f, 0.0f});
+
+  TimerDatabase::instance().addTimer("holefill");
+  TimerDatabase::instance().addTimer("integrate");
+  TimerDatabase::instance().addTimer("brickdraw");
 }
 
 void ReconIntegration::drawF() {
+  TimerDatabase::instance().begin("recon");
   // draw depth limits for space skipping
   if (m_skip_space && m_use_bricks) {
     drawDepthLimits();
@@ -150,11 +153,10 @@ void ReconIntegration::drawF() {
   Reconstruction::drawF();
   
   if (m_fill_holes) {
-    m_timer_holefill.begin();
+    TimerDatabase::instance().begin("holefill");
     fillColors();
-    m_timer_holefill.end();
+    TimerDatabase::instance().end("holefill");
   }
-
 
   if (m_draw_bricks) {
     drawOccupiedBricks();
@@ -162,6 +164,7 @@ void ReconIntegration::drawF() {
   // bind to units for displaying in gui
   m_tex_num_samples->bindActive(17);
   m_view_depth->bindToTextureUnits(16);
+  TimerDatabase::instance().end("recon");
 }
 
 void ReconIntegration::draw(){
@@ -210,7 +213,8 @@ void ReconIntegration::draw(){
 }
 
 void ReconIntegration::integrate() {
-  m_timer_integration.begin();
+  TimerDatabase::instance().begin("integrate");
+
 
   glEnable(GL_RASTERIZER_DISCARD);
   m_program_integration->use();
@@ -241,7 +245,7 @@ void ReconIntegration::integrate() {
   m_program_integration->release();
   glDisable(GL_RASTERIZER_DISCARD);
   
-  m_timer_integration.end();
+  TimerDatabase::instance().end("integrate");
 
   if(!m_skip_space && m_use_bricks) {
     // clear active bricks
@@ -351,7 +355,7 @@ void ReconIntegration::divideBox() {
 }
 
 void ReconIntegration::drawDepthLimits() {
-  m_timer_brickdraw.begin();
+  TimerDatabase::instance().begin("brickdraw");
 
   m_view_depth->enable();
   m_program_bricks->use();
@@ -374,7 +378,8 @@ void ReconIntegration::drawDepthLimits() {
   glDisable(GL_BLEND);
   glEnable(GL_CULL_FACE);
   
-  m_timer_brickdraw.end();
+  TimerDatabase::instance().end("brickdraw");
+
 
   glMemoryBarrier(GL_ALL_BARRIER_BITS);
   // clear active bricks
@@ -406,18 +411,6 @@ void ReconIntegration::setTsdfLimit(float limit) {
 void ReconIntegration::setBrickSize(float size) {
   m_brick_size = size;
   divideBox();
-}
-
-std::uint64_t ReconIntegration::integrationTime() const {
-  return m_timer_integration.duration();
-}
-
-std::uint64_t ReconIntegration::holefillTime() const {
-  return m_timer_holefill.duration();
-}
-
-std::uint64_t ReconIntegration::brickDrawTime() const {
-  return m_timer_brickdraw.duration();
 }
 
 float ReconIntegration::occupiedRatio() const {
