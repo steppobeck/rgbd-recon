@@ -123,7 +123,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
   m_program_colorfill->setUniform("out_tex", start_image_unit);
 
   m_program_solid->attach(
-    globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/solid.vs"),
+    globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/bricks.vs"),
     globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/solid.fs")
   );
 
@@ -225,18 +225,11 @@ void ReconIntegration::integrate() {
   m_volume_tsdf->bindImageTexture(start_image_unit, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_R32F);
   
   if (m_use_bricks) {
-    // load occupied brick info
-    m_buffer_bricks->getSubData(sizeof(unsigned) * 8, m_active_bricks.size() * sizeof(unsigned), m_active_bricks.data());
     updateOccupiedBricks();
 
-    unsigned num_occupied = 0;
-    for(unsigned i = 0; i < m_bricks.size(); ++i) {
-      if(m_active_bricks[i] > 0) {
-        m_sampler.sample(m_bricks[i].indices);
-        ++num_occupied;
-      }
+    for(auto const& index : m_bricks_occupied) {
+      m_sampler.sample(m_bricks[index].indices);
     }
-    m_ratio_occupied = num_occupied / float(m_active_bricks.size());
   }
   else {
     m_sampler.sample();
@@ -245,13 +238,13 @@ void ReconIntegration::integrate() {
   m_program_integration->release();
   glDisable(GL_RASTERIZER_DISCARD);
   
-  TimerDatabase::instance().end("integrate");
 
   if(!m_skip_space && m_use_bricks) {
     // clear active bricks
     static unsigned zero = 0;
     m_buffer_bricks->clearSubData(GL_R32UI, sizeof(unsigned) * 8, m_bricks.size() * sizeof(unsigned), GL_RED_INTEGER, GL_UNSIGNED_INT, &zero);
   }
+  TimerDatabase::instance().end("integrate");
 }
 
 void ReconIntegration::fillColors() {
@@ -365,12 +358,7 @@ void ReconIntegration::drawDepthLimits() {
   glEnable(GL_BLEND);
   glBlendEquation(GL_MIN);
 
-  for(unsigned i = 0; i < m_bricks.size(); ++i) {
-    if(m_active_bricks[i] > 0) {
-      m_program_bricks->setUniform("id", i);
-      UnitCube::draw();
-    }
-  }
+  UnitCube::drawInstanced(m_bricks_occupied.size());
  
   m_program_bricks->release();
   m_view_depth->disable();
@@ -381,7 +369,6 @@ void ReconIntegration::drawDepthLimits() {
   
   TimerDatabase::instance().end("brickdraw");
 
-
   glMemoryBarrier(GL_ALL_BARRIER_BITS);
   // clear active bricks
   static unsigned zerou = 0;
@@ -390,26 +377,26 @@ void ReconIntegration::drawDepthLimits() {
 }
 
 void ReconIntegration::updateOccupiedBricks() {
-  std::vector<unsigned> occupied;
+  // load occupied brick info
+  m_buffer_bricks->getSubData(sizeof(unsigned) * 8, m_active_bricks.size() * sizeof(unsigned), m_active_bricks.data());
+  m_bricks_occupied.clear();  
+
   for(unsigned i = 0; i < m_active_bricks.size(); ++i) {
     if(m_active_bricks[i] > 0) {
-      occupied.emplace_back(i);
+      m_bricks_occupied.emplace_back(i);
     }
   }
-  m_buffer_occupied->bindRange(GL_SHADER_STORAGE_BUFFER, 4, 0, sizeof(unsigned) * occupied.size());
+  m_ratio_occupied = float(m_bricks_occupied.size()) / float(m_active_bricks.size());
+  m_buffer_occupied->setSubData(0, sizeof(unsigned) * m_bricks_occupied.size(), m_bricks_occupied.data());
+  m_buffer_occupied->bindRange(GL_SHADER_STORAGE_BUFFER, 4, 0, sizeof(unsigned) * m_bricks_occupied.size());
 }
 
 void ReconIntegration::drawOccupiedBricks() const {
   m_program_solid->use();
   m_program_solid->setUniform("Color", glm::fvec3{1.0f, 0.0f, 0.0f});
 
-  for(unsigned i = 0; i < m_bricks.size(); ++i) {
-    if(m_active_bricks[i] > 0) {
-      glm::fmat4 transform = glm::scale(glm::translate(glm::fmat4{1.0f}, m_bricks[i].pos), m_bricks[i].size);
-      m_program_solid->setUniform("transform", transform);
-      UnitCube::drawWire();
-    }
-  }
+  UnitCube::drawWireInstanced(m_bricks_occupied.size());
+
   m_program_solid->release();
 }
 

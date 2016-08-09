@@ -11,7 +11,9 @@ namespace globjects {
 class UnitCube {
  public:
   static void draw();
+  static void drawInstanced(unsigned count);
   static void drawWire();
+  static void drawWireInstanced(unsigned count);
   
  private:
   // prevent construction by user

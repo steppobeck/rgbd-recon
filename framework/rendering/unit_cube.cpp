@@ -50,6 +50,17 @@ void UnitCube::draw() {
   instance.m_cube->drawElements(GL_TRIANGLE_STRIP, indices.size(), GL_UNSIGNED_BYTE, indices.data());
 }
 
+void UnitCube::drawInstanced(unsigned count) {
+  static UnitCube instance{};
+  static unsigned num_indices = 14;
+  static std::vector<GLubyte> indices {
+    3, 2, 6, 7, 4, 2, 0,
+    3, 1, 6, 5, 4, 1, 0
+  };
+  // instance.m_cube->drawElements(GL_TRIANGLE_STRIP, num_indices, GL_UNSIGNED_BYTE, nullptr);
+  instance.m_cube->drawElementsInstanced(GL_TRIANGLE_STRIP, indices.size(), GL_UNSIGNED_BYTE, indices.data(), count);
+}
+
 void UnitCube::drawWire() {
   static UnitCube instance{};
   static std::vector<GLubyte> indices {
@@ -59,4 +70,14 @@ void UnitCube::drawWire() {
     7,2, 7,4, 7,6
   };
   instance.m_cube->drawElements(GL_LINES, indices.size(), GL_UNSIGNED_BYTE, indices.data());
+}
+void UnitCube::drawWireInstanced(unsigned count) {
+  static UnitCube instance{};
+  static std::vector<GLubyte> indices {
+    0,1, 0,2, 0,4,
+    5,1, 5,4, 5,6,
+    3,1, 3,6, 3,2,
+    7,2, 7,4, 7,6
+  };
+  instance.m_cube->drawElementsInstanced(GL_LINES, indices.size(), GL_UNSIGNED_BYTE, indices.data(), count);
 }

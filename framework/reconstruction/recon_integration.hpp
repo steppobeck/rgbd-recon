@@ -81,6 +81,7 @@ namespace kinect{
     glm::fmat4          m_mat_vol_to_world;
     std::vector<brick> m_bricks;
     std::vector<unsigned> m_active_bricks;
+    std::vector<unsigned> m_bricks_occupied;
     float m_limit;
     float m_voxel_size;
     float m_brick_size;
