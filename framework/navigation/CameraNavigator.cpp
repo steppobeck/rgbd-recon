@@ -13,7 +13,7 @@ namespace pmd{
 
 
   CameraNavigator::CameraNavigator(float z)
-    : m_poi(0.0,0.0,0.0),
+    : m_poi(0.0,1.0,0.0),
       m_x(1.0,0.0,0.0),
       m_y(0.0,1.0,0.0),
       m_z(0.0,0.0,6.0),

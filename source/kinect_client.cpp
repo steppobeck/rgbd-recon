@@ -25,6 +25,7 @@ using namespace gl;
 #include <tuple>
 
 #include <CMDParser.h>
+#include "configurator.hpp"
 #include "texture_blitter.hpp"
 
 #include <Point3.h>
@@ -68,7 +69,7 @@ bool     g_skip_space   = true;
 bool     g_draw_bricks  = false;
 bool     g_watch_errors = true;
 int      g_num_kinect   = 1; 
-float    g_voxel_size   = 0.007f;
+float    g_voxel_size   = 0.01f;
 float    g_brick_size   = 0.1f;
 float    g_tsdf_limit   = 0.01f;
 double   g_time_prev    = 0.0f;
@@ -76,7 +77,7 @@ double   g_time_prev    = 0.0f;
 gloost::BoundingBox     g_bbox{};
 std::vector<std::pair<int, int>> g_gui_texture_settings{};
 gloost::PerspectiveCamera g_camera{50.0, g_aspect, 0.1, 200.0};
-pmd::CameraNavigator g_navi{0.1f};
+pmd::CameraNavigator g_navi{0.5f};
 std::unique_ptr<kinect::NetKinectArray> g_nka;
 std::unique_ptr<kinect::CalibVolumes> g_cv;
 std::unique_ptr<kinect::CalibrationFiles> g_calib_files;
@@ -86,7 +87,9 @@ struct shading_data_t {
   int mode = 0;
 } g_shading_buffer_data;
 
-void init(std::vector<std::string>& args);
+void init(std::vector<std::string> const& args);
+void init_config(std::vector<std::string> const& args);
+void load_config(std::string const&);
 void update_view_matrix();
 void draw3d();
 void watch_gl_errors(bool activate);
@@ -95,21 +98,19 @@ std::shared_ptr<kinect::ReconIntegration> g_recon_integration{};
 std::vector<std::shared_ptr<kinect::Reconstruction>> g_recons;// 4
 std::unique_ptr<kinect::ReconCalibs> g_calibvis;// 4
 //////////////////////////////////////////////////////////////////////////////////////////
-void init(std::vector<std::string> args){
-  std::string file_name{};
-  for(unsigned i = 0; i < args.size(); ++i){
-    const std::string ext(args[i].substr(args[i].find_last_of(".") + 1));
-    std::cerr << ext << std::endl;
-    if("ks" == ext) {
-      file_name = args[i];
-      break;
-    }
-  }
+void init(std::vector<std::string> const& args){
 
-  if (file_name.empty()) {
+  std::string ext{args[0].substr(args[0].find_last_of(".") + 1)};
+  std::string file_name{};
+  if("ks" == ext) {
+    file_name = args[0];
+  }
+  else {
     throw std::invalid_argument{"No .ks file specified"};
   }
 
+
+  // read ks file
   std::string serverport{};
   std::vector<std::string> calib_filenames;
   gloost::Point3 bbox_min{-1.0f ,0.0f, -1.0f};
@@ -175,6 +176,40 @@ void init(std::vector<std::string> args){
   g_buffer_shading->setData(sizeof(shading_data_t), &g_shading_buffer_data, GL_STATIC_DRAW);
   g_buffer_shading->bindBase(GL_UNIFORM_BUFFER, 1);
 
+  // g_recon_integration->setBrickSize(g_recon_integration->getBrickSize());
+}
+void init_config(std::vector<std::string> const& args) {
+    // read config file
+  if(args.size() > 1) {
+    std::string ext = args[1].substr(args[1].find_last_of(".") + 1);
+    if("conf" == ext) {
+      load_config(args[1]);
+    }
+    else {
+      throw std::invalid_argument{"No .conf file specified"};
+    }    
+  }
+}
+
+void load_config(std::string const& file_name) {
+  configurator().read(file_name);
+  configurator().print();
+  g_recon_mode   = configurator().getUint("recon_mode");
+  g_screenWidth  = configurator().getUint("screenWidth");
+  g_screenHeight = configurator().getUint("screenHeight");
+  g_play         = configurator().getBool("play");
+  g_draw_grid    = configurator().getBool("draw_grid");
+  g_animate      = configurator().getBool("animate");
+  g_bilateral    = configurator().getBool("bilateral");
+  g_processed    = configurator().getBool("processed");
+  g_refine       = configurator().getBool("refine");
+  g_colorfill    = configurator().getBool("colorfill");
+  g_bricking     = configurator().getBool("bricking");
+  g_skip_space   = configurator().getBool("skip_space");
+  g_watch_errors = configurator().getBool("watch_errors");
+  g_voxel_size   = configurator().getFloat("voxel_size");;
+  g_brick_size   = configurator().getFloat("brick_size");;
+  g_tsdf_limit   = configurator().getFloat("tsdf_limit");;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -236,9 +271,11 @@ void update_gui() {
       }
       if (ImGui::DragFloat("Voxel Size", &g_voxel_size, 0.001f, 0.003f, 0.1f, "%.3f")) {
         g_recon_integration->setVoxelSize(g_voxel_size);
+        g_brick_size = g_recon_integration->getBrickSize();
       }
       if (ImGui::DragFloat("Brick Size", &g_brick_size, 0.01f, 0.09f, 1.0f, "%.3f")) {
         g_recon_integration->setBrickSize(g_brick_size);
+        g_brick_size = g_recon_integration->getBrickSize();
       }
       if (ImGui::Checkbox("Color hole filling", &g_colorfill)) {
         g_recon_integration->setColorFilling(g_colorfill);
@@ -418,7 +455,7 @@ void draw3d(void)
   if(g_animate){
     static unsigned g_framecounta = 0;
     ++g_framecounta;
-    glRotatef(g_framecounta * 1.0, 0.0,1.0,0.0);
+    glRotatef(g_framecounta * 0.1, 0.0,1.0,0.0);
   }
 
   if(g_wire){
@@ -489,8 +526,6 @@ void update_view(GLFWwindow* window, int width, int height){
   }
 
   g_navi.resize(width, height);
-
-
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -609,10 +644,13 @@ int main(int argc, char *argv[]) {
   p.addOpt("r",2,"resolution", "set screen resolution");
   p.init(argc,argv);
 
-  if(p.isOptSet("r")){
-    g_screenWidth = p.getOptsInt("r")[0];
-    g_screenHeight = p.getOptsInt("r")[1];
-  }
+  // if(p.isOptSet("r")){
+  //   g_screenWidth = p.getOptsInt("r")[0];
+  //   g_screenHeight = p.getOptsInt("r")[1];
+  // }
+  // load global variables
+  init_config(p.getArgs());
+
 
   // Setup window
   glfwSetErrorCallback(error_callback);
@@ -655,8 +693,8 @@ int main(int argc, char *argv[]) {
   glEnable(GL_TEXTURE_2D);
   glEnable(GL_DEPTH_TEST);
   glDepthFunc(GL_LESS);
-  
-  // load and intialize stuff for our demo
+
+  // load and intialize objects
   init(p.getArgs());
 
   update_view(g_window, g_screenWidth, g_screenHeight);
