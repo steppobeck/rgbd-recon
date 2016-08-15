@@ -17,7 +17,7 @@ class TimerDatabase {
 
   double duration(std::string const&) const;
   double mean(std::string const&) const;
-
+  void write(std::string const& file_name) const;
  private:
   // prevent construction by user
   TimerDatabase();
@@ -30,6 +30,7 @@ class TimerDatabase {
   std::map<std::string, TimerGPU> m_timers;
   std::map<std::string, std::size_t> m_nums;
   std::map<std::string, double> m_means;
+  std::map<std::string, std::pair<double, double>> m_extrema;
 };
 
 #endif //TIMER_DATABASE_HPP

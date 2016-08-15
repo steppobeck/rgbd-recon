@@ -75,6 +75,10 @@ float    g_tsdf_limit   = 0.01f;
 float    g_zoom         = 0.5f;
 double   g_time_prev    = 0.0f;
 
+bool     g_loaded_conf  = false;
+unsigned g_time_limit   = 1;
+std::string g_conf_file{};
+
 gloost::BoundingBox     g_bbox{};
 std::vector<std::pair<int, int>> g_gui_texture_settings{};
 gloost::PerspectiveCamera g_camera{50.0, g_aspect, 0.1, 200.0};
@@ -208,10 +212,13 @@ void load_config(std::string const& file_name) {
   g_bricking     = configurator().getBool("bricking");
   g_skip_space   = configurator().getBool("skip_space");
   g_watch_errors = configurator().getBool("watch_errors");
-  g_voxel_size   = configurator().getFloat("voxel_size");;
-  g_brick_size   = configurator().getFloat("brick_size");;
-  g_tsdf_limit   = configurator().getFloat("tsdf_limit");;
-  g_zoom         = configurator().getFloat("zoom");;
+  g_voxel_size   = configurator().getFloat("voxel_size");
+  g_brick_size   = configurator().getFloat("brick_size");
+  g_tsdf_limit   = configurator().getFloat("tsdf_limit");
+  g_zoom         = configurator().getFloat("zoom");
+  g_time_limit   = configurator().getUint("time_limit");
+  g_loaded_conf = true;
+  g_conf_file = file_name;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -629,6 +636,20 @@ static void error_callback(int error, const char* description) {
 }
 
 void quit(int status) {
+  if(g_loaded_conf) {
+  time_t t = time(0);   // get time now
+  struct tm * now = localtime( & t );
+  std::stringstream file_name;
+
+  file_name << g_conf_file.substr(0, g_conf_file.length() - 5) << ","
+     << (now->tm_year + 1900) << '-'
+     << (now->tm_mon + 1) << '-'
+     <<  now->tm_mday << ','
+     <<  now->tm_hour << '-'
+     <<  now->tm_min;
+    TimerDatabase::instance().write(file_name.str());
+  }
+
   //free globjects 
   globjects::detachAllObjects();
 
@@ -646,10 +667,6 @@ int main(int argc, char *argv[]) {
   p.addOpt("r",2,"resolution", "set screen resolution");
   p.init(argc,argv);
 
-  // if(p.isOptSet("r")){
-  //   g_screenWidth = p.getOptsInt("r")[0];
-  //   g_screenHeight = p.getOptsInt("r")[1];
-  // }
   // load global variables
   init_config(p.getArgs());
 
@@ -702,8 +719,18 @@ int main(int argc, char *argv[]) {
   update_view(g_window, g_screenWidth, g_screenHeight);
   g_navi.setZoom(g_zoom);
 
+  //start of rendering
+  auto time_start =  std::chrono::high_resolution_clock::now();
+
   while (!glfwWindowShouldClose(g_window)) {
     frameStep();
+    // keep track fo time if config was loaded
+    if(g_loaded_conf) {
+      unsigned time_in_s = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - time_start).count();
+      if(time_in_s >= g_time_limit) {
+        quit(EXIT_SUCCESS);
+      }
+    }
   }
 
   quit(EXIT_SUCCESS);
