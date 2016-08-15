@@ -17,7 +17,7 @@ class CameraNavigator{
 
 public:
   CameraNavigator(float z = 0.5f);
-
+  void setZoom(float z);
   void mouse(int button, int state, int mouse_h, int mouse_v);
   void motion(int mouse_h, int mouse_v);
   void resize(unsigned w, unsigned h);

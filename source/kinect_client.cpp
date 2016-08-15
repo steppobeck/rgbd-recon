@@ -72,6 +72,7 @@ int      g_num_kinect   = 1;
 float    g_voxel_size   = 0.01f;
 float    g_brick_size   = 0.1f;
 float    g_tsdf_limit   = 0.01f;
+float    g_zoom         = 0.5f;
 double   g_time_prev    = 0.0f;
 
 gloost::BoundingBox     g_bbox{};
@@ -210,6 +211,7 @@ void load_config(std::string const& file_name) {
   g_voxel_size   = configurator().getFloat("voxel_size");;
   g_brick_size   = configurator().getFloat("brick_size");;
   g_tsdf_limit   = configurator().getFloat("tsdf_limit");;
+  g_zoom         = configurator().getFloat("zoom");;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -698,6 +700,7 @@ int main(int argc, char *argv[]) {
   init(p.getArgs());
 
   update_view(g_window, g_screenWidth, g_screenHeight);
+  g_navi.setZoom(g_zoom);
 
   while (!glfwWindowShouldClose(g_window)) {
     frameStep();

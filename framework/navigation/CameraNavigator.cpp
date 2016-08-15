@@ -20,6 +20,11 @@ namespace pmd{
       m_zoom(z),
       m_zoom_reset(z){}
 
+  void CameraNavigator::setZoom(float z) {
+    m_zoom = z;
+    m_zoom_reset = z;
+  }
+
   void
   CameraNavigator::mouse(int button, int state, int mouse_h, int mouse_v){
     if (button == GLFW_MOUSE_BUTTON_LEFT) {
