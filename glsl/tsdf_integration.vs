@@ -17,11 +17,17 @@ uniform float limit;
 uniform uint num_kinects;
 uniform uvec3 res_tsdf;
 
+#include </bricks.glsl>
+
 void main() {
+  vec3 position = in_Position;
+  // uint id = bricks_occupied[gl_InstanceID];
+  // position = to_world(in_Position, index_3d(id));
+
   float weighted_tsd = limit;
   float total_weight = 0;
   for (uint i = 0u; i < num_kinects; ++i) {
-    vec3 pos_calib = texture(cv_xyz_inv[i], in_Position).xyz;
+    vec3 pos_calib = texture(cv_xyz_inv[i], position).xyz;
     float silhouette = texture(kinect_silhouettes, vec3(pos_calib.xy, float(i))).r;
     if (silhouette < 1.0f) {
       // no write yet -> voxel outside of surface
@@ -47,6 +53,6 @@ void main() {
     }
   }
   // coordinates must be even pixels
-  ivec3 ipos_vol = ivec3(in_Position * res_tsdf);
+  ivec3 ipos_vol = ivec3(position * res_tsdf);
   imageStore(volume_tsdf, ipos_vol, vec4(weighted_tsd, 0.0f, 0.0f, 0.0f));
 }

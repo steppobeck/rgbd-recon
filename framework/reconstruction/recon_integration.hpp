@@ -21,11 +21,13 @@ namespace kinect{
      :pos{p}
      ,size{s}
      ,indices{}
+     ,baseVoxel{0}
     {}
 
     glm::fvec3 pos;
     glm::fvec3 size;
     std::vector<unsigned> indices;
+    unsigned baseVoxel;
   };
 
   class ViewLod;
@@ -48,7 +50,8 @@ namespace kinect{
 
     unsigned numBricks() const;
     float occupiedRatio() const;
-    
+    float getBrickSize() const;
+
     void resize(std::size_t width, std::size_t height) override;
 
     std::unique_ptr<ViewLod>               m_view_inpaint;
@@ -75,6 +78,7 @@ namespace kinect{
     glm::uvec3          m_res_volume;
     glm::uvec3          m_res_bricks;
     VolumeSampler       m_sampler;
+    VolumeSampler       m_sampler_brick;
     globjects::ref_ptr<globjects::Texture> m_volume_tsdf;
     globjects::ref_ptr<globjects::Texture> m_tex_num_samples;
 

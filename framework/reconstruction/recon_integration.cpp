@@ -44,6 +44,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
  ,m_res_volume{0}
  ,m_res_bricks{0}
  ,m_sampler{glm::uvec3{0}}
+ ,m_sampler_brick{glm::uvec3{0}}
  ,m_volume_tsdf{globjects::Texture::createDefault(GL_TEXTURE_3D)}
  ,m_tex_num_samples{globjects::Texture::createDefault(GL_TEXTURE_2D)}
  ,m_mat_vol_to_world{1.0f}
@@ -134,6 +135,8 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
   );
 
   setVoxelSize(m_voxel_size);
+  // setBrickSize(m_brick_size);
+
   // initialize with 1 to get minimal depth
   m_view_depth->setClearColor(glm::fvec4{1.0f, 0.0f, 1.0f, 0.0f});
 
@@ -218,7 +221,7 @@ void ReconIntegration::integrate() {
   glEnable(GL_RASTERIZER_DISCARD);
   m_program_integration->use();
 
-  // clearing costs 0,4 ms on titan
+  // clearing costs 0,4 ms on titan, filling from pbo 9
   float negative = -m_limit;
   m_volume_tsdf->clearImage(0, GL_RED, GL_FLOAT, &negative);
 
@@ -228,8 +231,10 @@ void ReconIntegration::integrate() {
     updateOccupiedBricks();
 
     for(auto const& index : m_bricks_occupied) {
+      // m_sampler.sampleBase(m_bricks[0].indices, m_bricks[index].baseVoxel);
       m_sampler.sample(m_bricks[index].indices);
     }
+    // m_sampler_brick.sampleInstanced(m_bricks_occupied.size());
   }
   else {
     m_sampler.sample();
@@ -303,7 +308,8 @@ void ReconIntegration::setVoxelSize(float size) {
   m_volume_tsdf->bindActive(GL_TEXTURE0 + 29);
   std::cout << "resolution " << m_res_volume.x << ", " << m_res_volume.y << ", " << m_res_volume.z
     << " - " << (m_res_volume.x * m_res_volume.y * m_res_volume.z) / 1000 << "k voxels" << std::endl;
-
+  // update brick size to match
+  // setBrickSize(m_brick_size);
   divideBox();
 }
 
@@ -323,6 +329,7 @@ void ReconIntegration::divideBox() {
         m_bricks.emplace_back(start, glm::min(glm::fvec3{m_brick_size}, size - start + min));
         auto& curr_brick = m_bricks.back();
         curr_brick.indices = m_sampler.containedVoxels((curr_brick.pos - min) / size, curr_brick.size / size);
+        curr_brick.baseVoxel = m_sampler.baseVoxel((curr_brick.pos - min) / size, curr_brick.size / size);
         start.x += m_brick_size;
       }
       start.x = min.x;
@@ -336,8 +343,12 @@ void ReconIntegration::divideBox() {
   std::memcpy(&bricks[0], &m_brick_size, sizeof(float));
   std::memcpy(&bricks[4], &m_res_bricks, sizeof(unsigned) * 3);
   // bricks[1] = m_brick_size;
-  // for(unsigned i = 5; i < bricks.size(); ++i) {
-  //   bricks[i] = i;
+  // for(unsigned j = 0; j < m_bricks.size() && j < 2; ++j) {
+  //   std::cout << "original" << std::endl;
+  //   for(auto const& i : m_bricks[j].indices) {
+  //     std::cout << (m_sampler.voxelPositions()[i] - m_bricks[j].pos) / m_brick_size << ", ";
+  //   }
+  //   std::cout << std::endl;
   // }
   m_buffer_bricks->setData(sizeof(unsigned) * bricks.size(), bricks.data(), GL_DYNAMIC_COPY);
   m_buffer_bricks->bindRange(GL_SHADER_STORAGE_BUFFER, 3, 0, sizeof(unsigned) * bricks.size());
@@ -407,8 +418,20 @@ void ReconIntegration::setTsdfLimit(float limit) {
 }
 
 void ReconIntegration::setBrickSize(float size) {
-  m_brick_size = size;
+  // m_brick_size = size;
+  m_brick_size = m_voxel_size * glm::round(size / m_voxel_size);
+  m_sampler_brick.resize(glm::uvec3{m_brick_size / m_voxel_size});
+  std::cout << "rounded bricksize from " << size << " to " << m_brick_size << std::endl;;
+  // std::cout << "brick" << std::endl;
+  // for(auto const& i : m_sampler_brick.voxelPositions()) {
+  //   std::cout << i << ", ";
+  // }
+  // std::cout << std::endl;
   divideBox();
+}
+
+float ReconIntegration::getBrickSize() const {
+  return m_brick_size;
 }
 
 float ReconIntegration::occupiedRatio() const {
@@ -441,6 +464,7 @@ void ReconIntegration::setColorFilling(bool active) {
 
 void ReconIntegration::setUseBricks(bool active) {
   m_use_bricks = active;
+  m_program->setUniform("skipSpace", m_skip_space && m_use_bricks);
 }
 
 void ReconIntegration::setDrawBricks(bool active) {

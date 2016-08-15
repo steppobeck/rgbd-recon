@@ -15,5 +15,5 @@ out vec3 geo_Position;
 void main() {
   geo_Position = in_Position;
   uint id = bricks_occupied[gl_InstanceID];
-  gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * vec4(to_world(geo_Position, index_3d(id)), 1.0);
+  gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * vec4(to_world(in_Position, index_3d(id)), 1.0);
 }

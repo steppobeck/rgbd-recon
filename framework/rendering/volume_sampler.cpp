@@ -60,12 +60,26 @@ std::vector<unsigned> VolumeSampler::containedVoxels(glm::fvec3 const& pos, glm:
   }
   return indices;
 }
+unsigned VolumeSampler::baseVoxel(glm::fvec3 const& pos, glm::fvec3 const& size) const {
+  glm::fvec3 step{1.0f / glm::fvec3{m_dimensions}};
+  unsigned y = pos.y / step.y;
+  unsigned x = pos.x / step.x;
+  unsigned z = pos.z / step.z;
+  return z * m_dimensions.x * m_dimensions.y + y * m_dimensions.x + x;
+}
 
 void VolumeSampler::sample() const {
   m_va_samples->drawArrays(GL_POINTS, 0, m_dimensions.x * m_dimensions.y * m_dimensions.z);
 }
 void VolumeSampler::sample(std::vector<unsigned> const& indices) const {
   m_va_samples->drawElements(GL_POINTS, indices.size(), GL_UNSIGNED_INT, indices.data());
+}
+void VolumeSampler::sampleBase(std::vector<unsigned> const& indices, unsigned base) const {
+  m_va_samples->drawElementsBaseVertex(GL_POINTS, indices.size(), GL_UNSIGNED_INT, indices.data(), base);
+}
+
+void VolumeSampler::sampleInstanced(unsigned count) const {
+  m_va_samples->drawArraysInstanced(GL_POINTS, 0, m_dimensions.x * m_dimensions.y * m_dimensions.z, count);
 }
 
 std::vector<glm::fvec3> const& VolumeSampler::voxelPositions() const {
