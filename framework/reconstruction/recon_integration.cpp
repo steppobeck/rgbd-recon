@@ -142,12 +142,12 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
   m_view_depth->setClearColor(glm::fvec4{1.0f, 0.0f, 1.0f, 0.0f});
 
   TimerDatabase::instance().addTimer("holefill");
-  TimerDatabase::instance().addTimer("integrate");
+  TimerDatabase::instance().addTimer("2integrate");
   TimerDatabase::instance().addTimer("brickdraw");
 }
 
 void ReconIntegration::drawF() {
-  TimerDatabase::instance().begin("recon");
+  TimerDatabase::instance().begin("3recon");
   // draw depth limits for space skipping
   if (m_skip_space && m_use_bricks) {
     drawDepthLimits();
@@ -168,7 +168,7 @@ void ReconIntegration::drawF() {
   m_tex_num_samples->bindActive(17);
   m_view_depth->bindToTextureUnits(16);
 
-  TimerDatabase::instance().end("recon");
+  TimerDatabase::instance().end("3recon");
 }
 
 void ReconIntegration::draw(){
@@ -217,7 +217,7 @@ void ReconIntegration::draw(){
 }
 
 void ReconIntegration::integrate() {
-  TimerDatabase::instance().begin("integrate");
+  TimerDatabase::instance().begin("2integrate");
 
   glEnable(GL_RASTERIZER_DISCARD);
   m_program_integration->use();
@@ -242,7 +242,7 @@ void ReconIntegration::integrate() {
   m_program_integration->release();
   glDisable(GL_RASTERIZER_DISCARD);
 
-  TimerDatabase::instance().end("integrate");
+  TimerDatabase::instance().end("2integrate");
 }
 
 void ReconIntegration::clearOccupiedBricks() const {

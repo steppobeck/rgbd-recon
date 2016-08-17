@@ -21,7 +21,7 @@ Reconstruction::Reconstruction(CalibrationFiles const& cfs, CalibVolumes const* 
  ,m_bbox{bbox}
 {
    globjects::NamedString::create("/shading.glsl", new globjects::File("glsl/shading.glsl"));
-   TimerDatabase::instance().addTimer("recon");
+   TimerDatabase::instance().addTimer("3recon");
    TimerDatabase::instance().addTimer("draw");
 }
 

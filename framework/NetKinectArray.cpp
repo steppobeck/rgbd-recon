@@ -211,6 +211,7 @@ namespace kinect{
     TimerDatabase::instance().addTimer("boundary");
     TimerDatabase::instance().addTimer("normal");
     TimerDatabase::instance().addTimer("quality");
+    TimerDatabase::instance().addTimer("1preprocess");
 
     return true;
   }
@@ -306,6 +307,7 @@ void NetKinectArray::processBackground() {
 }
 
 void NetKinectArray::processTextures(){  
+  TimerDatabase::instance().begin("1preprocess");
   GLint current_fbo;
   glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &current_fbo);
   GLsizei old_vp_params[4];
@@ -420,6 +422,7 @@ void NetKinectArray::processTextures(){
               (GLsizei)old_vp_params[2],
               (GLsizei)old_vp_params[3]);
 
+  TimerDatabase::instance().end("1preprocess");
 }
 
 void NetKinectArray::setStartTextureUnit(unsigned start_texture_unit) {

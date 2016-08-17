@@ -324,16 +324,10 @@ void update_gui() {
       }
     }
     if (ImGui::CollapsingHeader("Processing Performance")) {
-      std::uint64_t total = 
-      TimerDatabase::instance().duration("morph")
-      + TimerDatabase::instance().duration("bilateral")
-      + TimerDatabase::instance().duration("boundary")
-      + TimerDatabase::instance().duration("normal")
-      + TimerDatabase::instance().duration("quality");
 
       if (ImGui::TreeNode("Texture Processing")) {
         ImGui::SameLine();
-        ImGui::Text("   %.3f ms", total / 1000000.0f);
+        ImGui::Text("   %.3f ms", TimerDatabase::instance().duration("1preprocess") / 1000000.0f);
         ImGui::Columns(2, NULL, false);
         ImGui::Text("Morphological Filtering");
         ImGui::Text("Bilateral Filtering");
@@ -351,10 +345,10 @@ void update_gui() {
       }
       else {
         ImGui::SameLine();
-        ImGui::Text("   %.3f ms", total / 1000000.0f);
+        ImGui::Text("   %.3f ms", TimerDatabase::instance().duration("1preprocess") / 1000000.0f);
       }
       if(g_recons[g_recon_mode].get() == g_recon_integration.get()) {
-        std::uint64_t full = TimerDatabase::instance().duration("recon") + TimerDatabase::instance().duration("integrate");
+        std::uint64_t full = TimerDatabase::instance().duration("3recon") + TimerDatabase::instance().duration("2integrate");
         if (ImGui::TreeNode("Reconstruction")) {
           ImGui::SameLine();
           ImGui::Text("   %.3f ms", full / 1000000.0f);
@@ -367,7 +361,7 @@ void update_gui() {
           }
           ImGui::NextColumn();
           ImGui::Text("%.3f ms", TimerDatabase::instance().duration("draw") / 1000000.0f);
-          ImGui::Text("%.3f ms", TimerDatabase::instance().duration("integrate") / 1000000.0f);
+          ImGui::Text("%.3f ms", TimerDatabase::instance().duration("2integrate") / 1000000.0f);
           ImGui::Text("%.3f ms", TimerDatabase::instance().duration("holefill") / 1000000.0f);
           if(g_skip_space) {
             ImGui::Text("%.3f ms", TimerDatabase::instance().duration("brickdraw") / 1000000.0f);
