@@ -166,6 +166,7 @@ void ReconIntegration::drawF() {
   // bind to units for displaying in gui
   m_tex_num_samples->bindActive(17);
   m_view_depth->bindToTextureUnits(16);
+
   TimerDatabase::instance().end("recon");
 }
 
@@ -228,7 +229,6 @@ void ReconIntegration::integrate() {
   m_volume_tsdf->bindImageTexture(start_image_unit, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_R32F);
   
   if (m_use_bricks) {
-    updateOccupiedBricks();
 
     for(auto const& index : m_bricks_occupied) {
       // m_sampler.sampleBase(m_bricks[0].indices, m_bricks[index].baseVoxel);
@@ -242,14 +242,16 @@ void ReconIntegration::integrate() {
 
   m_program_integration->release();
   glDisable(GL_RASTERIZER_DISCARD);
-  
 
-  if(!m_skip_space && m_use_bricks) {
-    // clear active bricks
-    static unsigned zero = 0;
-    m_buffer_bricks->clearSubData(GL_R32UI, sizeof(unsigned) * 8, m_bricks.size() * sizeof(unsigned), GL_RED_INTEGER, GL_UNSIGNED_INT, &zero);
-  }
   TimerDatabase::instance().end("integrate");
+}
+
+void ReconIntegration::clearOccupiedBricks() const {
+  glMemoryBarrier(GL_ALL_BARRIER_BITS);
+  // clear active bricks
+  static unsigned zerou = 0;
+  m_buffer_bricks->clearSubData(GL_R32UI, sizeof(unsigned) * 8, m_bricks.size() * sizeof(unsigned), GL_RED_INTEGER, GL_UNSIGNED_INT, &zerou);
+  glMemoryBarrier(GL_ALL_BARRIER_BITS);
 }
 
 void ReconIntegration::fillColors() {
@@ -379,12 +381,6 @@ void ReconIntegration::drawDepthLimits() {
   glEnable(GL_CULL_FACE);
   
   TimerDatabase::instance().end("brickdraw");
-
-  glMemoryBarrier(GL_ALL_BARRIER_BITS);
-  // clear active bricks
-  static unsigned zerou = 0;
-  m_buffer_bricks->clearSubData(GL_R32UI, sizeof(unsigned) * 8, m_bricks.size() * sizeof(unsigned), GL_RED_INTEGER, GL_UNSIGNED_INT, &zerou);
-  glMemoryBarrier(GL_ALL_BARRIER_BITS);
 }
 
 void ReconIntegration::updateOccupiedBricks() {

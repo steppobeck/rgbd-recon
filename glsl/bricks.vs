@@ -9,11 +9,12 @@ uniform mat4 gl_ModelViewMatrix;
 uniform mat4 gl_ProjectionMatrix;
 
 out vec3 geo_Position;
+out uint geo_Id;
 
 #include </bricks.glsl>
 
 void main() {
   geo_Position = in_Position;
-  uint id = bricks_occupied[gl_InstanceID];
-  gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * vec4(to_world(in_Position, index_3d(id)), 1.0);
+  geo_Id = bricks_occupied[gl_InstanceID];
+  gl_Position = gl_ProjectionMatrix * gl_ModelViewMatrix * vec4(to_world(in_Position, index_3d(geo_Id)), 1.0);
 }

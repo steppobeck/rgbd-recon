@@ -230,7 +230,7 @@ namespace kinect{
     m_colorArray->fillLayersFromPBO(m_pbo_colors.get()->id());
     m_depthArray_raw->fillLayersFromPBO(m_pbo_depths.get()->id());
 
-    processTextures();
+    // processTextures();
     return true;
   }
 

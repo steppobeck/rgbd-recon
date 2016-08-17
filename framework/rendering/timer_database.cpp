@@ -1,5 +1,6 @@
 #include "timer_database.hpp"
 #include <limits>
+#include <iostream>
 #include <fstream>
 
 TimerDatabase::TimerDatabase()
@@ -55,14 +56,66 @@ double TimerDatabase::mean(std::string const& name) const {
   return m_means.at(name);
 }
 
-void TimerDatabase::write(std::string const& file_name) const {
-  std::ofstream file{file_name};
-  std::string line;
-  file << "timer,mean,min,max" << std::endl;
-  auto iter_mean{m_means.begin()};
+void TimerDatabase::writeMean(std::string const& file_name) const {
+  std::size_t pos = file_name.find_last_of('/');
+  std::string filename{file_name.substr(pos + 1)};
+  std::size_t pos2 = filename.find_first_of(',');
+  std::string name{filename.substr(0, pos2)};
+  // std::string ext{filename.substr(pos2 + 1)};
+  std::string path{file_name.substr(0, pos + 1)};
+  std::cout << "path " << path << ", file " << filename << ", name " << name << std::endl;
+
+  std::ofstream file{path + "mean_" + filename};
+
+  file << "timer";
   for(auto const& pair : m_means) {
-    file << "\"" << pair.first << "\"" << "," << pair.second / 1000000.0f << ",";
-    auto const& extremum = m_extrema.at(pair.first);
-    file << extremum.first / 1000000.0f << "," << extremum.second / 1000000.0f << std::endl;
+    file << ",\"" << pair.first << "\"";
   }
+  file << std::endl << name;
+  for(auto const& pair : m_means) {
+    file << "," << pair.second / 1000000.0f;
+  }
+  file << std::endl;
+}
+void TimerDatabase::writeMin(std::string const& file_name) const {
+  std::size_t pos = file_name.find_last_of('/');
+  std::string filename{file_name.substr(pos + 1)};
+  std::size_t pos2 = filename.find_first_of(',');
+  std::string name{filename.substr(0, pos2)};
+  // std::string ext{filename.substr(pos2 + 1)};
+  std::string path{file_name.substr(0, pos + 1)};
+  std::cout << "path " << path << ", file " << filename << ", name " << name << std::endl;
+
+  std::ofstream file{path + "min_" + filename};
+
+  file << "timer";
+  for(auto const& pair : m_extrema) {
+    file << ",\"" << pair.first << "\"";
+  }
+  file << std::endl << name;
+  for(auto const& pair : m_extrema) {
+    file << "," << pair.second.first / 1000000.0f;
+  }
+  file << std::endl;
+}
+void TimerDatabase::writeMax(std::string const& file_name) const {
+  std::size_t pos = file_name.find_last_of('/');
+  std::string filename{file_name.substr(pos + 1)};
+  std::size_t pos2 = filename.find_first_of(',');
+  std::string name{filename.substr(0, pos2)};
+  // std::string ext{filename.substr(pos2 + 1)};
+  std::string path{file_name.substr(0, pos + 1)};
+  std::cout << "path " << path << ", file " << filename << ", name " << name << std::endl;
+
+  std::ofstream file{path + "max_" + filename};
+
+  file << "timer";
+  for(auto const& pair : m_extrema) {
+    file << ",\"" << pair.first << "\"";
+  }
+  file << std::endl << name;
+  for(auto const& pair : m_extrema) {
+    file << "," << pair.second.second / 1000000.0f;
+  }
+  file << std::endl;
 }

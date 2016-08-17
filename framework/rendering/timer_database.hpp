@@ -17,7 +17,9 @@ class TimerDatabase {
 
   double duration(std::string const&) const;
   double mean(std::string const&) const;
-  void write(std::string const& file_name) const;
+  void writeMean(std::string const& file_name) const;
+  void writeMin(std::string const& file_name) const;
+  void writeMax(std::string const& file_name) const;
  private:
   // prevent construction by user
   TimerDatabase();

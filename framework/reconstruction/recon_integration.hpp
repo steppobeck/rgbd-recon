@@ -52,11 +52,13 @@ namespace kinect{
     float occupiedRatio() const;
     float getBrickSize() const;
 
+    void clearOccupiedBricks() const;
+    void updateOccupiedBricks();
+    
     void resize(std::size_t width, std::size_t height) override;
 
     std::unique_ptr<ViewLod>               m_view_inpaint;
   private:
-    void updateOccupiedBricks();
     void drawOccupiedBricks() const;
     void drawDepthLimits();
     void divideBox();

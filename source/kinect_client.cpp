@@ -477,6 +477,15 @@ void draw3d(void)
   bool updated_textures = false;
   if (g_play) {
     updated_textures = g_nka->update();
+    if(updated_textures) {
+      if(g_recon_integration.get() == g_recons.at(g_recon_mode).get()) {
+        g_recon_integration->clearOccupiedBricks();
+      }      
+      g_nka->processTextures();
+      if(g_recon_integration.get() == g_recons.at(g_recon_mode).get()) {
+        g_recon_integration->updateOccupiedBricks();
+      }      
+    }
   }
   // draw active reconstruction
   if(g_recon_integration.get() == g_recons.at(g_recon_mode).get()) {
@@ -646,8 +655,11 @@ void quit(int status) {
      << (now->tm_mon + 1) << '-'
      <<  now->tm_mday << ','
      <<  now->tm_hour << '-'
-     <<  now->tm_min;
-    TimerDatabase::instance().write(file_name.str());
+     <<  now->tm_min
+     << ".csv";
+    TimerDatabase::instance().writeMean(file_name.str());
+    TimerDatabase::instance().writeMin(file_name.str());
+    TimerDatabase::instance().writeMax(file_name.str());
   }
 
   //free globjects 
