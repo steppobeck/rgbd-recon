@@ -74,6 +74,7 @@ float    g_brick_size   = 0.1f;
 float    g_tsdf_limit   = 0.01f;
 float    g_zoom         = 0.5f;
 double   g_time_prev    = 0.0f;
+int g_min_voxels   = 10;
 
 bool     g_loaded_conf  = false;
 unsigned g_time_limit   = 1;
@@ -286,6 +287,11 @@ void update_gui() {
         g_recon_integration->setBrickSize(g_brick_size);
         g_brick_size = g_recon_integration->getBrickSize();
       }
+      if (ImGui::DragInt("Min Brick Voxels", &g_min_voxels, 1, 0, 500, "%.0f")) {
+        g_recon_integration->setMinVoxelsPerBrick(g_min_voxels);
+        g_recon_integration->updateOccupiedBricks();
+        g_recon_integration->integrate();
+      }
       if (ImGui::Checkbox("Color hole filling", &g_colorfill)) {
         g_recon_integration->setColorFilling(g_colorfill);
       }
@@ -310,6 +316,7 @@ void update_gui() {
       else {
         if (ImGui::Checkbox("Volume Bricking", &g_bricking)) {
           g_recon_integration->setUseBricks(g_bricking);
+          g_recon_integration->integrate();
         }
       }
       if (ImGui::Checkbox("Draw TSDF", &g_draw_calibvis)) {

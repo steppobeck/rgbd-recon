@@ -54,7 +54,7 @@ namespace kinect{
 
     void clearOccupiedBricks() const;
     void updateOccupiedBricks();
-    
+    void setMinVoxelsPerBrick(unsigned i);
     void resize(std::size_t width, std::size_t height) override;
 
     std::unique_ptr<ViewLod>               m_view_inpaint;
@@ -96,6 +96,7 @@ namespace kinect{
     bool m_skip_space;
     bool m_draw_bricks;
     float m_ratio_occupied;
+    unsigned m_min_voxels_per_brick;
   };
 }
 

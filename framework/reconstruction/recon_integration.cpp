@@ -56,6 +56,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
  ,m_skip_space{true}
  ,m_draw_bricks{false}
  ,m_ratio_occupied{0.0f}
+ ,m_min_voxels_per_brick{10}
 {
   m_program->attach(
     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/tsdf_raymarch.vs"),
@@ -218,7 +219,6 @@ void ReconIntegration::draw(){
 void ReconIntegration::integrate() {
   TimerDatabase::instance().begin("integrate");
 
-
   glEnable(GL_RASTERIZER_DISCARD);
   m_program_integration->use();
 
@@ -229,7 +229,6 @@ void ReconIntegration::integrate() {
   m_volume_tsdf->bindImageTexture(start_image_unit, 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_R32F);
   
   if (m_use_bricks) {
-
     for(auto const& index : m_bricks_occupied) {
       // m_sampler.sampleBase(m_bricks[0].indices, m_bricks[index].baseVoxel);
       m_sampler.sample(m_bricks[index].indices);
@@ -389,13 +388,15 @@ void ReconIntegration::updateOccupiedBricks() {
   m_bricks_occupied.clear();  
 
   for(unsigned i = 0; i < m_active_bricks.size(); ++i) {
-    if(m_active_bricks[i] > 0) {
+    if(m_active_bricks[i] >= m_min_voxels_per_brick) {
       m_bricks_occupied.emplace_back(i);
     }
   }
   m_ratio_occupied = float(m_bricks_occupied.size()) / float(m_active_bricks.size());
   m_buffer_occupied->setSubData(0, sizeof(unsigned) * m_bricks_occupied.size(), m_bricks_occupied.data());
-  m_buffer_occupied->bindRange(GL_SHADER_STORAGE_BUFFER, 4, 0, sizeof(unsigned) * m_bricks_occupied.size());
+  if(m_bricks_occupied.size() > 0) {
+    m_buffer_occupied->bindRange(GL_SHADER_STORAGE_BUFFER, 4, 0, sizeof(unsigned) * m_bricks_occupied.size());
+  }
 }
 
 void ReconIntegration::drawOccupiedBricks() const {
@@ -452,6 +453,10 @@ void ReconIntegration::resize(std::size_t width, std::size_t height) {
   m_program_colorfill->setUniform("resolution_inv", 1.0f / glm::fvec2{m_view_inpaint->resolution_full()});
   m_program_inpaint->setUniform("resolution_inv", 1.0f / glm::fvec2{m_view_inpaint->resolution_full()});
   m_program_transfer->setUniform("resolution_tex", m_view_inpaint->resolution_full());
+}
+
+void ReconIntegration::setMinVoxelsPerBrick(unsigned num) {
+  m_min_voxels_per_brick = num;
 }
 
 void ReconIntegration::setColorFilling(bool active) {

@@ -36,11 +36,13 @@ uvec3 index_3d(uint brick_id) {
 void mark_brick(in vec3 pos) {
   pos -= bbox_min;
   uvec3 index = uvec3(floor(pos / brick_size));
-  bricks[get_id(index)] = 1u;
+  // bricks[get_id(index)] = 1u;
+  // costs 0.01-2 ms more
+  atomicAdd(bricks[get_id(index)], 1u);
 }
 
 bool brick_occupied(uint index) {
-  return bricks[index] > 0u;
+  return bricks[index] > 10u;
 }
 
 vec3 to_world(vec3 position, uvec3 index) {
