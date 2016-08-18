@@ -136,7 +136,6 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
   );
 
   setVoxelSize(m_voxel_size);
-  // setBrickSize(m_brick_size);
 
   // initialize with 1 to get minimal depth
   m_view_depth->setClearColor(glm::fvec4{1.0f, 0.0f, 1.0f, 0.0f});
@@ -310,8 +309,7 @@ void ReconIntegration::setVoxelSize(float size) {
   std::cout << "resolution " << m_res_volume.x << ", " << m_res_volume.y << ", " << m_res_volume.z
     << " - " << (m_res_volume.x * m_res_volume.y * m_res_volume.z) / 1000 << "k voxels" << std::endl;
   // update brick size to match
-  // setBrickSize(m_brick_size);
-  divideBox();
+  setBrickSize(m_brick_size);
 }
 
 bool point_in_brick(glm::fvec3 const& point, glm::fvec3 const& pos_n, glm::fvec3 const& size_n) {
@@ -324,6 +322,7 @@ void ReconIntegration::divideBox() {
   glm::fvec3 min{m_bbox.getPMin()};
   glm::fvec3 size{glm::fvec3{m_bbox.getPMax()} - min}; 
   glm::fvec3 start{min};
+  m_res_bricks = glm::uvec3{0};
   while(size.z - start.z  + min.z > 0.0f) {
     while(size.y - start.y  + min.y > 0.0f) {
       while(size.x - start.x  + min.x > 0.0f) {
@@ -332,14 +331,20 @@ void ReconIntegration::divideBox() {
         curr_brick.indices = m_sampler.containedVoxels((curr_brick.pos - min) / size, curr_brick.size / size);
         curr_brick.baseVoxel = m_sampler.baseVoxel((curr_brick.pos - min) / size, curr_brick.size / size);
         start.x += m_brick_size;
+        if(m_res_bricks.z == 0 && m_res_bricks.y == 0) {
+          ++m_res_bricks.x;
+        }
       }
       start.x = min.x;
       start.y += m_brick_size;
+      if(m_res_bricks.z == 0) {
+        ++m_res_bricks.y;
+      }
     }
     start.y = min.y;
     start.z += m_brick_size;
+    ++m_res_bricks.z;
   }
-  m_res_bricks = glm::uvec3{glm::ceil(size / m_brick_size)};
   std::vector<unsigned> bricks(m_bricks.size() + 8, 0);
   std::memcpy(&bricks[0], &m_brick_size, sizeof(float));
   std::memcpy(&bricks[4], &m_res_bricks, sizeof(unsigned) * 3);
@@ -415,10 +420,9 @@ void ReconIntegration::setTsdfLimit(float limit) {
 }
 
 void ReconIntegration::setBrickSize(float size) {
-  // m_brick_size = size;
   m_brick_size = m_voxel_size * glm::round(size / m_voxel_size);
   m_sampler_brick.resize(glm::uvec3{m_brick_size / m_voxel_size});
-  std::cout << "rounded bricksize from " << size << " to " << m_brick_size << std::endl;;
+  std::cout << "adjusted bricksize from " << size << " to " << m_brick_size << std::endl;;
   // std::cout << "brick" << std::endl;
   // for(auto const& i : m_sampler_brick.voxelPositions()) {
   //   std::cout << i << ", ";
