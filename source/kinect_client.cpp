@@ -220,6 +220,17 @@ void load_config(std::string const& file_name) {
   g_time_limit   = configurator().getUint("time_limit");
   g_loaded_conf = true;
   g_conf_file = file_name;
+
+  g_nka->useProcessedDepths(g_processed);
+  g_nka->filterTextures(g_bilateral);
+  g_nka->refineBoundary(g_refine);
+  g_recon_integration->setTsdfLimit(g_tsdf_limit);
+  g_recon_integration->setVoxelSize(g_voxel_size);
+  g_recon_integration->setBrickSize(g_brick_size);
+  g_recon_integration->setColorFilling(g_colorfill);
+  g_recon_integration->setSpaceSkip(g_skip_space);
+  g_recon_integration->setDrawBricks(g_draw_bricks);
+  g_recon_integration->setUseBricks(g_bricking);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
