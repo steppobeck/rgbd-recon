@@ -51,7 +51,7 @@ bool in_bbox(vec2 texcoord, float depth) {
 
 const int kernel_size = 1; // in pixel
 const int kernel_end = kernel_size + 1;
-const float max_dist = 0.2f;
+const float max_dist = 0.2;
 float erode(const in vec3 coords, int kernel_size) {
   float depth = sample(coords);
   if (depth <= min_depth) {
@@ -72,24 +72,43 @@ float erode(const in vec3 coords, int kernel_size) {
 
 float dilate(const in vec3 coords, int kernel_size) {
   float depth = sample(coords);
-  float average_depth = 0.0f;
-  float num_samples = 0.0f;
+  if (is_valid(depth) && in_bbox(coords.xy, depth)) {
+    return depth;
+  }
+  float average_depth = 0.0;
   bool valid = false;
-  for(int y = -kernel_size; y < kernel_size + 1; ++y){
-    for(int x = -kernel_size; x < kernel_size + 1; ++x){
+  float num_samples = 0.0;
+  for(int y = -kernel_size; y < kernel_size + 1; ++y) {
+    for(int x = -kernel_size; x < kernel_size + 1; ++x) {
       vec3 coords_s = coords + vec3(vec2(x, y) * texSizeInv, 0.0f);
       float depth_s = sample(coords_s);
-      if (is_valid(depth_s) && distance(depth, depth_s) < max_dist && in_bbox(coords_s.xy, depth_s) ) {
+      if (is_valid(depth_s) && in_bbox(coords_s.xy, depth_s)) {
         valid = true;
         average_depth += depth_s;
         num_samples += 1.0f;
       }
     }
   }
+  if(!valid) return 0.0;
+  average_depth /= num_samples;
 
-  if(!valid) return 0.0f;
-  // if (in_bbox(coords.xy, depth)) return depth;
-  return average_depth / num_samples;
+  float new_depth = 0.0;
+  num_samples = 0.0;
+  valid = false;
+  for(int y = -kernel_size; y < kernel_size + 1; ++y) {
+    for(int x = -kernel_size; x < kernel_size + 1; ++x) {
+      vec3 coords_s = coords + vec3(vec2(x, y) * texSizeInv, 0.0f);
+      float depth_s = sample(coords_s);
+      if (is_valid(depth_s) && distance(average_depth, depth_s) < max_dist && in_bbox(coords_s.xy, depth_s)) {
+        valid = true;
+        new_depth += depth_s;
+        num_samples += 1.0f;
+      }
+    }
+  }
+
+  if(!valid) return 0.0;
+  return new_depth / num_samples;
 }
 // average depth with new value
 void main(void) {
