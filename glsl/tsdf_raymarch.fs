@@ -32,7 +32,7 @@ uniform mat4 img_to_eye_curr;
 layout(r32f) uniform image2D tex_num_samples;
 
 float sampleDistance = limit * 0.5f;
-const float IsoValue = 0.0f;
+const float IsoValue = 0.0;
 const int refinement_num = 4;
 
 out vec4 out_Color;
@@ -74,11 +74,11 @@ void main() {
   }
   else {
     // get ray beginning in volume cube
-    float t0, t1 = 0.0f;
+    float t0, t1 = 0.0;
     bool is_t0 = intersectBox(CameraPos, sampleStep, t0, t1);
     float t_near = (is_t0 ? t0 : t1);
     // if camera is within cube, start from camera, else move inside a little
-    t_near = (t_near < 0.0f ? 0.0f : t_near);
+    t_near = (t_near < 0.0 ? 0.0 : t_near);
     float t_far = (is_t0 ? t1 : t0);
 
     sample_pos = CameraPos + sampleStep * t_near;
@@ -116,14 +116,14 @@ void main() {
 void submitFragment(const in vec3 sample_pos) {
   float final_density = sample(sample_pos);
   #ifdef GRAD_NORMALS
-  vec3 view_normal = normalize((NormalMatrix * vec4(get_gradient(sample_pos), 0.0f)).xyz);
+  vec3 view_normal = normalize((NormalMatrix * vec4(get_gradient(sample_pos), 0.0)).xyz);
   #else
-  vec3 view_normal = normalize((NormalMatrix * vec4(blendNormals(sample_pos), 0.0f)).xyz);
+  vec3 view_normal = normalize((NormalMatrix * vec4(blendNormals(sample_pos), 0.0)).xyz);
   #endif
-  vec3 view_pos = (gl_ModelViewMatrix * vol_to_world * vec4(sample_pos, 1.0f)).xyz;
+  vec3 view_pos = (gl_ModelViewMatrix * vol_to_world * vec4(sample_pos, 1.0)).xyz;
 
   if (g_shade_mode == 3) {
-    out_Color = vec4(blendCameras(sample_pos), 1.0f);
+    out_Color = vec4(blendCameras(sample_pos), 1.0);
   }
   else {
     vec4 diffuseColor = blendColors(sample_pos);
@@ -149,11 +149,11 @@ vec3 get_gradient(const vec3 pos) {
 }
 
 float[5] getWeights(const in vec3 sample_pos) {
-  float weights[5] =float[5](0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+  float weights[5] =float[5](0.0, 0.0, 0.0, 0.0, 0.0);
   for (uint i = 0u; i < num_kinects; ++i) {
     vec3 pos_calib = texture(cv_xyz_inv[i], sample_pos).xyz;
     float depth = texture(kinect_depths, vec3(pos_calib.xy, float(i))).r;
-    float quality = 0.0f;
+    float quality = 0.0;
     // blend if in valid depth range
     float dist = abs(depth - pos_calib.z);
     if(dist < limit) {
@@ -165,7 +165,7 @@ float[5] getWeights(const in vec3 sample_pos) {
   return weights;
 }
 float[5] getDistances(const in vec3 sample_pos) {
-  float distances[5] =float[5](0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+  float distances[5] =float[5](0.0, 0.0, 0.0, 0.0, 0.0);
   for (uint i = 0u; i < num_kinects; ++i) {
     vec3 pos_calib = texture(cv_xyz_inv[i], sample_pos).xyz;
     float depth = texture(kinect_depths, vec3(pos_calib.xy, float(i))).r;
@@ -174,10 +174,10 @@ float[5] getDistances(const in vec3 sample_pos) {
   return distances;
 }
 float[5] getQualities(const in vec3 sample_pos) {
-  float qualities[5] =float[5](0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+  float qualities[5] =float[5](0.0, 0.0, 0.0, 0.0, 0.0);
   for (uint i = 0u; i < num_kinects; ++i) {
     vec3 pos_calib = texture(cv_xyz_inv[i], sample_pos).xyz;
-    float quality = 0.0f;
+    float quality = 0.0;
     quality = texture(kinect_qualities, vec3(pos_calib.xy, float(i))).r;
     qualities[i] = quality;
   }
@@ -187,7 +187,7 @@ float[5] getQualities(const in vec3 sample_pos) {
 float[5] getNormalDev(const in vec3 sample_pos) {
   vec3 normal = get_gradient(sample_pos);
   vec3[5] normals = getNormals(sample_pos);
-  float weights[5] =float[5](0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+  float weights[5] =float[5](0.0, 0.0, 0.0, 0.0, 0.0);
   for (uint i = 0u; i < num_kinects; ++i) {
     weights[i] = min(dot(-normal, normals[i]), 0.0);
   }
@@ -197,7 +197,7 @@ float[5] getNormalDev(const in vec3 sample_pos) {
 float[5] getNormalMax(const in vec3 sample_pos) {
   vec3 normal = get_gradient(sample_pos);
   vec3[5] normals = getNormals(sample_pos);
-  float weights[5] =float[5](0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+  float weights[5] =float[5](0.0, 0.0, 0.0, 0.0, 0.0);
   float min_dev = min(dot(-normal, normals[0]), 0.0);
   uint min_i = 0u;
   for (uint i = 1u; i < num_kinects; ++i) {
@@ -214,7 +214,7 @@ float[5] getNormalMax(const in vec3 sample_pos) {
 float[5] getNormalTwo(const in vec3 sample_pos) {
   vec3 normal = get_gradient(sample_pos);
   vec3[5] normals = getNormals(sample_pos);
-  float weights[5] =float[5](0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+  float weights[5] =float[5](0.0, 0.0, 0.0, 0.0, 0.0);
   float min_dev = min(dot(-normal, normals[0]), 0.0);
   uint min_i = 0u;
   float min_dev2 = min(dot(-normal, normals[1]), 0.0);
@@ -257,9 +257,9 @@ vec3[5] getNormals(const in vec3 sample_pos) {
 }
 
 vec4 blendColors2(const in vec3 sample_pos) {
-  vec3 total_color = vec3(0.0f);
+  vec3 total_color = vec3(0.0);
   vec3[5] colors = getColors(sample_pos);
-  float total_weight = 0.0f;
+  float total_weight = 0.0;
   float[5] weights = getWeights(sample_pos);
   for(uint i = 0u; i < num_kinects; ++i) {
     total_color += colors[i] * weights[i];
@@ -290,56 +290,45 @@ vec4 blendColors2(const in vec3 sample_pos) {
 }
 
 vec4 blendColors(const in vec3 sample_pos) {
-  vec3 total_color = vec3(0.0f);
+  vec3 total_color = vec3(0.0);
+  vec3 total_color2 = vec3(0.0);
+  float total_weight = 0.0;
+  float total_weight2 = 0.0;
   vec3 colors[5] =vec3[5](vec3(0.0), vec3(0.0), vec3(0.0), vec3(0.0), vec3(0.0));
-  float distances[5] =float[5](0.0f, 0.0f, 0.0f, 0.0f, 0.0f);
-  // vec3[5] colors = getColors(sample_pos);
-  float total_weight = 0.0f;
-  // float[5] weights = getWeights(sample_pos);
+  float distances[5] =float[5](0.0, 0.0, 0.0, 0.0, 0.0);
   for(uint i = 0u; i < num_kinects; ++i) {
     vec3 pos_calib = texture(cv_xyz_inv[i], sample_pos).xyz;
     vec2 pos_color = texture(cv_uv[i], pos_calib).xy;
     colors[i] = texture(kinect_colors, vec3(pos_color.xy, float(i))).rgb;
 
     float depth = texture(kinect_depths, vec3(pos_calib.xy, float(i))).r;
-    float quality = 0.0f;
-    // blend if in valid depth range
+    float quality = 0.0;
     distances[i] = abs(depth - pos_calib.z);
+    // blend if in valid depth range
     if(distances[i] < limit) {
       quality = texture(kinect_qualities, vec3(pos_calib.xy, float(i))).r;
     }
-
+    // quality plus inverse distance
     total_color += colors[i] * quality / (distances[i] + 0.01);
     total_weight += quality / (distances[i] + 0.01);
+    // fallback color blending
+    total_color2 += colors[i] / distances[i];
+    total_weight2 += 1.0 / distances[i];
   }
-  total_color /= total_weight;
-  if(total_weight > 0.0) 
+  if(total_weight > 0.0) {
+    total_color /= total_weight;
     return vec4(total_color, 1.0);
-  // else
-  //   return vec4(vec3(0.5), 1.0);
-  total_color = vec3(0.0);
-  // weights = getWeights_inv(sample_pos);
-  // float[5] distances = getDistances(sample_pos);
-  // float[5] qualities = getQualities(sample_pos);
-  // float[5] normalDev = getNormalDev(sample_pos);
-  // float[5] normalMax = getNormalMax(sample_pos);
-  // float[5] normalTwo = getNormalTwo(sample_pos);
-  for(uint i = 0u; i < num_kinects; ++i) {
-    // smooth
-    float weight = 1.0 / distances[i];
-    // sharper
-    // float weight = normalTwo[i] / distances[i];
-    total_color += colors[i] * weight;
-    total_weight += weight;
+  } 
+  else {
+    total_color2 /= total_weight2;
+    return vec4(total_color2, -1.0);
   }
-  total_color /= total_weight;
-  return vec4(total_color, -1.0);
 }
 
 vec3 blendNormals(const in vec3 sample_pos) {
-  vec3 total_normal = vec3(0.0f);
+  vec3 total_normal = vec3(0.0);
   vec3[5] normals = getNormals(sample_pos);
-  float total_weight = 0.0f;
+  float total_weight = 0.0;
   float[5] weights = getWeights(sample_pos);
   for(uint i = 0u; i < num_kinects; ++i) {
     total_normal += normals[i] * weights[i];
@@ -351,8 +340,8 @@ vec3 blendNormals(const in vec3 sample_pos) {
 }
 
 vec3 blendCameras(const in vec3 sample_pos) {
-  vec3 total_color = vec3(0.0f);
-  float total_weight = 0.0f;
+  vec3 total_color = vec3(0.0);
+  float total_weight = 0.0;
   float[5] weights = getWeights(sample_pos);
   for(uint i = 0u; i < num_kinects; ++i) {
     vec3 pos_calib = texture(cv_xyz_inv[i], sample_pos).xyz;
@@ -363,14 +352,14 @@ vec3 blendCameras(const in vec3 sample_pos) {
   }
 
   total_color /= total_weight;
-  if(total_weight <= 0.0f) total_color = vec3(1.0f);
+  if(total_weight <= 0.0) total_color = vec3(1.0);
   return total_color;
 }
 
 bool intersectBox(const vec3 origin, const vec3 dir, out float t0, out float t1) {
-  vec3 invR = 1.0f / dir;
-  vec3 tbot = invR * (vec3(0.0f) - origin);
-  vec3 ttop = invR * (vec3(1.0f) - origin);
+  vec3 invR = 1.0 / dir;
+  vec3 tbot = invR * (vec3(0.0) - origin);
+  vec3 ttop = invR * (vec3(1.0) - origin);
   vec3 tmin = min(ttop, tbot);
   vec3 tmax = max(ttop, tbot);
   vec2 t = max(tmin.xx, tmin.yz);
