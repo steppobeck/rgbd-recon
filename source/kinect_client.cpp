@@ -278,12 +278,18 @@ void update_gui() {
     if (ImGui::CollapsingHeader("Processing")) {
       if (ImGui::Checkbox("Morphological Filter", &g_processed)) {
         g_nka->useProcessedDepths(g_processed);
+        g_recon_integration->integrate();
+
       }
       if (ImGui::Checkbox("Bilateral Filter", &g_bilateral)) {
         g_nka->filterTextures(g_bilateral);
+        g_recon_integration->integrate();
+
       }
       if (ImGui::Checkbox("Boundary Refinement", &g_refine)) {
         g_nka->refineBoundary(g_refine);
+        g_recon_integration->integrate();
+
       }
     }
     if (ImGui::CollapsingHeader("Integration ")) {
@@ -294,7 +300,7 @@ void update_gui() {
         g_recon_integration->setVoxelSize(g_voxel_size);
         g_brick_size = g_recon_integration->getBrickSize();
       }
-      if (ImGui::DragFloat("Brick Size", &g_brick_size, 0.01f, 0.09f, 1.0f, "%.3f")) {
+      if (ImGui::DragFloat("Brick Size", &g_brick_size, 0.01f, 0.1f, 1.0f, "%.3f")) {
         g_recon_integration->setBrickSize(g_brick_size);
         g_brick_size = g_recon_integration->getBrickSize();
       }
@@ -608,6 +614,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
       }
       globjects::File::reloadAll();
       g_nka->processTextures(); 
+      g_recon_integration->integrate();
     break;
   case GLFW_KEY_P:
     g_play = !g_play;
