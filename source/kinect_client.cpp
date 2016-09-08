@@ -522,27 +522,27 @@ void draw3d(void)
   }
   // draw black grid on floor for fancy look
   if(g_draw_grid) {
-    glPushAttrib(GL_ALL_ATTRIB_BITS);
-    glColor3f(1.0,1.0,1.0);
-    glBegin(GL_LINES);
-    const float lsize = 10.0f;
-    const float gstep = 0.5f;
-    for(float s = -lsize; s <= lsize; s += gstep){
-      glVertex3f(s, 0.0, -lsize);
-      glVertex3f(s, 0.0,  lsize);
+    // glPushAttrib(GL_ALL_ATTRIB_BITS);
+    // glColor3f(1.0,1.0,1.0);
+    // glBegin(GL_LINES);
+    // const float lsize = 10.0f;
+    // const float gstep = 0.5f;
+    // for(float s = -lsize; s <= lsize; s += gstep){
+    //   glVertex3f(s, 0.0, -lsize);
+    //   glVertex3f(s, 0.0,  lsize);
 
-      glVertex3f(-lsize, 0.0, s);
-      glVertex3f( lsize, 0.0, s);
-    }
+    //   glVertex3f(-lsize, 0.0, s);
+    //   glVertex3f( lsize, 0.0, s);
+    // }
 
-    glEnd();
-    glPopAttrib();
+    // glEnd();
+    // glPopAttrib();
     g_bbox.draw();
   }
 
   if (g_draw_textures) {
     unsigned num = g_num_texture % 2;
-    TextureBlitter::blit(16 + num, glm::fvec2{g_recon_integration->m_view_inpaint->resolution(0)} / 2.0f);
+    TextureBlitter::blit(15 + num, glm::fvec2{g_recon_integration->m_view_inpaint->resolution_full()} / 2.0f);
   }
   glMemoryBarrier(GL_ALL_BARRIER_BITS);
 }

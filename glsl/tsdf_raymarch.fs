@@ -265,27 +265,30 @@ vec4 blendColors2(const in vec3 sample_pos) {
     total_color += colors[i] * weights[i];
     total_weight += weights[i];
   }
-  total_color /= total_weight;
-  if(total_weight > 0.0) 
-    return vec4(total_color, 1.0);
+  // total_color /= total_weight;
+  // if(total_weight > 0.0) 
+  //   return vec4(total_color, 1.0);
   // else
   //   return vec4(vec3(0.5), 1.0);
-  // total_color = vec3(0.0);
-  // // weights = getWeights_inv(sample_pos);
-  // float[5] distances = getDistances(sample_pos);
-  // // float[5] qualities = getQualities(sample_pos);
-  // // float[5] normalDev = getNormalDev(sample_pos);
-  // // float[5] normalMax = getNormalMax(sample_pos);
-  // // float[5] normalTwo = getNormalTwo(sample_pos);
-  // for(uint i = 0u; i < num_kinects; ++i) {
-  //   // smooth
-  //   float weight = 1.0 / distances[i];
-  //   // sharper
-  //   // float weight = normalTwo[i] / distances[i];
-  //   total_color += colors[i] * weight;
-  //   total_weight += weight;
-  // }
-  // total_color /= total_weight;
+  total_color = vec3(0.0);
+  // weights = getWeights_inv(sample_pos);
+  float[5] distances = getDistances(sample_pos);
+  float[5] qualities = getQualities(sample_pos);
+  float[5] normalDev = getNormalDev(sample_pos);
+  // float[5] normalMax = getNormalMax(sample_pos);
+  float[5] normalTwo = getNormalTwo(sample_pos);
+  for(uint i = 0u; i < num_kinects; ++i) {
+    // smooth
+    // float weight = qualities[i] * normalDev[i];
+    // float weight = weights[i];
+    // float weight = 1.0 / distances[i];
+    // sharper
+    // float weight = normalTwo[i] / distances[i];
+    float weight = normalDev[i] / distances[i];
+    total_color += colors[i] * weight;
+    total_weight += weight;
+  }
+  total_color /= total_weight;
   return vec4(total_color, -1.0);
 }
 
@@ -321,6 +324,7 @@ vec4 blendColors(const in vec3 sample_pos) {
   } 
   else {
     total_color2 /= total_weight2;
+    // return vec4(vec3(0.0), -1.0);
     return vec4(total_color2, -1.0);
   }
 }
@@ -389,6 +393,6 @@ vec4 getStartPos(ivec2 coords) {
 }
 
 void writeNumSamples(uint num_samples) {
-  float samples = float(num_samples) * 0.005; 
+  float samples = float(num_samples) * 0.0027; 
   imageStore(tex_num_samples, ivec2(gl_FragCoord.xy), vec4(samples, 0.0, 0.0, 0.0));
 }

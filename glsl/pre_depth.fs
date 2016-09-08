@@ -40,7 +40,7 @@ float computeGaussSpace(float dist_space){
   return 1.0 - gauss_coord;//texture2D(gauss,vec2(gauss_coord,0.5)).r;
 }
 
-float dist_range_max = 0.05; // in meter
+float dist_range_max = 0.5; // in meter
 float dist_range_max_inv = 1.0/dist_range_max;
 float computeGaussRange(float dist_range){
   float gauss_coord = min(dist_range, dist_range_max) * dist_range_max_inv;
@@ -61,7 +61,7 @@ float uncompress(float d_c){
 }
 
 float sample(vec2 coords) {
-  float depth = 0.0f;
+  float depth = 0.0;
   if(compress){
     depth = uncompress(texture(kinect_depths, vec3(coords, layer)).r);
   }
@@ -89,27 +89,27 @@ vec2 bilateral_filter(vec3 coords){
   const float max_depth = 4.5f; // Kinect V2
   float d_dmax = depth / max_depth;
   dist_range_max = 0.35f * d_dmax; // threshold around 
-  dist_range_max_inv = 1.0f / dist_range_max;
+  dist_range_max_inv = 1.0 / dist_range_max;
 
-  float depth_bf = 0.0f;
+  float depth_bf = 0.0;
 
-  float w = 0.0f;
-  float w_range = 0.0f;
-  float border_samples = 0.0f;
-  float num_samples = 0.0f;
-  float weight_samples = 0.0f;
-  float weight_border_samples = 0.0f;
+  float w = 0.0;
+  float w_range = 0.0;
+  float border_samples = 0.0;
+  float num_samples = 0.0;
+  float weight_samples = 0.0;
+  float weight_border_samples = 0.0;
   for(int y = -kernel_size; y < kernel_end; ++y){
     for(int x = -kernel_size; x < kernel_end; ++x){
-      num_samples += 1.0f;
-      weight_samples +=  1.0f - length(vec2(x,y)) / length(vec2(0,6));
+      num_samples += 1.0;
+      weight_samples +=  1.0 - length(vec2(x,y)) / length(vec2(0,6));
       vec2 coords_s = coords.xy + vec2(x, y) * texSizeInv;
       
       float depth_s = sample(coords_s);
       float depth_range = abs(depth_s - depth);
       if(is_outside(depth_s) || (depth_range > dist_range_max)){
-        border_samples += 1.0f;
-        weight_border_samples += 1.0f - length(vec2(x,y)) / length(vec2(0,6));
+        border_samples += 1.0;
+        weight_border_samples += 1.0 - length(vec2(x,y)) / length(vec2(0,6));
         continue;
       }
       float gauss_space = computeGaussSpace(length(vec2(x,y)));
@@ -133,14 +133,14 @@ void main(void) {
   vec3 pos_world = texture(cv_xyz[layer], vec3(pass_TexCoord, depth_norm)).xyz;
   bool is_in_box = in_bbox(pos_world);
   
-  out_Color = rgb_to_lab(get_color(vec3(pass_TexCoord, (depth_norm <= 0.0f || depth_norm >= 1.0) ? 1.0f : depth_norm)));
+  out_Color = rgb_to_lab(get_color(vec3(pass_TexCoord, (depth_norm <= 0.0 || depth_norm >= 1.0) ? 1.0 : depth_norm)));
   if (!is_in_box) {
-    out_Depth = vec2(0.0f);
+    out_Depth = vec2(0.0);
     return;
   }
 
   if(!filter_textures) {
-    out_Depth = vec2(depth_norm, 0.0f);
+    out_Depth = vec2(depth_norm, 1.0);
   }
   else {
     out_Depth = bilateral_filter(vec3(pass_TexCoord, depth));

@@ -16,7 +16,7 @@ uniform vec2 texSizeInv;
 layout(location = 0) out vec2 out_Depth;
 layout(location = 1) out float out_Silhouette;
 
-const float max_color_dist = 0.9f;
+const float max_color_dist = 0.5f;
 
 const int kernel_size = 2; // in pixel
 const int kernel_end = kernel_size + 1;
