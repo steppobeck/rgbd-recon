@@ -58,8 +58,8 @@ namespace kinect{
     void resize(std::size_t width, std::size_t height) override;
 
     std::unique_ptr<ViewLod>               m_view_inpaint;
-  private:
     void drawOccupiedBricks() const;
+  private:
     void drawDepthLimits();
     void divideBox();
     void fillColors();

@@ -74,6 +74,7 @@ float    g_brick_size   = 0.1f;
 float    g_tsdf_limit   = 0.01f;
 float    g_zoom         = 0.5f;
 double   g_time_prev    = 0.0f;
+bool     g_update_textures= false; 
 int g_min_voxels   = 10;
 
 bool     g_loaded_conf  = false;
@@ -370,7 +371,7 @@ void update_gui() {
           ImGui::SameLine();
           ImGui::Text("   %.3f ms", full / 1000000.0f);
           ImGui::Columns(2, NULL, false);
-          ImGui::Text("Drawing");
+          ImGui::Text("Raymarching");
           ImGui::Text("Integration");
           ImGui::Text("Colorfilling");
           if(g_skip_space) {
@@ -471,6 +472,15 @@ void update_view_matrix() {
   g_navi.resetOffsets();
 }
 
+void process_textures() {
+  if(g_recon_integration.get() == g_recons.at(g_recon_mode).get()) {
+    g_recon_integration->clearOccupiedBricks();
+  }      
+  g_nka->processTextures();
+  if(g_recon_integration.get() == g_recons.at(g_recon_mode).get()) {
+    g_recon_integration->updateOccupiedBricks();
+  }      
+}
 //////////////////////////////////////////////////////////////////////////////////////////
   /// main loop function, render with 3D setup
 void draw3d(void)
@@ -479,11 +489,13 @@ void draw3d(void)
   glViewport(0,0,g_screenWidth, g_screenHeight);
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+  static double curr_rot = 0.0;
+  const double TAU = 2.0 * 180.0;
   if(g_animate){
-    static unsigned g_framecounta = 0;
-    ++g_framecounta;
-    glRotatef(g_framecounta * 0.1, 0.0,1.0,0.0);
+    curr_rot += ImGui::GetIO().DeltaTime * 10.0;
+    if (curr_rot >= TAU) curr_rot = 0.0;
   }
+  glRotatef(curr_rot, 0.0,1.0,0.0);
 
   if(g_wire){
     glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
@@ -492,22 +504,17 @@ void draw3d(void)
     glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
   }
 
-  bool updated_textures = false;
   if (g_play) {
-    updated_textures = g_nka->update();
-    if(updated_textures) {
-      if(g_recon_integration.get() == g_recons.at(g_recon_mode).get()) {
-        g_recon_integration->clearOccupiedBricks();
-      }      
-      g_nka->processTextures();
-      if(g_recon_integration.get() == g_recons.at(g_recon_mode).get()) {
-        g_recon_integration->updateOccupiedBricks();
-      }      
-    }
+    g_update_textures = g_update_textures || g_nka->update();
   }
+  
+  if (g_update_textures) {
+    process_textures();
+  }
+
   // draw active reconstruction
   if(g_recon_integration.get() == g_recons.at(g_recon_mode).get()) {
-    if(updated_textures) {
+    if(g_update_textures) {
       g_recon_integration->integrate();
     }
   }
@@ -519,6 +526,10 @@ void draw3d(void)
 
   if(g_draw_frustums) {
     g_cv->drawFrustums();
+  }
+
+  if(g_draw_bricks && g_recon_integration.get() != g_recons.at(g_recon_mode).get()) {
+      g_recon_integration->drawOccupiedBricks();
   }
   // draw black grid on floor for fancy look
   if(g_draw_grid) {
@@ -545,6 +556,8 @@ void draw3d(void)
     TextureBlitter::blit(15 + num, glm::fvec2{g_recon_integration->m_view_inpaint->resolution_full()} / 2.0f);
   }
   glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+  g_update_textures = false;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -596,6 +609,10 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
   case GLFW_KEY_A:
     g_animate = !g_animate;
     break;
+  case GLFW_KEY_O:
+    g_draw_bricks = !g_draw_bricks;
+    g_recon_integration->setDrawBricks(g_draw_bricks);
+    break;
   case GLFW_KEY_W:
     g_wire = !g_wire;
     break;
@@ -613,7 +630,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         recon->reload();
       }
       globjects::File::reloadAll();
-      g_nka->processTextures(); 
+      process_textures();
       g_recon_integration->integrate();
     break;
   case GLFW_KEY_P:
