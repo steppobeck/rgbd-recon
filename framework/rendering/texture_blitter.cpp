@@ -38,6 +38,15 @@ void TextureBlitter::blit(unsigned unit, glm::uvec2 const& resolution) {
   blit(resolution);
 }
 
+void TextureBlitter::blitLod(unsigned unit, unsigned lod, glm::uvec2 const& resolution) {
+  auto& instance = inst();
+  instance.m_program->setUniform("texture_handle", GLint(unit));
+  instance.m_program->setUniform("mode", 2u);
+  instance.m_program->setUniform("resolution", glm::ivec2{resolution});
+  instance.m_program->setUniform("lod", int(lod));
+  blit(resolution);
+}
+
 void TextureBlitter::blit(glm::uvec2 const& resolution) {
   auto& instance = inst();
   GLsizei old_vp_params[4];

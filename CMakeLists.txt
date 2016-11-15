@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.0.2)
 project(rgbd-calib)
 
 #set the build type if its not set
@@ -12,15 +12,14 @@ endif(UNIX)
 
 # Location where cmake first looks for modules.
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake/modules)
-
+set(GLOBAL_EXT_DIR ${CMAKE_SOURCE_DIR}/external)
 include(FindDependency)
 include(AddSubLibrary)
 ################################
 # zmq
 set(ZMQ_INCLUDE_SEARCH_DIR "/opt/zmq/current/include")
 set(ZMQ_LIBRARY_SEARCH_DIR "/opt/zmq/current/lib")
-find_dependency(ZMQ "zmq.h" "libzmq")
-include_directories(SYSTEM ${ZMQ_INCLUDE_DIRS})
+find_dependency(ZMQ "zmq.h" "zmq")
 ################################
 # boost
 set(BOOST_INCLUDEDIR "/opt/boost/boost_1_55_0/include")
@@ -33,20 +32,17 @@ include_directories(SYSTEM ${BOOST_INCLUDE_DIRS})
 #CGAL
 set(CGAL_INCLUDE_SEARCH_DIR "/opt/cgal/include")
 set(CGAL_LIBRARY_SEARCH_DIR "/opt/cgal/lib/")
-find_dependency(CGAL "CGAL/basic.h" "libCGAL")
-include_directories(SYSTEM ${CGAL_INCLUDE_DIRS})
+find_dependency(CGAL "CGAL/basic.h" "CGAL")
 ################################
 #gmp
 set(GMP_INCLUDE_SEARCH_DIR "/opt/gmp/include")
 set(GMP_LIBRARY_SEARCH_DIR "/opt/gmp/lib")
-find_dependency(GMP "gmp.h" "libgmp")
-include_directories(SYSTEM ${GMP_INCLUDE_DIRS})
+find_dependency(GMP "gmp.h" "gmp")
 ################################
 #mpfr
 set(MPFR_INCLUDE_SEARCH_DIR "/opt/mpfr/include")
 set(MPFR_LIBRARY_SEARCH_DIR "/opt/mpfr/lib")
-find_dependency(MPFR "mpfr.h" "libmpfr")
-include_directories(SYSTEM ${MPFR_INCLUDE_DIRS})
+find_dependency(MPFR "mpfr.h" "mpfr")
 ################################
 # glfw
 set(GLFW_DIRECTORY glfw-3.0.3)
@@ -63,7 +59,6 @@ include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/external/${GLM_DIRECTORY}
 ################################
 # squish
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/squish)
-include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/external)
 ################################
 set(OPTION_BUILD_TESTS OFF CACHE STRING "" FORCE)
 # glbinding
@@ -72,17 +67,21 @@ set(glbinding_DIR "${CMAKE_CURRENT_SOURCE_DIR}/external/${GLB_DIRECTORY}")
 add_subdirectory(${glbinding_DIR})
 include_directories(SYSTEM ${glbinding_DIR}/source/glbinding/include)
 include_directories(SYSTEM ${GLBINDING_EXPORT_DIRS})
+include_directories(SYSTEM external)
 ################################
 # globjects
 set(GLOW_DIRECTORY "globjects-0.5.0")
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/external/${GLOW_DIRECTORY})
-include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/external/${GLOW_DIRECTORY}/source/globjects/include)
 ################################
 # FastDXT
 add_sublibrary(fastdxt ${CMAKE_CURRENT_SOURCE_DIR}/external/fastdxt "-O3 -funroll-loops -fomit-frame-pointer -fPIC -msse2 -DDXT_INTR -w")
 ################################
 # gloost
 add_sublibrary(gloost ${CMAKE_CURRENT_SOURCE_DIR}/external/gloost "-w")
+################################
+# imgui
+add_sublibrary(imgui ${CMAKE_CURRENT_SOURCE_DIR}/external/imgui-1.49 "-w")
+target_link_libraries(imgui glfw)
 ################################
 # svg
 add_sublibrary(svg ${CMAKE_CURRENT_SOURCE_DIR}/external/svg "-w")
@@ -156,4 +155,5 @@ install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/glsl
         PATTERN "*.fs"
         PATTERN "*.vs"
         PATTERN "*.gs"
+        PATTERN "*.glsl"
 )

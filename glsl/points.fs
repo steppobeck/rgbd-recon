@@ -1,21 +1,24 @@
 #version 150
-#extension GL_ARB_gpu_shader5 : enable
-#extension GL_EXT_texture_array : enable
+#extension GL_ARB_shading_language_include : require
 
 ///////////////////////////////////////////////////////////////////////////////
 flat in vec2  pass_texcoord;
+flat in vec2  pass_pos_norm;
 flat in vec3  pass_pos_es;
 flat in vec3  pass_pos_cs;
 flat in float pass_depth;
-flat in float pass_lateral_quality;
+flat in float pass_quality;
 flat in vec3  normal_es;
 flat in vec4  pass_glpos;
 // used by accumulation pass
 uniform sampler2DArray kinect_colors;
 uniform sampler2DArray kinect_qualities;
+uniform sampler2DArray kinect_normals;
+
 uniform uint layer;
 uniform mat4 gl_ProjectionMatrix;
 uniform mat4 gl_ModelViewMatrix;
+uniform mat4 gl_NormalMatrix;
 
 uniform mat4 img_to_eye_curr;
 uniform mat4 projection_inv;
@@ -23,6 +26,8 @@ uniform mat4 modelview_inv;
 uniform vec2 viewportSizeInv;
 uniform vec2 offset;
 uniform float epsilon;
+
+#include </shading.glsl>
 
 out vec4 gl_FragColor;
 ///////////////////////////////////////////////////////////////////////////////
@@ -35,14 +40,13 @@ void main() {
       discard;
   }
 
-  highp float quality = pass_lateral_quality/pass_depth;
 // manual
   highp vec3 view =   (gl_ModelViewMatrix * vec4(pass_pos_cs, 1.0f)).xyz;
   highp vec4 clipped = gl_ProjectionMatrix * vec4(pass_pos_es, 1.0f);
   highp vec3 ndc = clipped.xyz / clipped.w;
   highp vec3 tex = ndc * 0.5f + 0.5f;
   highp vec3 frag = vec3(tex.xy / viewportSizeInv, tex.z);
-  highp uvec2 fragi = ivec2(frag.xy);
+  highp ivec2 fragi = ivec2(frag.xy);
 
 // reverse
   // pointcoord origin is upper left
@@ -58,8 +62,17 @@ void main() {
   highp vec4 position_curr = img_to_eye_curr * vec4(gl_FragCoord.xy + vec2(0.5,0.5), 0.0f, 1.0);
   highp vec3 position_curr_es = (position_curr / position_curr.w).xyz;
 
-  highp vec4 color = texture2DArray(kinect_colors, vec3(pass_texcoord, float(layer)));
-  gl_FragColor = vec4(color.rgb, quality);
+  float quality = pass_quality;
+  vec3 color = texture(kinect_colors, vec3(pass_texcoord, float(layer))).rgb;
+  vec3 normal = texture(kinect_normals, vec3(pass_pos_norm, float(layer))).rgb;
+  vec3 view_normal = (gl_NormalMatrix * vec4(normal, 0.0f)).xyz;
+  
+  if (g_shade_mode == 3) {
+    gl_FragColor = vec4(camera_colors[layer], 1.0f);
+  }
+  else {
+    gl_FragColor = vec4(shade(pass_pos_es, view_normal, color), 1.0f);
+  }
   // gl_FragColor = vec4(gl_PointCoord, 0.0f, 1.0f);
   //ndc
   // gl_FragColor = vec4(ndc.xyz, 1.0f);

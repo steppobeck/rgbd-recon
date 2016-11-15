@@ -12,14 +12,6 @@
 
 namespace kinect{
 
-void
-static getWidthHeight(unsigned& width, unsigned& height){
-  GLsizei vp_params[4];
-  glGetIntegerv(GL_VIEWPORT,vp_params);
-  width  = vp_params[2];
-  height = vp_params[3];
-}
-
 ReconTrigrid::ReconTrigrid(CalibrationFiles const& cfs, CalibVolumes const* cv, gloost::BoundingBox const&  bbox)
  :Reconstruction(cfs, cv, bbox)
  ,m_va_pass_depth()
@@ -38,13 +30,13 @@ ReconTrigrid::ReconTrigrid(CalibrationFiles const& cfs, CalibVolumes const* cv, 
   m_program_accum->setUniform("kinect_colors",1);
   m_program_accum->setUniform("kinect_depths",2);
   m_program_accum->setUniform("kinect_qualities",3);
+  m_program_accum->setUniform("kinect_normals", 4);
   m_program_accum->setUniform("depth_map_curr",14);
-  m_program_accum->setUniform("bbox_min",m_bbox.getPMin());
-  m_program_accum->setUniform("bbox_max",m_bbox.getPMax());
   m_program_accum->setUniform("epsilon"    , 0.075f);
   m_program_accum->setUniform("min_length", m_min_length);
   m_program_accum->setUniform("cv_xyz", m_cv->getXYZVolumeUnits());
   m_program_accum->setUniform("cv_uv", m_cv->getUVVolumeUnits());
+  m_program_accum->setUniform("camera_positions", m_cv->getCameraPositions());
 
   m_program_normalize->attach(
      globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/trigrid_normalize.vs")
@@ -96,19 +88,16 @@ void ReconTrigrid::draw(){
   viewport_translate.setTranslate(1.0,1.0,1.0);
   gloost::Matrix viewport_scale;
   viewport_scale.setIdentity();
-  unsigned width  = 0;
-  unsigned height = 0;
-  getWidthHeight(width, height);
-  viewport_scale.setScale(width * 0.5, height * 0.5, 0.5f);
+  
+  glm::uvec4 viewport_vals{getViewport()};
+  viewport_scale.setScale(viewport_vals[2] * 0.5, viewport_vals[3] * 0.5, 0.5f);
   gloost::Matrix image_to_eye =  viewport_scale * viewport_translate * projection_matrix;
   image_to_eye.invert();
 
-  unsigned ox;
-  unsigned oy;
   // cull in the geometry shader
   glDisable(GL_CULL_FACE);
 // pass 1 goes to depth buffer only
-  m_va_pass_depth->enable(0, false, &ox, &oy, false);
+  m_va_pass_depth->enable(0, false);
 
   m_program_accum->use();
   m_program_accum->setUniform("stage", 0u);
@@ -119,14 +108,14 @@ void ReconTrigrid::draw(){
     m_tri_grid->drawArrays(GL_TRIANGLES, 0, m_tex_width * m_tex_height * 6);
   }
 
-  m_va_pass_depth->disable(false);
+  m_va_pass_depth->disable();
 
 // pass 2 goes to accumulation buffer
   glDisable(GL_DEPTH_TEST);
   glEnable(GL_BLEND); 
   glBlendFuncSeparateEXT(GL_ONE,GL_ONE,GL_ONE,GL_ONE);
   glBlendEquationSeparateEXT(GL_FUNC_ADD, GL_FUNC_ADD);
-  m_va_pass_accum->enable(0, false, &ox, &oy);
+  m_va_pass_accum->enable();
   m_program_accum->setUniform("stage", 1u);
   m_program_accum->setUniform("viewportSizeInv", glm::fvec2(1.0f/m_va_pass_depth->getWidth(), 1.0f/m_va_pass_depth->getHeight()));
   m_program_accum->setUniform("img_to_eye_curr", image_to_eye);
@@ -140,7 +129,7 @@ void ReconTrigrid::draw(){
   }
 
   m_program_accum->release();
-  m_va_pass_accum->disable(false);
+  m_va_pass_accum->disable();
   glDisable(GL_BLEND);
 
 // normalize pass outputs best quality color and depth to framebuffer of parent renderstage
@@ -148,7 +137,7 @@ void ReconTrigrid::draw(){
 
   m_program_normalize->use();
   m_program_normalize->setUniform("texSizeInv", glm::fvec2(1.0f/m_va_pass_depth->getWidth(), 1.0f/m_va_pass_depth->getHeight()));
-  m_program_normalize->setUniform("offset"    , glm::fvec2(1.0f*ox,                          1.0f*oy));
+  m_program_normalize->setUniform("offset"    , glm::fvec2(1.0f * viewport_vals[0],                    1.0f * viewport_vals[1]));
   
   m_va_pass_accum->bindToTextureUnitRGBA(15);
   m_va_pass_depth->bindToTextureUnitDepth(16);
@@ -159,11 +148,8 @@ void ReconTrigrid::draw(){
 }
 
 void ReconTrigrid::resize(std::size_t width, std::size_t height) {
-  m_va_pass_depth = std::unique_ptr<mvt::ViewArray>{new mvt::ViewArray(width, height, 1)};
-  m_va_pass_depth->init();
-
-  m_va_pass_accum = std::unique_ptr<mvt::ViewArray>{new mvt::ViewArray(width, height, 1)};
-  m_va_pass_accum->init();
+  m_va_pass_depth = std::unique_ptr<ViewArray>{new ViewArray(width, height, 1)};
+  m_va_pass_accum = std::unique_ptr<ViewArray>{new ViewArray(width, height, 1)};
 }
 
 }

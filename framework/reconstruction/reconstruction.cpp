@@ -2,8 +2,14 @@
 
 #include "calibration_files.hpp"
 #include "CalibVolumes.hpp"
+#include "timer_database.hpp"
 
-namespace kinect{
+#include <glbinding/gl/gl.h>
+using namespace gl;
+#include <globjects/NamedString.h>
+#include <globjects/base/File.h>
+
+namespace kinect {
 
 Reconstruction::Reconstruction(CalibrationFiles const& cfs, CalibVolumes const* cv, gloost::BoundingBox const&  bbox)
  :m_cv(cv)
@@ -13,13 +19,32 @@ Reconstruction::Reconstruction(CalibrationFiles const& cfs, CalibVolumes const* 
  ,m_num_kinects{cfs.num()}
  ,m_min_length{cfs.minLength()}
  ,m_bbox{bbox}
-{}
+{
+   globjects::NamedString::create("/shading.glsl", new globjects::File("glsl/shading.glsl"));
+   TimerDatabase::instance().addTimer("3recon");
+   TimerDatabase::instance().addTimer("draw");
+}
 
 void Reconstruction::reload() {
 
 }
 
 void  Reconstruction::resize(std::size_t width, std::size_t height) {
+}
+void Reconstruction::drawF() {
+  TimerDatabase::instance().begin("draw");
+  draw();
+  TimerDatabase::instance().end("draw");
+}
+
+glm::uvec2 Reconstruction::getViewportRes() {
+  auto params = getViewport();
+  return glm::uvec2{params[3], params[4]};
+}
+glm::uvec4 Reconstruction::getViewport() {
+  gl::GLsizei vp_params[4];
+  glGetIntegerv(GL_VIEWPORT,vp_params);
+  return glm::uvec4{vp_params[0], vp_params[1], vp_params[2], vp_params[3]};
 }
 
 }

@@ -8,7 +8,7 @@ in vec2 geo_texcoord[];
 in vec3 geo_pos_es[];
 in vec3 geo_pos_cs[];
 in float geo_depth[];
-in float geo_lateral_quality[];
+in float geo_quality[];
 
 uniform float min_length;
 ///////////////////////////////////////////////////////////////////////////////
@@ -18,7 +18,7 @@ out vec3  pass_pos_es;
 out vec3  pass_pos_cs;
 out float pass_sq_area_cs;
 out float pass_depth;
-out float pass_lateral_quality;
+out float pass_quality;
 out vec3  pass_normal_es;
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -54,13 +54,13 @@ void main() {
     vec3 b = geo_pos_es[2] - geo_pos_es[0];
     vec3 c = geo_pos_es[2] - geo_pos_es[1];
 
-    vec3 tri_normal = normalize(cross (a, b));
+    vec3 tri_normal = normalize(cross(a, b));
       
     for(int i = 0; i < 3; i++) {
       pass_texcoord      = geo_texcoord[i];
       pass_pos_es        = geo_pos_es[i];
       pass_pos_cs        = geo_pos_cs[i];
-      pass_lateral_quality = geo_lateral_quality[i];
+      pass_quality = geo_quality[i];
       pass_depth         = geo_depth[i];
       pass_normal_es     = tri_normal;
       

@@ -2,7 +2,10 @@
 #include <KinectCalibrationFile.h>
 #include <timevalue.h>
 
+#include <glbinding/gl/functions.h>
 #include <glbinding/gl/functions-patches.h>
+#include <glbinding/gl/enum.h>
+using namespace gl;
 #include <globjects/Shader.h>
 
 #include <glm/gtc/matrix_transform.hpp>
@@ -22,6 +25,7 @@ CalibVolumes::CalibVolumes(std::vector<std::string> const& calib_volume_files, g
  ,m_volumes_xyz{}
  ,m_volumes_uv{}
  ,m_volumes_xyz_inv{}
+ ,m_buffer_bbox{new globjects::Buffer()}
  ,m_frustums{}
  ,m_bbox{bbox}
  ,m_start_texture_unit(-1)
@@ -37,6 +41,12 @@ CalibVolumes::CalibVolumes(std::vector<std::string> const& calib_volume_files, g
   for(unsigned i = 0; i < m_cv_xyz_filenames.size(); ++i){
     addVolume(m_cv_xyz_filenames[i], m_cv_uv_filenames[i]);
   }
+
+  glm::fvec3 min{bbox.getPMin()};
+  glm::fvec3 max{bbox.getPMax()};
+  std::vector<glm::fvec4> bbox_ext{glm::fvec4{min, 1.0f}, glm::fvec4{max, 1.0f}};
+  m_buffer_bbox->setData(sizeof(float) * 4 * 2, bbox_ext.data(), GL_STATIC_DRAW);
+  m_buffer_bbox->bindBase(GL_UNIFORM_BUFFER, 2);
 
   createVolumeTextures();
 }
@@ -210,4 +220,17 @@ void CalibVolumes::drawFrustums() const {
 Frustum const& CalibVolumes::getFrustum(unsigned i) const {
   return m_frustums[i];
 }
+
+std::vector<glm::fvec3> CalibVolumes::getCameraPositions() const {
+  std::vector<glm::fvec3> cam_positions{};
+  for (auto const& frustum : m_frustums) {
+    cam_positions.emplace_back(frustum.getCameraPos());
+  }
+  return cam_positions;
+}
+
+gloost::BoundingBox const& CalibVolumes::getBBox() const {
+  return m_bbox;
+}
+
 }

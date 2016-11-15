@@ -14,6 +14,7 @@ namespace kinect{
     Reconstruction(CalibrationFiles const& cfs, CalibVolumes const* cv, gloost::BoundingBox const&  bbox);
 
     virtual void draw() = 0;
+    virtual void drawF();
 
     virtual void reload();
     // mustnt be implemented by children without fbos
@@ -28,6 +29,9 @@ namespace kinect{
     unsigned m_num_kinects;
     float m_min_length;
     gloost::BoundingBox m_bbox;
+
+    static glm::uvec2 getViewportRes();
+    static glm::uvec4 getViewport();
   };
 }
 

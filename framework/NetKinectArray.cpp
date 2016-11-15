@@ -4,93 +4,116 @@
 #include "texture_blitter.hpp"
 #include "screen_quad.hpp"
 #include <FileBuffer.h>
-#include <Timer.h>
 #include <TextureArray.h>
 #include <KinectCalibrationFile.h>
 #include "CalibVolumes.hpp"
-#include <timevalue.h>
-#include <clock.h>
 #include <DXTCompressor.h>
+#include "timer_database.hpp"
 
-#include <gl_util.h>
-#include <Viewport.h>
-#include <gloostHelper.h>
-
+#include <glbinding/gl/gl.h>
 #include <glbinding/gl/functions-patches.h>
+using namespace gl;
+
+#include <globjects/Program.h>
+#include <globjects/Texture.h>
+#include <globjects/Framebuffer.h>
+#include <globjects/Buffer.h>
+
 #include <globjects/Shader.h>
+#include <globjects/logging.h>
+#include <globjects/NamedString.h>
+#include <globjects/base/File.h>
+#include <globjects/Query.h>
+
+#include <globjects/NamedString.h>
+#include <globjects/base/File.h>
 
 #include "squish/squish.h"
 #include <zmq.hpp>
-
-#include <boost/thread/thread.hpp>
-#include <boost/thread/mutex.hpp>
-#include <boost/bind.hpp>
-#include <boost/interprocess/ipc/message_queue.hpp>
 
 #include <iostream>
 #include <vector>
 #include <string>
 #include <fstream>
-#include <sstream>
+#include <thread>
 
 namespace kinect{
-
+  static const std::size_t s_num_bg_frames = 20;
   NetKinectArray::NetKinectArray(std::string const& serverport, CalibrationFiles const* calibs, CalibVolumes const* vols, bool readfromfile)
-    : m_width(0),
-      m_widthc(0),
-      m_height(0),
-      m_heightc(0),
-      m_numLayers(0),
-      m_colorArray(0),
-      m_depthArray(0),
+    : m_numLayers(0),
+      m_colorArray(),
+      m_depthArray_raw(),
+      m_textures_depth{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
+      m_textures_depth_b{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
+      m_textures_depth2{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY), globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
       m_textures_quality{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
       m_textures_normal{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
+      m_textures_color{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
+      m_textures_bg{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY), globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
+      m_textures_silhouette{globjects::Texture::createDefault(GL_TEXTURE_2D_ARRAY)},
       m_fbo{new globjects::Framebuffer()},
-      m_colorArray_back(0),
-      m_depthArray_back(0),
-      m_program_filter{new globjects::Program()},
-      m_program_normal{new globjects::Program()},
+      m_colorArray_back(),
       m_colorsize(0),
       m_depthsize(0),
       m_pbo_colors(),
       m_pbo_depths(),
-      m_mutex(new boost::mutex),
-      m_readThread(0),
+      m_mutex_pbo(),
+      m_readThread(),
       m_running(true),
       m_filter_textures(true),
+      m_refine_bound(true),
       m_serverport(serverport),
+      m_num_frame{0},
+      m_curr_frametime{0.0},
+      m_use_processed_depth{true},
       m_start_texture_unit(0),
       m_calib_files{calibs},
-      m_calib_vols{vols},
-      depth_compression_lex(false),
-      depth_compression_ratio(100.0f)
+      m_calib_vols{vols}
   {
+    m_programs.emplace("filter", new globjects::Program());
+    m_programs.emplace("normal", new globjects::Program());
+    m_programs.emplace("quality", new globjects::Program());
+    m_programs.emplace("boundary", new globjects::Program());
+    m_programs.emplace("morph", new globjects::Program());
+    // must happen before thread launching
     init();
 
     if(readfromfile){
       readFromFiles();
     }
     else{
-      m_readThread = new boost::thread(boost::bind(&NetKinectArray::readLoop, this));
+      m_readThread = std::unique_ptr<std::thread>{new std::thread(std::bind(&NetKinectArray::readLoop, this))};
     }
 
-    m_program_filter->attach(
+    globjects::NamedString::create("/bricks.glsl", new globjects::File("glsl/inc_bricks.glsl"));
+
+    m_programs.at("filter")->attach(
      globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/texture_passthrough.vs")
-    ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/depth_process.fs")
+    ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/pre_depth.fs")
     );
-    m_program_normal->attach(
+    m_programs.at("normal")->attach(
      globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/texture_passthrough.vs")
-    ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/normal_computation.fs")
+    ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/pre_normal.fs")
+    );
+    m_programs.at("quality")->attach(
+     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/texture_passthrough.vs")
+    ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/pre_quality.fs")
+    );
+    m_programs.at("boundary")->attach(
+     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/texture_passthrough.vs")
+    ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/pre_boundary.fs")
+    );
+    m_programs.at("morph")->attach(
+     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/texture_passthrough.vs")
+    ,globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/pre_morph.fs")
     );
   }
 
   bool
   NetKinectArray::init(){
     m_numLayers = m_calib_files->num();
-    m_width   = m_calib_files->getWidth();
-    m_widthc  = m_calib_files->getWidthC();
-    m_height  = m_calib_files->getHeight();
-    m_heightc = m_calib_files->getHeightC();
+    m_resolution_depth = glm::uvec2{m_calib_files->getWidth(), m_calib_files->getHeight()};
+    m_resolution_color = glm::uvec2{m_calib_files->getWidthC(), m_calib_files->getHeightC()};
 
     if(m_calib_files->isCompressedRGB() == 1){
       mvt::DXTCompressor dxt;
@@ -102,154 +125,295 @@ namespace kinect{
       m_colorsize = 307200;
     }
     else{
-      m_colorsize = m_widthc * m_heightc * 3 * sizeof(byte);
+      m_colorsize = m_resolution_color.x * m_resolution_color.y * 3 * sizeof(byte);
     }
 
     m_pbo_colors = double_pbo{m_colorsize * m_numLayers};
 
     if(m_calib_files->isCompressedDepth()){
-      m_pbo_depths.size = m_width * m_height * m_numLayers * sizeof(byte);
-      m_depthsize =  m_width * m_height * sizeof(byte);
+      m_pbo_depths.size = m_resolution_depth.x * m_resolution_depth.y * m_numLayers * sizeof(byte);
+      m_depthsize =  m_resolution_depth.x * m_resolution_depth.y * sizeof(byte);
     }
     else{
-      m_pbo_depths.size = m_width * m_height * m_numLayers * sizeof(float);
-      m_depthsize =  m_width * m_height * sizeof(float);
+      m_pbo_depths.size = m_resolution_depth.x * m_resolution_depth.y * m_numLayers * sizeof(float);
+      m_depthsize =  m_resolution_depth.x * m_resolution_depth.y * sizeof(float);
     }
 
     m_pbo_depths = double_pbo{m_depthsize * m_numLayers};
 
     /* kinect color: GL_RGB32F, GL_RGB, GL_FLOAT*/
     /* kinect depth: GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT*/
-    //m_colorArray = new mvt::TextureArray(m_width, m_height, m_numLayers, GL_RGB32F, GL_RGB, GL_FLOAT);
+    //m_colorArray = new TextureArray(m_resolution_depth.x, m_resolution_depth.y, m_numLayers, GL_RGB32F, GL_RGB, GL_FLOAT);
     if(m_calib_files->isCompressedRGB() == 1){
-      m_colorArray = new mvt::TextureArray(m_widthc, m_heightc, m_numLayers, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, GL_UNSIGNED_BYTE, m_colorsize);
+      std::cout << "Color DXT 1 compressed" << std::endl;
+      m_colorArray = std::unique_ptr<TextureArray>{new TextureArray(m_resolution_color.x, m_resolution_color.y, m_numLayers, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, GL_UNSIGNED_BYTE, m_colorsize)};
     }
     else if(m_calib_files->isCompressedRGB() == 5){
-      m_colorArray = new mvt::TextureArray(m_widthc, m_heightc, m_numLayers, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, GL_UNSIGNED_BYTE, m_colorsize);
+      std::cout << "Color DXT 5 compressed" << std::endl;
+      m_colorArray = std::unique_ptr<TextureArray>{new TextureArray(m_resolution_color.x, m_resolution_color.y, m_numLayers, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, GL_COMPRESSED_RGBA_S3TC_DXT5_EXT, GL_UNSIGNED_BYTE, m_colorsize)};
     }
     else{
-      m_colorArray = new mvt::TextureArray(m_widthc, m_heightc, m_numLayers, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE);
+      m_colorArray = std::unique_ptr<TextureArray>{new TextureArray(m_resolution_color.x, m_resolution_color.y, m_numLayers, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE)};
     }
-    m_colorArray_back = new mvt::TextureArray(m_widthc, m_heightc, m_numLayers, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE);
+    m_colorArray_back = std::unique_ptr<TextureArray>{new TextureArray(m_resolution_color.x, m_resolution_color.y, m_numLayers, GL_RGB, GL_RGB, GL_UNSIGNED_BYTE)};
+    m_textures_color->image3D(0, GL_RGB32F, m_resolution_depth.x, m_resolution_depth.y, m_numLayers, 0, GL_RGB, GL_FLOAT, (void*)nullptr);
 
-    m_textures_quality->image3D(0, GL_LUMINANCE32F_ARB, m_width, m_height, m_numLayers, 0, GL_RED, GL_FLOAT, (void*)nullptr);
-    m_textures_normal->image3D(0, GL_RGB32F, m_width, m_height, m_numLayers, 0, GL_RGB, GL_FLOAT, (void*)nullptr);
+    m_textures_quality->image3D(0, GL_LUMINANCE32F_ARB, m_resolution_depth.x, m_resolution_depth.y, m_numLayers, 0, GL_RED, GL_FLOAT, (void*)nullptr);
+    m_textures_normal->image3D(0, GL_RGB32F, m_resolution_depth.x, m_resolution_depth.y, m_numLayers, 0, GL_RGB, GL_FLOAT, (void*)nullptr);
 
-    m_depthArray = new mvt::TextureArray(m_width, m_height, m_numLayers, GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT);
+    std::vector<glm::fvec2> empty_bg_tex(m_resolution_depth.x * m_resolution_depth.y * m_numLayers, glm::fvec2{0.0f});
+    m_textures_bg.front->image3D(0, GL_RG32F, m_resolution_depth.x, m_resolution_depth.y, m_numLayers, 0, GL_RG, GL_FLOAT, empty_bg_tex.data());
+    m_textures_bg.back->image3D(0, GL_RG32F, m_resolution_depth.x, m_resolution_depth.y, m_numLayers, 0, GL_RG, GL_FLOAT, empty_bg_tex.data());
+    m_textures_silhouette->image3D(0, GL_R32F, m_resolution_depth.x, m_resolution_depth.y, m_numLayers, 0, GL_RED, GL_FLOAT, (void*)nullptr);
 
     if(m_calib_files->isCompressedDepth()){
-      m_depthArray_back = new mvt::TextureArray(m_width, m_height, m_numLayers, GL_LUMINANCE, GL_RED, GL_UNSIGNED_BYTE);
+      m_depthArray_raw = std::unique_ptr<TextureArray>{new TextureArray(m_resolution_depth.x, m_resolution_depth.y, m_numLayers, GL_LUMINANCE, GL_RED, GL_UNSIGNED_BYTE)};
     }
     else{
-      m_depthArray_back = new mvt::TextureArray(m_width, m_height, m_numLayers, GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT);
+      m_depthArray_raw = std::unique_ptr<TextureArray>{new TextureArray(m_resolution_depth.x, m_resolution_depth.y, m_numLayers, GL_LUMINANCE32F_ARB, GL_RED, GL_FLOAT)};
     }
-    m_depthArray->setMAGMINFilter(GL_NEAREST);
-    m_depthArray_back->setMAGMINFilter(GL_NEAREST);
+    m_textures_depth->image3D(0, GL_RG32F, m_resolution_depth.x, m_resolution_depth.y, m_numLayers, 0, GL_RG, GL_FLOAT, (void*)nullptr);
+    m_textures_depth_b->image3D(0, GL_RG32F, m_resolution_depth.x, m_resolution_depth.y, m_numLayers, 0, GL_RG, GL_FLOAT, (void*)nullptr);
+    m_textures_depth2.front->image3D(0, GL_LUMINANCE32F_ARB, m_resolution_depth.x, m_resolution_depth.y, m_numLayers, 0, GL_RED, GL_FLOAT, (void*)nullptr);
+    m_textures_depth2.back->image3D(0, GL_LUMINANCE32F_ARB, m_resolution_depth.x, m_resolution_depth.y, m_numLayers, 0, GL_RED, GL_FLOAT, (void*)nullptr);
 
-    m_program_filter->setUniform("kinect_depths",40);
-    m_program_filter->setUniform("texSizeInv", glm::fvec2(1.0f/m_width, 1.0f/m_height));
-    m_program_normal->setUniform("texSizeInv", glm::fvec2(1.0f/m_width, 1.0f/m_height));
+    m_depthArray_raw->setMAGMINFilter(GL_NEAREST);
+    m_textures_depth_b->setParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    m_textures_depth_b->setParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    m_textures_depth->setParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    m_textures_depth->setParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    m_textures_depth2.front->setParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    m_textures_depth2.front->setParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    m_textures_depth2.back->setParameter(GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    m_textures_depth2.back->setParameter(GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-    std::cout << "NetKinectArray::NetKinectArray: " << this << std::endl;
+    m_texture_unit_offsets.emplace("morph_input", 42);
+    m_texture_unit_offsets.emplace("raw_depth", 40);
+    // m_texture_unit_offsets.emplace("bg_depth", 41);
+
+    m_programs.at("filter")->setUniform("kinect_depths", getTextureUnit("raw_depth"));
+    glm::fvec2 tex_size_inv{1.0f/m_resolution_depth.x, 1.0f/m_resolution_depth.y};
+    m_programs.at("filter")->setUniform("texSizeInv", tex_size_inv);
+    m_programs.at("normal")->setUniform("texSizeInv", tex_size_inv);
+    m_programs.at("quality")->setUniform("texSizeInv", tex_size_inv);
+    m_programs.at("quality")->setUniform("camera_positions", m_calib_vols->getCameraPositions());
+
+    m_programs.at("morph")->setUniform("texSizeInv", tex_size_inv);
+    m_programs.at("morph")->setUniform("kinect_depths", getTextureUnit("morph_input"));
+    m_programs.at("boundary")->setUniform("texSizeInv", tex_size_inv);
+    // m_programs.at("bg")->setUniform("bg_depths", getTextureUnit("bg_depth"));
+
+    globjects::NamedString::create("/inc_bbox_test.glsl", new globjects::File("glsl/inc_bbox_test.glsl"));
+    globjects::NamedString::create("/inc_color.glsl", new globjects::File("glsl/inc_color.glsl"));
+
+    TimerDatabase::instance().addTimer("morph");
+    TimerDatabase::instance().addTimer("bilateral");
+    TimerDatabase::instance().addTimer("boundary");
+    TimerDatabase::instance().addTimer("normal");
+    TimerDatabase::instance().addTimer("quality");
+    TimerDatabase::instance().addTimer("1preprocess");
 
     return true;
   }
 
   NetKinectArray::~NetKinectArray(){
-    delete m_colorArray;
-    delete m_depthArray;
-    delete m_colorArray_back;
-    delete m_depthArray_back;
-
     m_running = false;
     m_readThread->join();
-    delete m_readThread;
-    delete m_mutex;
-
-    m_fbo->destroy();
-    m_textures_quality->destroy();
-    m_textures_normal->destroy();
-    m_program_filter->destroy();
-    m_program_normal->destroy();
   }
 
-  void
+  bool
   NetKinectArray::update() {
-    boost::mutex::scoped_lock lock(*m_mutex);
+    // lock pbos before checking status
+    std::unique_lock<std::mutex> lock(m_mutex_pbo);
     // skip if no new frame was received
-    if(!m_pbo_colors.needSwap || !m_pbo_depths.needSwap) return;
+    if(!m_pbo_colors.dirty || !m_pbo_depths.dirty) return false;
 
-  	m_pbo_colors.swapBuffers();
-  	m_pbo_depths.swapBuffers();
+    m_colorArray->fillLayersFromPBO(m_pbo_colors.get()->id());
+    m_depthArray_raw->fillLayersFromPBO(m_pbo_depths.get()->id());
 
-    m_colorArray->fillLayersFromPBO(m_pbo_colors.front->id());
-    m_depthArray->fillLayersFromPBO(m_pbo_depths.front->id());
-
-    processTextures();
+    // processTextures();
+    return true;
   }
 
 glm::uvec2 NetKinectArray::getDepthResolution() const {
-  return glm::uvec2{m_width, m_height};
+  return m_resolution_depth;
 }
 glm::uvec2 NetKinectArray::getColorResolution() const {
-  return glm::uvec2{m_widthc, m_heightc};
+  return m_resolution_color;
 }
-void
-NetKinectArray::processTextures(){
 
-  glPushAttrib(GL_ALL_ATTRIB_BITS);
+int NetKinectArray::getTextureUnit(std::string const& name) const {
+  return m_texture_unit_offsets.at(name);
+} 
 
+void NetKinectArray::processDepth() {
+  m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT0});
+
+  glActiveTexture(GL_TEXTURE0 + getTextureUnit("morph_input"));
+  m_depthArray_raw->bind();
+  m_programs.at("morph")->use();
+  m_programs.at("morph")->setUniform("cv_xyz", m_calib_vols->getXYZVolumeUnits());
+  // erode
+  m_programs.at("morph")->setUniform("mode", 0u);
+  for(unsigned i = 0; i < m_calib_files->num(); ++i){
+    m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT0, m_textures_depth2.back, 0, i);
+
+    m_programs.at("morph")->setUniform("layer", i);
+
+    ScreenQuad::draw();
+  }
+
+  // dilate
+  m_programs.at("morph")->setUniform("mode", 1u);
+  m_textures_depth2.swapBuffers();
+  m_textures_depth2.front->bindActive(getTextureUnit("morph_input"));
+  for(unsigned i = 0; i < m_calib_files->num(); ++i){
+    m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT0, m_textures_depth2.back, 0, i);
+
+    m_programs.at("morph")->setUniform("layer", i);
+
+    ScreenQuad::draw();
+  }
+
+  m_textures_depth2.front->unbindActive(getTextureUnit("morph_input"));
+
+  m_programs.at("morph")->release();
+
+  m_textures_depth2.swapBuffers();
+  m_textures_depth2.front->bindActive(getTextureUnit("morph_depth"));
+
+  if(m_use_processed_depth) {
+    m_textures_depth2.front->bindActive(getTextureUnit("raw_depth"));
+  }
+}
+
+void NetKinectArray::processBackground() {
+  m_textures_bg.front->bindActive(getTextureUnit("bg_depth"));
+  m_programs.at("bg")->use();
+
+  for(unsigned i = 0; i < m_calib_files->num(); ++i){
+    m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT0, m_textures_bg.back, 0, i);
+
+    m_programs.at("bg")->setUniform("layer", i);
+
+    ScreenQuad::draw();
+  }
+  m_programs.at("bg")->release();
+
+  m_textures_bg.swapBuffers();
+  m_textures_bg.front->bindActive(getTextureUnit("bg"));
+
+  ++m_num_frame;
+}
+
+void NetKinectArray::processTextures(){  
+  TimerDatabase::instance().begin("1preprocess");
   GLint current_fbo;
   glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &current_fbo);
   GLsizei old_vp_params[4];
   glGetIntegerv(GL_VIEWPORT, old_vp_params);
-  glViewport(0, 0, m_width, m_height);
+  glViewport(0, 0, m_resolution_depth.x, m_resolution_depth.y);
 
-	glActiveTexture(GL_TEXTURE0 + 40);
-	m_depthArray->bind();
-  m_program_filter->use();
+  glActiveTexture(GL_TEXTURE0 + getTextureUnit("raw_depth"));
+  m_depthArray_raw->bind();
 
   m_fbo->bind();
+  TimerDatabase::instance().begin("morph");
+  processDepth();
+  TimerDatabase::instance().end("morph");
+
+  TimerDatabase::instance().begin("bilateral");
+
   m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1});
 
-  m_program_filter->setUniform("filter_textures", m_filter_textures);
-  
-  for(unsigned i = 0; i < m_calib_files->num(); ++i){
-    m_program_filter->setUniform("cv_min_ds", m_calib_vols->getDepthLimits(i).x);
-    m_program_filter->setUniform("cv_max_ds", m_calib_vols->getDepthLimits(i).y);
+  m_programs.at("filter")->use();
+  m_programs.at("filter")->setUniform("filter_textures", m_filter_textures);
+  m_programs.at("filter")->setUniform("processed_depth", m_use_processed_depth);
+  m_programs.at("filter")->setUniform("cv_xyz", m_calib_vols->getXYZVolumeUnits());
+  m_programs.at("filter")->setUniform("cv_uv", m_calib_vols->getUVVolumeUnits());
 
-    m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT0, m_depthArray_back->getTexture(), 0, i);
-    m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT1, m_textures_quality, 0, i);
-    m_program_filter->setUniform("layer", i);
-    m_program_filter->setUniform("compress", m_calib_files->getCalibs()[i].isCompressedDepth());
+// depth and old quality
+  for(unsigned i = 0; i < m_calib_files->num(); ++i){
+    m_programs.at("filter")->setUniform("cv_min_ds", m_calib_vols->getDepthLimits(i).x);
+    m_programs.at("filter")->setUniform("cv_max_ds", m_calib_vols->getDepthLimits(i).y);
+
+    m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT0, m_textures_depth, 0, i);
+    m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT1, m_textures_color, 0, i);
+    m_programs.at("filter")->setUniform("layer", i);
+    m_programs.at("filter")->setUniform("compress", m_calib_files->getCalibs()[i].isCompressedDepth());
     const float near = m_calib_files->getCalibs()[i].getNear();
     const float far  = m_calib_files->getCalibs()[i].getFar();
     const float scale = (far - near);
-    m_program_filter->setUniform("scale", scale);
-    m_program_filter->setUniform("near", near);
-    m_program_filter->setUniform("scaled_near", scale/255.0f);
+    m_programs.at("filter")->setUniform("scale", scale);
+    m_programs.at("filter")->setUniform("near", near);
+    m_programs.at("filter")->setUniform("scaled_near", scale/255.0f);
 
     ScreenQuad::draw();
   }
   
-  m_program_filter->release();
+  m_programs.at("filter")->release();
+  TimerDatabase::instance().end("bilateral");
 
-  m_program_normal->use();
-  m_program_normal->setUniform("cv_xyz", m_calib_vols->getXYZVolumeUnits());
-  m_program_normal->setUniform("cv_uv", m_calib_vols->getUVVolumeUnits());
-  m_program_normal->setUniform("kinect_depths", GLint(m_start_texture_unit + 1));
+// boundary
+  TimerDatabase::instance().begin("boundary");
 
-  m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT2});
+  m_programs.at("boundary")->use();
+
+  m_programs.at("boundary")->setUniform("cv_uv", m_calib_vols->getUVVolumeUnits());
+  m_programs.at("boundary")->setUniform("refine", m_refine_bound);
+  m_textures_depth->bindActive(getTextureUnit("depth"));
 
   for(unsigned i = 0; i < m_calib_files->num(); ++i){
-    m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT2, m_textures_normal, 0, i);
+    m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT0, m_textures_depth_b, 0, i);
+    m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT1, m_textures_silhouette, 0, i);
 
-    m_program_normal->setUniform("layer", i);
+    m_programs.at("boundary")->setUniform("layer", i);
+
+    ScreenQuad::draw();
+  }
+  m_programs.at("boundary")->release();
+  TimerDatabase::instance().end("boundary");
+
+  m_textures_depth_b->bindActive(getTextureUnit("depth"));
+// normals
+  TimerDatabase::instance().begin("normal");
+  m_programs.at("normal")->use();
+  m_programs.at("normal")->setUniform("cv_xyz", m_calib_vols->getXYZVolumeUnits());
+  m_programs.at("normal")->setUniform("cv_uv", m_calib_vols->getUVVolumeUnits());
+
+  m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT0});
+
+  for(unsigned i = 0; i < m_calib_files->num(); ++i){
+    m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT0, m_textures_normal, 0, i);
+
+    m_programs.at("normal")->setUniform("layer", i);
 
     ScreenQuad::draw();
   }
   
-  m_program_normal->release();
+  m_programs.at("normal")->release();
+  TimerDatabase::instance().end("normal");
+
+// quality
+  TimerDatabase::instance().begin("quality");
+  m_fbo->setDrawBuffers({GL_COLOR_ATTACHMENT0});
+  m_programs.at("quality")->use();
+  m_programs.at("quality")->setUniform("cv_xyz", m_calib_vols->getXYZVolumeUnits());
+  m_programs.at("quality")->setUniform("processed_depth", m_use_processed_depth);
+
+  for(unsigned i = 0; i < m_calib_files->num(); ++i){
+    m_fbo->attachTextureLayer(GL_COLOR_ATTACHMENT0, m_textures_quality, 0, i);
+
+    m_programs.at("quality")->setUniform("layer", i);
+
+    ScreenQuad::draw();
+  }
+  m_programs.at("quality")->release();
+  TimerDatabase::instance().end("quality");
+
+  if(m_num_frame < s_num_bg_frames && m_curr_frametime < 0.5) {
+    // processBackground();
+  }
 
   m_fbo->unbind();
   
@@ -258,24 +422,43 @@ NetKinectArray::processTextures(){
               (GLsizei)old_vp_params[2],
               (GLsizei)old_vp_params[3]);
 
-  glPopAttrib();
+  TimerDatabase::instance().end("1preprocess");
 }
 
 void NetKinectArray::setStartTextureUnit(unsigned start_texture_unit) {
   m_start_texture_unit = start_texture_unit;
+  m_texture_unit_offsets["color"] = m_start_texture_unit;
+  m_texture_unit_offsets["depth"] = m_start_texture_unit + 1;
+  m_texture_unit_offsets["quality"] = m_start_texture_unit + 2;
+  m_texture_unit_offsets["normal"] = m_start_texture_unit + 3;
+  m_texture_unit_offsets["silhouette"] = m_start_texture_unit + 4;
+  // m_texture_unit_offsets["bg"] = m_start_texture_unit + 5;
+  m_texture_unit_offsets["morph_depth"] = m_start_texture_unit + 5;
+  m_texture_unit_offsets["color_lab"] = m_start_texture_unit + 6;
 
   bindToTextureUnits();
+
+  m_programs.at("filter")->setUniform("kinect_colors", getTextureUnit("color"));
+  m_programs.at("normal")->setUniform("kinect_depths", getTextureUnit("depth"));
+  m_programs.at("quality")->setUniform("kinect_depths", getTextureUnit("depth"));
+  m_programs.at("quality")->setUniform("kinect_normals", getTextureUnit("normal"));
+  m_programs.at("quality")->setUniform("kinect_colors_lab", getTextureUnit("color_lab"));
+  m_programs.at("boundary")->setUniform("kinect_colors_lab", getTextureUnit("color_lab"));
+  m_programs.at("boundary")->setUniform("kinect_depths", getTextureUnit("depth"));
+  m_programs.at("boundary")->setUniform("kinect_colors", getTextureUnit("color"));
 }
 
 void NetKinectArray::bindToTextureUnits() const {
-  glActiveTexture(GL_TEXTURE0 + m_start_texture_unit);
+  glActiveTexture(GL_TEXTURE0 + getTextureUnit("color"));
   m_colorArray->bind();
-  glActiveTexture(GL_TEXTURE0 + m_start_texture_unit + 1);
-  m_depthArray_back->bind();
-  glActiveTexture(GL_TEXTURE0 + m_start_texture_unit + 2);
-  m_textures_quality->bind();
-  glActiveTexture(GL_TEXTURE0 + m_start_texture_unit + 3);
-  m_textures_normal->bind();
+  m_textures_quality->bindActive(getTextureUnit("quality"));
+  m_textures_normal->bindActive(getTextureUnit("normal"));
+  m_textures_silhouette->bindActive(getTextureUnit("silhouette"));
+  // m_textures_bg.front->bindActive(getTextureUnit("bg"));
+  m_textures_depth2.front->bindActive(getTextureUnit("morph_depth"));
+  m_textures_color->bindActive(getTextureUnit("color_lab"));
+  glActiveTexture(GL_TEXTURE0 + getTextureUnit("raw_depth"));
+  m_depthArray_raw->bind();
 }
 
 unsigned NetKinectArray::getStartTextureUnit() const {
@@ -287,271 +470,266 @@ void NetKinectArray::filterTextures(bool filter) {
   // process with new settings
   processTextures();
 }
-
-mvt::TextureArray*
-NetKinectArray::getDepthArrayBack(){
-  return m_depthArray_back;
+void NetKinectArray::useProcessedDepths(bool filter) {
+  m_use_processed_depth = filter;
+  processTextures();
+}
+void NetKinectArray::refineBoundary(bool filter) {
+  m_refine_bound = filter;
+  processTextures();
 }
 
-mvt::TextureArray*
-NetKinectArray::getDepthArray(){
-  return m_depthArray;
-}
+void NetKinectArray::readLoop(){
+  // open multicast listening connection to server and port
 
-  void
-  NetKinectArray::readLoop(){
-    // open multicast listening connection to server and port
+  zmq::context_t ctx(1); // means single threaded
+  zmq::socket_t  socket(ctx, ZMQ_SUB); // means a subscriber
 
-    zmq::context_t ctx(1); // means single threaded
-    zmq::socket_t  socket(ctx, ZMQ_SUB); // means a subscriber
+  socket.setsockopt(ZMQ_SUBSCRIBE, "", 0);
+  uint32_t hwm = 1;
+  socket.setsockopt(ZMQ_RCVHWM, &hwm, sizeof(hwm));
 
-    socket.setsockopt(ZMQ_SUBSCRIBE, "", 0);
-    uint64_t hwm = 1;
-    socket.setsockopt(ZMQ_HWM,&hwm, sizeof(hwm));
+  std::string endpoint("tcp://" + m_serverport);
+  socket.connect(endpoint.c_str());
 
-    std::string endpoint("tcp://" + m_serverport);
-    socket.connect(endpoint.c_str());
+  //const unsigned pixelcountc = m_calib_files->getWidthC() * m_calib_files->getHeightC();    
+  const unsigned colorsize = m_colorsize;
+  const unsigned depthsize = m_depthsize;//pixelcount * sizeof(float);
 
-    //const unsigned pixelcountc = m_calib_files->getWidthC() * m_calib_files->getHeightC();    
-    const unsigned colorsize = m_colorsize;
-    const unsigned depthsize = m_depthsize;//pixelcount * sizeof(float);
+  double current_time = 0.0;
 
-    bool drop = false;
-    sensor::timevalue ts(sensor::clock::time());
+  while(m_running){
+    zmq::message_t zmqm((colorsize + depthsize) * m_calib_files->num());
+    
+    socket.recv(&zmqm); // blocking
+    
+    { 
+      // lock pbos
+      std::unique_lock<std::mutex> lock(m_mutex_pbo);
 
-    while(m_running){
-      zmq::message_t zmqm((colorsize + depthsize) * m_calib_files->num());
-      
-      socket.recv(&zmqm); // blocking
-      
-      if(!drop){
-      	while(m_pbo_colors.needSwap || m_pbo_depths.needSwap){
-      	  ;
-      	}
+      memcpy(&current_time, (byte*)zmqm.data(), sizeof(double));
+      // std::cout << "time " << current_time << std::endl;
+      m_curr_frametime = current_time;
+      unsigned offset = 0;
+      // receive data
+      const unsigned number_of_kinects = m_calib_files->num(); // is 5 in the current example
+      // this loop goes over each kinect like K1_frame_1 K2_frame_1 K3_frame_1 
+      for(unsigned i = 0; i < number_of_kinects; ++i){
+        memcpy((byte*) m_pbo_colors.pointer() + i*colorsize , (byte*) zmqm.data() + offset, colorsize);
+        offset += colorsize;
+        memcpy((byte*) m_pbo_depths.pointer() + i*depthsize , (byte*) zmqm.data() + offset, depthsize);
 
-      	unsigned offset = 0;
-      	// receive data
-        const unsigned number_of_kinects = m_calib_files->num(); // is 5 in the current example
-        // this loop goes over each kinect like K1_frame_1 K2_frame_1 K3_frame_1 
-      	for(unsigned i = 0; i < number_of_kinects; ++i){
-      	  memcpy((byte*) m_pbo_colors.pointer() + i*colorsize , (byte*) zmqm.data() + offset, colorsize);
-      	  offset += colorsize;
-      	  memcpy((byte*) m_pbo_depths.pointer() + i*depthsize , (byte*) zmqm.data() + offset, depthsize);
-
-      	  offset += depthsize;
-      	}
+        offset += depthsize;
       }
-
-      if(!drop){ // swap
-      	boost::mutex::scoped_lock lock(*m_mutex);
-        m_pbo_colors.needSwap = true;
-      	m_pbo_depths.needSwap = true;
-      }
+      // swap
+      m_pbo_colors.dirty = true;
+    	m_pbo_depths.dirty = true;
     }
   }
+}
 
-  void
-  NetKinectArray::writeCurrentTexture(std::string prefix){
-    //depths
-    if (m_calib_files->isCompressedDepth())
+void
+NetKinectArray::writeCurrentTexture(std::string prefix){
+  //depths
+  if (m_calib_files->isCompressedDepth())
+  {
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+    
+    glBindTexture(GL_TEXTURE_2D_ARRAY,m_depthArray_raw->getGLHandle());
+    int width, height, depth;
+    glGetTexLevelParameteriv (GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_WIDTH, &width);
+    glGetTexLevelParameteriv (GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_HEIGHT, &height);
+    glGetTexLevelParameteriv (GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_DEPTH, &depth);
+    
+    std::vector<std::uint8_t> depths;
+    depths.resize(width*height*depth);
+    
+    glGetTexImage(GL_TEXTURE_2D_ARRAY, 0, GL_RED, GL_UNSIGNED_BYTE, (void*)&depths[0]); 
+    
+    int offset = 0;
+    
+    for (int k = 0; k < depth; ++k)
     {
-      glPixelStorei(GL_PACK_ALIGNMENT, 1);
+      std::stringstream sstr;
+      sstr << "output/" << prefix << "_d_" << k << ".bmp";
+      std::string filename (sstr.str());
+      std::cout << "writing depth texture for kinect " << k << " to file " << filename << std::endl;
+
+      offset += width*height;
       
-      glBindTexture(GL_TEXTURE_2D_ARRAY,m_depthArray->getGLHandle());
-      int width, height, depth;
-      glGetTexLevelParameteriv (GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_WIDTH, &width);
-      glGetTexLevelParameteriv (GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_HEIGHT, &height);
-      glGetTexLevelParameteriv (GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_DEPTH, &depth);
-      
-      std::vector<std::uint8_t> depths;
-      depths.resize(width*height*depth);
-      
-      glGetTexImage(GL_TEXTURE_2D_ARRAY, 0, GL_RED, GL_UNSIGNED_BYTE, (void*)&depths[0]); 
-      
-      int offset = 0;
-      
-      for (int k = 0; k < depth; ++k)
-      {
-        std::stringstream sstr;
-        sstr << "output/" << prefix << "_d_" << k << ".bmp";
-        std::string filename (sstr.str());
-        std::cout << "writing depth texture for kinect " << k << " to file " << filename << std::endl;
- 
-        offset += width*height;
-        
-        writeBMP(filename, depths, offset, 1);
-        offset += width*height;
-      }
+      writeBMP(filename, depths, offset, 1);
+      offset += width*height;
     }
-    else
+  }
+  else
+  {
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+    
+    glBindTexture(GL_TEXTURE_2D_ARRAY,m_depthArray_raw->getGLHandle());
+    int width, height, depth;
+    glGetTexLevelParameteriv (GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_WIDTH, &width);
+    glGetTexLevelParameteriv (GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_HEIGHT, &height);
+    glGetTexLevelParameteriv (GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_DEPTH, &depth);
+    
+    std::vector<float> depthsTmp;
+    depthsTmp.resize(width*height*depth);
+    
+    glGetTexImage(GL_TEXTURE_2D_ARRAY, 0, GL_RED, GL_FLOAT, (void*)&depthsTmp[0]); 
+    
+    std::vector<std::uint8_t> depths;
+    depths.resize(depthsTmp.size());
+    
+    for (int i = 0; i < width*height*depth; ++i)
     {
-      glPixelStorei(GL_PACK_ALIGNMENT, 1);
-      
-      glBindTexture(GL_TEXTURE_2D_ARRAY,m_depthArray->getGLHandle());
-      int width, height, depth;
-      glGetTexLevelParameteriv (GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_WIDTH, &width);
-      glGetTexLevelParameteriv (GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_HEIGHT, &height);
-      glGetTexLevelParameteriv (GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_DEPTH, &depth);
-      
-      std::vector<float> depthsTmp;
-      depthsTmp.resize(width*height*depth);
-      
-      glGetTexImage(GL_TEXTURE_2D_ARRAY, 0, GL_RED, GL_FLOAT, (void*)&depthsTmp[0]); 
-      
-      std::vector<std::uint8_t> depths;
-      depths.resize(depthsTmp.size());
-      
-      for (int i = 0; i < width*height*depth; ++i)
-      {
-        depths[i] = (std::uint8_t)depthsTmp[i] * 255.0f;
-      }
-      
-      int offset = 0;
-      
-      for (int k = 0; k < depth; ++k)
-      {
-        std::stringstream sstr;
-        sstr << "output/" << prefix << "_d_" << k << ".bmp";
-        std::string filename (sstr.str());
-        std::cout << "writing depth texture for kinect " << k << " to file " << filename << " (values are compressed to 8bit)" << std::endl;
-
-        writeBMP(filename, depths, offset, 1);
-        offset += width*height;
-      }
+      depths[i] = (std::uint8_t)depthsTmp[i] * 255.0f;
     }
     
-    //color
-    if (m_calib_files->isCompressedRGB() == 1)
-    {
-      glPixelStorei(GL_PACK_ALIGNMENT, 1);
-      
-      glBindTexture(GL_TEXTURE_2D_ARRAY,m_colorArray->getGLHandle());
-      int size;
-      glGetTexLevelParameteriv (GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, &size);
-      
-      std::vector<std::uint8_t> data;
-      data.resize(size);
-      
-      glGetCompressedTexImage(GL_TEXTURE_2D_ARRAY, 0, (void*)&data[0]);
-      
-      std::vector<std::uint8_t> colors;
-      colors.resize(4*m_widthc*m_heightc);
+    int offset = 0;
     
-      for (unsigned k = 0; k < m_numLayers; ++k)
-      {
-        squish::DecompressImage (&colors[0], m_widthc, m_heightc, &data[k*m_colorsize], squish::kDxt1);
-        
-        std::stringstream sstr;
-        sstr << "output/" << prefix << "_col_" << k << ".bmp";
-        std::string filename (sstr.str());
-        std::cout << "writing color texture for kinect " << k << " to file " << filename << std::endl;
-
-        writeBMP(filename, colors, 0, 4);
-      }
-    }
-    else
+    for (int k = 0; k < depth; ++k)
     {
-      glPixelStorei(GL_PACK_ALIGNMENT, 1);
-      
-      glBindTexture(GL_TEXTURE_2D_ARRAY,m_colorArray->getGLHandle());
-      int width, height, depth;
-      glGetTexLevelParameteriv (GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_WIDTH, &width);
-      glGetTexLevelParameteriv (GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_HEIGHT, &height);
-      glGetTexLevelParameteriv (GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_DEPTH, &depth);
-      
-      std::vector<std::uint8_t> colors;
-      colors.resize(3*width*height*depth);
-      
-      glGetTexImage(GL_TEXTURE_2D_ARRAY, 0, GL_RGB, GL_UNSIGNED_BYTE, (void*)&colors[0]); 
-      
-      int offset = 0;
-      
-      for (int k = 0; k < depth; ++k)
-      {
-        std::stringstream sstr;
-        sstr << "output/" << prefix << "_col_" << k << ".bmp";
-        std::string filename (sstr.str());
-        std::cout << "writing color texture for kinect " << k << " to file " << filename << std::endl;
+      std::stringstream sstr;
+      sstr << "output/" << prefix << "_d_" << k << ".bmp";
+      std::string filename (sstr.str());
+      std::cout << "writing depth texture for kinect " << k << " to file " << filename << " (values are compressed to 8bit)" << std::endl;
 
-        writeBMP(filename, colors, offset, 3);
-        offset += 3 * width*height;
-      }
+      writeBMP(filename, depths, offset, 1);
+      offset += width*height;
     }
-
   }
   
-  // no universal use! very unflexible, resolution depth = resolution color, no row padding
-  void NetKinectArray::writeBMP(std::string filename, std::vector<std::uint8_t> const& data, unsigned int offset, unsigned int bytesPerPixel)
+  //color
+  if (m_calib_files->isCompressedRGB() == 1)
   {
-    std::ofstream file (filename, std::ofstream::binary);
-    char c;
-    short s;
-    int i;
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
     
-    c = 'B'; file.write(&c, 1);
-    c = 'M'; file.write(&c, 1);
-    i = m_widthc * m_heightc * 3 + 54; file.write((char const*) &i, 4);
-    i = 0; file.write((char const*) &i,4);
-    i = 54; file.write((char const*) &i, 4);
-    i = 40; file.write((char const*) &i, 4);
-    i = m_widthc; file.write((char const*) &i, 4);
-    i = m_heightc; file.write((char const*) &i, 4);
-    s = 1; file.write((char const*) &s, 2);
-    s = 24; file.write((char const*) &s, 2);
-    i = 0; file.write((char const*) &i, 4);
-    i = m_widthc * m_heightc * 3; file.write((char const*) &i, 4);
-    i = 0; file.write((char const*) &i, 4);
-    i = 0; file.write((char const*) &i, 4);
-    i = 0; file.write((char const*) &i, 4);
-    i = 0; file.write((char const*) &i, 4);
+    glBindTexture(GL_TEXTURE_2D_ARRAY,m_colorArray->getGLHandle());
+    int size;
+    glGetTexLevelParameteriv (GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, &size);
     
+    std::vector<std::uint8_t> data;
+    data.resize(size);
     
-    for (unsigned int h = m_heightc; h > 0; --h)
+    glGetCompressedTexImage(GL_TEXTURE_2D_ARRAY, 0, (void*)&data[0]);
+    
+    std::vector<std::uint8_t> colors;
+    colors.resize(4*m_resolution_color.x*m_resolution_color.y);
+  
+    for (unsigned k = 0; k < m_numLayers; ++k)
     {
-    	for (unsigned int w = 0; w < m_widthc * bytesPerPixel; w += bytesPerPixel)
-    	{
-    	  if (bytesPerPixel == 1)
-          {
-            file.write((char const*) &data[offset + w + (h-1) * m_widthc * bytesPerPixel], 1);
-            file.write((char const*) &data[offset + w + (h-1) * m_widthc * bytesPerPixel], 1);
-            file.write((char const*) &data[offset + w + (h-1) * m_widthc * bytesPerPixel], 1);
-          }
-          else if (bytesPerPixel == 3 || bytesPerPixel == 4)
-          {
-            file.write((char const*) &data[offset + w+2 + (h-1) * m_widthc * bytesPerPixel], 1);
-            file.write((char const*) &data[offset + w+1 + (h-1) * m_widthc * bytesPerPixel], 1);
-            file.write((char const*) &data[offset + w+0 + (h-1) * m_widthc * bytesPerPixel], 1);  
-          }
-    	}
-    }
+      squish::DecompressImage (&colors[0], m_resolution_color.x, m_resolution_color.y, &data[k*m_colorsize], squish::kDxt1);
+      
+      std::stringstream sstr;
+      sstr << "output/" << prefix << "_col_" << k << ".bmp";
+      std::string filename (sstr.str());
+      std::cout << "writing color texture for kinect " << k << " to file " << filename << std::endl;
 
-    file.close();
+      writeBMP(filename, colors, 0, 4);
+    }
+  }
+  else
+  {
+    glPixelStorei(GL_PACK_ALIGNMENT, 1);
+    
+    glBindTexture(GL_TEXTURE_2D_ARRAY,m_colorArray->getGLHandle());
+    int width, height, depth;
+    glGetTexLevelParameteriv (GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_WIDTH, &width);
+    glGetTexLevelParameteriv (GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_HEIGHT, &height);
+    glGetTexLevelParameteriv (GL_TEXTURE_2D_ARRAY, 0, GL_TEXTURE_DEPTH, &depth);
+    
+    std::vector<std::uint8_t> colors;
+    colors.resize(3*width*height*depth);
+    
+    glGetTexImage(GL_TEXTURE_2D_ARRAY, 0, GL_RGB, GL_UNSIGNED_BYTE, (void*)&colors[0]); 
+    
+    int offset = 0;
+    
+    for (int k = 0; k < depth; ++k)
+    {
+      std::stringstream sstr;
+      sstr << "output/" << prefix << "_col_" << k << ".bmp";
+      std::string filename (sstr.str());
+      std::cout << "writing color texture for kinect " << k << " to file " << filename << std::endl;
+
+      writeBMP(filename, colors, offset, 3);
+      offset += 3 * width*height;
+    }
   }
 
-  void
-  NetKinectArray::readFromFiles(){
-    std::vector<sys::FileBuffer*> fbs;
+}
 
-    for(unsigned i = 0 ; i < m_calib_files->num(); ++i){
-      std::string yml(m_calib_files->getCalibs()[i]._filePath);
-      std::string base((const char*) basename((char *) yml.c_str()));
-      base.replace( base.end() - 4, base.end(), "");
-      std::string filename = std::string("recordings/" + base + ".stream");
+// no universal use! very unflexible, resolution depth = resolution color, no row padding
+void NetKinectArray::writeBMP(std::string filename, std::vector<std::uint8_t> const& data, unsigned int offset, unsigned int bytesPerPixel)
+{
+  std::ofstream file (filename, std::ofstream::binary);
+  char c;
+  short s;
+  int i;
+  
+  c = 'B'; file.write(&c, 1);
+  c = 'M'; file.write(&c, 1);
+  i = m_resolution_color.x * m_resolution_color.y * 3 + 54; file.write((char const*) &i, 4);
+  i = 0; file.write((char const*) &i,4);
+  i = 54; file.write((char const*) &i, 4);
+  i = 40; file.write((char const*) &i, 4);
+  i = m_resolution_color.x; file.write((char const*) &i, 4);
+  i = m_resolution_color.y; file.write((char const*) &i, 4);
+  s = 1; file.write((char const*) &s, 2);
+  s = 24; file.write((char const*) &s, 2);
+  i = 0; file.write((char const*) &i, 4);
+  i = m_resolution_color.x * m_resolution_color.y * 3; file.write((char const*) &i, 4);
+  i = 0; file.write((char const*) &i, 4);
+  i = 0; file.write((char const*) &i, 4);
+  i = 0; file.write((char const*) &i, 4);
+  i = 0; file.write((char const*) &i, 4);
+  
+  
+  for (unsigned int h = m_resolution_color.y; h > 0; --h)
+  {
+  	for (unsigned int w = 0; w < m_resolution_color.x * bytesPerPixel; w += bytesPerPixel)
+  	{
+  	  if (bytesPerPixel == 1)
+        {
+          file.write((char const*) &data[offset + w + (h-1) * m_resolution_color.x * bytesPerPixel], 1);
+          file.write((char const*) &data[offset + w + (h-1) * m_resolution_color.x * bytesPerPixel], 1);
+          file.write((char const*) &data[offset + w + (h-1) * m_resolution_color.x * bytesPerPixel], 1);
+        }
+        else if (bytesPerPixel == 3 || bytesPerPixel == 4)
+        {
+          file.write((char const*) &data[offset + w+2 + (h-1) * m_resolution_color.x * bytesPerPixel], 1);
+          file.write((char const*) &data[offset + w+1 + (h-1) * m_resolution_color.x * bytesPerPixel], 1);
+          file.write((char const*) &data[offset + w+0 + (h-1) * m_resolution_color.x * bytesPerPixel], 1);  
+        }
+  	}
+  }
 
-      fbs.push_back(new sys::FileBuffer(filename.c_str()));
-      if(!fbs.back()->open("r")){
-      	std::cerr << "error opening " << filename << " exiting..." << std::endl;
-      	exit(1);
-      }
-      fbs.back()->setLooping(/*true*/false);
+  file.close();
+}
+
+void
+NetKinectArray::readFromFiles(){
+  std::vector<sys::FileBuffer*> fbs;
+
+  for(unsigned i = 0 ; i < m_calib_files->num(); ++i){
+    std::string yml(m_calib_files->getCalibs()[i]._filePath);
+    std::string base((const char*) basename((char *) yml.c_str()));
+    base.replace( base.end() - 4, base.end(), "");
+    std::string filename = std::string("recordings/" + base + ".stream");
+
+    fbs.push_back(new sys::FileBuffer(filename.c_str()));
+    if(!fbs.back()->open("r")){
+    	std::cerr << "error opening " << filename << " exiting..." << std::endl;
+    	exit(1);
     }
+    fbs.back()->setLooping(/*true*/false);
+  }
 
-    const unsigned colorsize = m_colorsize;
-    const unsigned depthsize = m_depthsize;
+  const unsigned colorsize = m_colorsize;
+  const unsigned depthsize = m_depthsize;
 
-    while(m_pbo_colors.needSwap || m_pbo_depths.needSwap){
-      ;
-    }
+  {
+    // lock pbos
+    std::unique_lock<std::mutex> lock(m_mutex_pbo);
 
     unsigned offset = 0;
     // receive data
@@ -565,13 +743,9 @@ NetKinectArray::getDepthArray(){
       
       offset += depthsize;
     }
-
-    { // swap
-      boost::mutex::scoped_lock lock(*m_mutex);
-      m_pbo_colors.needSwap = true;
-      m_pbo_depths.needSwap = true;
-    }
- 
+    m_pbo_colors.dirty = true;
+    m_pbo_depths.dirty = true;
   }
+}
 
 }

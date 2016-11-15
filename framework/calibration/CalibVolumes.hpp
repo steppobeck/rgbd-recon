@@ -45,6 +45,9 @@ public:
   void drawValidVoxels() const;
 
   Frustum const& getFrustum(unsigned i) const;
+  std::vector<glm::fvec3> getCameraPositions() const;
+
+  gloost::BoundingBox const& getBBox() const;
 
 private:
   void bindToTextureUnits();
@@ -66,6 +69,7 @@ private:
   std::vector<CalibrationVolume<uv>>    m_data_volumes_uv;
   std::vector<CalibrationVolume<glm::fvec4>>    m_data_volumes_xyz_inv;
 
+  globjects::ref_ptr<globjects::Buffer> m_buffer_bbox;
   std::vector<Frustum>    m_frustums;
   gloost::BoundingBox m_bbox;
 

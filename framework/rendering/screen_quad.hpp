@@ -12,12 +12,11 @@ class ScreenQuad {
  private:
   // prevent construction by user
   ScreenQuad();
-  ~ScreenQuad();
   ScreenQuad(ScreenQuad const&) = delete;
   ScreenQuad& operator=(ScreenQuad const&) = delete;
 
-  globjects::VertexArray*              m_quad;
-  globjects::Buffer*                  m_tri_buffer;
+  globjects::ref_ptr<globjects::VertexArray> m_quad;
+  globjects::ref_ptr<globjects::Buffer> m_tri_buffer;
 };
 // // get singleton sinstance
 // ScreenQuad& configurator();

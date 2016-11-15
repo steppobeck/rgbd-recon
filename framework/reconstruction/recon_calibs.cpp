@@ -8,6 +8,10 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtx/io.hpp>
+
+#include <glbinding/gl/gl.h>
+using namespace gl;
+
 #include <globjects/Shader.h>
 #include <globjects/globjects.h>
 

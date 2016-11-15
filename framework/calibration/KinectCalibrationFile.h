@@ -1,8 +1,6 @@
-
 #ifndef H_KINECT_KINECTCALIBRATIONFILE
 #define H_KINECT_KINECTCALIBRATIONFILE
 
-#include <CameraView.h>
 #include <DataTypes.h>
 
 /// gloost system includes
@@ -12,7 +10,6 @@
 #include <Vector3.h>
 #include <Vector2.h>
 #include <Matrix.h>
-#include <Plane3.h>
 
 /// cpp includes
 #include <string>
@@ -21,16 +18,14 @@
 namespace kinect
 {
   //  Reads an Kinect kalibration file created with RGBDemo-0.5.0
-  class KinectCalibrationFile : public mvt::CameraView {
+  class KinectCalibrationFile {
     public:
     // class constructor
     KinectCalibrationFile(const std::string& filePath);
 
     // parses the KinectCalibrationFile (*.yml)
-    virtual bool parse();
-    virtual void printInfo() const;
-
-    /*virtual*/ void updateMatrices();
+    bool parse();
+    void printInfo() const;
 
     float getNear() const;
     float getFar() const;

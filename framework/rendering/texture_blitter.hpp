@@ -9,6 +9,7 @@ class TextureBlitter {
  public:
   static void blit(unsigned unit, unsigned layer, glm::uvec2 const& resolution);
   static void blit(unsigned unit, glm::uvec2 const& resolution);
+  static void blitLod(unsigned unit, unsigned lod, glm::uvec2 const& resolution);
   
  private:
   static void blit(glm::uvec2 const& resolution);

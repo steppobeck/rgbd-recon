@@ -46,9 +46,9 @@ namespace gloost
 
 class Vector3
 {
-  operator glm::fvec3() const;
 
   public:
+    operator glm::fvec3() const;
 
     /// create default (0.0, 0.0, 0.0) vector
     Vector3();

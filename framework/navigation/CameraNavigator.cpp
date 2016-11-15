@@ -1,43 +1,83 @@
 #include "CameraNavigator.h"
 
+#include <glbinding/gl/gl.h>
+using namespace gl;
+
+#define GLFW_INCLUDE_NONE
+#define GLFW_INCLUDE_GLU
+#include <GLFW/glfw3.h>
+
 #include <string.h> // memcpy
 
 namespace pmd{
 
 
   CameraNavigator::CameraNavigator(float z)
-    : m_poi(0.0,0.0,0.0),
+    : m_poi(0.0,1.0,0.0),
       m_x(1.0,0.0,0.0),
       m_y(0.0,1.0,0.0),
       m_z(0.0,0.0,6.0),
       m_zoom(z),
       m_zoom_reset(z){}
 
-
-  CameraNavigator::~CameraNavigator(){}
-
-
+  void CameraNavigator::setZoom(float z) {
+    m_zoom = z;
+    m_zoom_reset = z;
+  }
 
   void
   CameraNavigator::mouse(int button, int state, int mouse_h, int mouse_v){
-    if (button == GLUT_LEFT_BUTTON) {
+    if (button == GLFW_MOUSE_BUTTON_LEFT) {
       m_arcball.set_cur(mouse_h, mouse_v);
-      if ( state == GLUT_DOWN) {
-	m_arcball.begin_drag();
-      } else {
-	m_arcball.end_drag();
+      if (state == GLFW_PRESS) {
+         m_arcball.begin_drag();
+      } 
+      else if (state == GLFW_RELEASE) {
+         m_arcball.end_drag();
       }
-      
+    }
+    else if(button == GLFW_MOUSE_BUTTON_RIGHT) {
+      if (state == GLFW_PRESS) {
+         curr_button = 1;
+         start_pos = {mouse_h, mouse_v};
+      } 
+      else if (state == GLFW_RELEASE) {
+         button_offsets[curr_button] = gloost::Vector2{0.0f, 0.0f};
+         curr_button = -1;
+      }
+    }
+    else if(button == GLFW_MOUSE_BUTTON_MIDDLE) {
+      if (state == GLFW_PRESS) {
+	       curr_button = 0;
+         start_pos = {mouse_h, mouse_v};
+      } 
+      else if (state == GLFW_RELEASE) {
+         button_offsets[curr_button] = gloost::Vector2{0.0f, 0.0f};
+	       curr_button = -1;
+      }
     }
   }
 
   void
   CameraNavigator::motion(int mouse_h, int mouse_v){
     m_arcball.set_cur(mouse_h, mouse_v);
+    if (curr_button >= 0) {
+      button_offsets[curr_button] = gloost::Vector2{mouse_h, mouse_v} - start_pos;
+      start_pos = gloost::Vector2{mouse_h, mouse_v};
+    }
   }
 
+  gloost::Vector2 const& CameraNavigator::getOffset(unsigned index) const {
+    return button_offsets[index];
+  }
+
+  void CameraNavigator::resetOffsets() {
+    button_offsets[0] = gloost::Vector2{0.0f, 0.0f}; 
+    button_offsets[1] = gloost::Vector2{0.0f, 0.0f}; 
+  }
+  
   void
-  CameraNavigator::resize(GLsizei w, GLsizei h){
+  CameraNavigator::resize(unsigned w, unsigned h){
     m_arcball.set_win_size(w, h);
   }
 
