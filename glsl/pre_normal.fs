@@ -16,6 +16,7 @@ uniform sampler3D[5] cv_uv;
 layout(location = 0) out vec3 out_Normal;
 
 #include </inc_bbox_test.glsl>
+
 #include </bricks.glsl>
 
 bool is_outside(float d){
