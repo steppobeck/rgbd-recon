@@ -15,7 +15,7 @@
 #DEP_LIBRARIES
 #DEP_LIBRARY_DIRS
 ##############################################################################
-MACRO(find_dependency DEP DEP_HEADER DEP_LIB)
+MACRO(find_dependency_custom DEP DEP_HEADER DEP_LIB)
 ##############################################################################
 # search paths
 ##############################################################################
@@ -145,4 +145,4 @@ else()
   message(STATUS "Looking for ${DEP} - not found")
 endif()
 
-ENDMACRO(find_dependency)
+ENDMACRO(find_dependency_custom)

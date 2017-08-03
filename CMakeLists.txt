@@ -19,7 +19,7 @@ include(AddSubLibrary)
 # zmq
 set(ZMQ_INCLUDE_SEARCH_DIR "/opt/zmq/current/include")
 set(ZMQ_LIBRARY_SEARCH_DIR "/opt/zmq/current/lib")
-find_dependency(ZMQ "zmq.h" "zmq")
+find_dependency_custom(ZMQ "zmq.h" "zmq")
 ################################
 # boost
 set(BOOST_INCLUDEDIR "/opt/boost/boost_1_55_0/include")
@@ -32,17 +32,17 @@ include_directories(SYSTEM ${BOOST_INCLUDE_DIRS})
 #CGAL
 set(CGAL_INCLUDE_SEARCH_DIR "/opt/cgal/include")
 set(CGAL_LIBRARY_SEARCH_DIR "/opt/cgal/lib/")
-find_dependency(CGAL "CGAL/basic.h" "CGAL")
+find_dependency_custom(CGAL "CGAL/basic.h" "CGAL")
 ################################
 #gmp
 set(GMP_INCLUDE_SEARCH_DIR "/opt/gmp/include")
 set(GMP_LIBRARY_SEARCH_DIR "/opt/gmp/lib")
-find_dependency(GMP "gmp.h" "gmp")
+find_dependency_custom(GMP "gmp.h" "gmp")
 ################################
 #mpfr
 set(MPFR_INCLUDE_SEARCH_DIR "/opt/mpfr/include")
 set(MPFR_LIBRARY_SEARCH_DIR "/opt/mpfr/lib")
-find_dependency(MPFR "mpfr.h" "mpfr")
+find_dependency_custom(MPFR "mpfr.h" "mpfr")
 ################################
 # glfw
 set(GLFW_DIRECTORY glfw-3.0.3)
