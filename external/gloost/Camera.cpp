@@ -148,6 +148,7 @@ void Camera::set()
 
   glMatrixMode(GL_MODELVIEW);
   gloostLoadMatrix(_modelview.data());
+  //std::cout << "end of Camera::set()" << std::endl;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

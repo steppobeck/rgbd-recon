@@ -57,6 +57,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
  ,m_draw_bricks{false}
  ,m_ratio_occupied{0.0f}
  ,m_min_voxels_per_brick{10}
+ ,m_color_mask_mode(0)
 {
   m_program->attach(
     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/tsdf_raymarch.vs"),
@@ -171,6 +172,9 @@ void ReconIntegration::drawF() {
 }
 
 void ReconIntegration::draw(){
+
+  
+
   m_program->use();
 
   gloost::Matrix projection_matrix;
@@ -202,17 +206,35 @@ void ReconIntegration::draw(){
   m_tex_num_samples->clearImage(0, GL_RED, GL_FLOAT, &zero);
   m_tex_num_samples->bindImageTexture(start_image_unit + 1, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
 
+  // begin special thing for anaglyph rendering
+  if(m_color_mask_mode == 1 && !m_fill_holes){
+    glColorMask(GL_TRUE, GL_FALSE, GL_FALSE, GL_FALSE);
+  }
+  if(m_color_mask_mode == 2 && !m_fill_holes){
+    glColorMask(GL_FALSE, GL_TRUE, GL_TRUE, GL_FALSE);
+  }
+  // end special thing for anaglyph rendering
+
   if (m_fill_holes) {
     m_view_inpaint->enable();
   }
   glDisable(GL_CULL_FACE);
+  
   UnitCube::draw();
+
   glEnable(GL_CULL_FACE);
   m_program->release();
   
   if (m_fill_holes) {
     m_view_inpaint->disable();
   }
+
+  // begin special thing for anaglyph rendering
+  if(m_color_mask_mode > 0 && !m_fill_holes){
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);  
+  }
+  // end special thing for anaglyph rendering
+
 }
 
 void ReconIntegration::integrate() {
@@ -293,7 +315,23 @@ void ReconIntegration::fillColors() {
   m_program_colorfill->setUniform("resolution_tex", m_view_inpaint->resolution(0));
   m_program_colorfill->setUniform("lod", 0);
 
+  // begin special thing for anaglyph rendering
+  if(m_color_mask_mode == 1){
+    glColorMask(GL_TRUE, GL_FALSE, GL_FALSE, GL_FALSE);
+  }
+  if(m_color_mask_mode == 2){
+    glColorMask(GL_FALSE, GL_TRUE, GL_TRUE, GL_FALSE);
+  }
+  // end special thing for anaglyph rendering
+
   ScreenQuad::draw();
+
+  // begin special thing for anaglyph rendering
+  if(m_color_mask_mode > 0){
+    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+  }
+  // end special thing for anaglyph rendering
+
   m_program_colorfill->release();
 }
 
@@ -480,5 +518,9 @@ void ReconIntegration::setSpaceSkip(bool active) {
   m_program->setUniform("skipSpace", active);
   m_skip_space = active;
 }
+
+  void ReconIntegration::setColorMaskMode(unsigned mode){
+    m_color_mask_mode = mode;
+  }
 
 }

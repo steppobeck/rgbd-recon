@@ -59,6 +59,9 @@ namespace kinect{
 
     std::unique_ptr<ViewLod>               m_view_inpaint;
     void drawOccupiedBricks() const;
+
+    void setColorMaskMode(unsigned mode);
+
   private:
     void drawDepthLimits();
     void divideBox();
@@ -97,6 +100,7 @@ namespace kinect{
     bool m_draw_bricks;
     float m_ratio_occupied;
     unsigned m_min_voxels_per_brick;
+    unsigned m_color_mask_mode;
   };
 }
 

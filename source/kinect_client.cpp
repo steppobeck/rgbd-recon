@@ -31,6 +31,7 @@ using namespace gl;
 #include <Point3.h>
 #include <BoundingBox.h>
 #include <PerspectiveCamera.h>
+#include <StereoCamera.h>
 
 #include <CameraNavigator.h>
 #include "CalibVolumes.hpp"
@@ -47,6 +48,10 @@ using namespace gl;
 #include "recon_mvt.hpp"
 
 /// general setup
+float    g_clear_color[4] = {0.0,0.0,0.0,0.0};
+unsigned g_stereo_mode  = 0;
+float    g_screenWidthReal = 1.28;
+float    g_screenHeightReal = 0.72;
 unsigned g_screenWidth  = 1280;
 unsigned g_screenHeight = 720;
 float    g_aspect       = g_screenWidth * 1.0/g_screenHeight;
@@ -54,7 +59,6 @@ bool     g_play         = true;
 bool     g_draw_frustums= false;
 bool     g_draw_grid    = true;
 bool     g_animate      = false;
-bool     g_wire         = false;
 int      g_recon_mode   = 1;
 bool     g_bilateral    = true;
 bool     g_draw_calibvis= false;
@@ -74,7 +78,7 @@ float    g_brick_size   = 0.1f;
 float    g_tsdf_limit   = 0.01f;
 float    g_zoom         = 0.5f;
 double   g_time_prev    = 0.0f;
-bool     g_update_textures= false; 
+
 int g_min_voxels   = 10;
 
 bool     g_loaded_conf  = false;
@@ -84,6 +88,7 @@ std::string g_conf_file{};
 gloost::BoundingBox     g_bbox{};
 std::vector<std::pair<int, int>> g_gui_texture_settings{};
 gloost::PerspectiveCamera g_camera{50.0, g_aspect, 0.1, 200.0};
+gloost::StereoCamera* g_stereo_camera;
 pmd::CameraNavigator g_navi{0.5f};
 std::unique_ptr<kinect::NetKinectArray> g_nka;
 std::unique_ptr<kinect::CalibVolumes> g_cv;
@@ -94,10 +99,11 @@ struct shading_data_t {
   int mode = 0;
 } g_shading_buffer_data;
 
+void init_stereo();
 void init(std::vector<std::string> const& args);
 void init_config(std::vector<std::string> const& args);
 void load_config(std::string const&);
-void update_view_matrix();
+void update_navigation_matrix(bool load_ident = true);
 void draw3d();
 void watch_gl_errors(bool activate);
 void quit(int status);
@@ -105,6 +111,25 @@ std::shared_ptr<kinect::ReconIntegration> g_recon_integration{};
 std::vector<std::shared_ptr<kinect::Reconstruction>> g_recons;// 4
 std::unique_ptr<kinect::ReconCalibs> g_calibvis;// 4
 //////////////////////////////////////////////////////////////////////////////////////////
+
+void init_stereo(){
+
+  gloost::Matrix eye_matrix;
+  eye_matrix.setIdentity();
+  eye_matrix.setTranslate(0.0,0.0,1.0);
+  gloost::Matrix screen_matrix;
+  screen_matrix.setIdentity();
+
+  g_stereo_camera = new gloost::StereoCamera(eye_matrix,
+					     0.2,
+					     20.0,
+					     0.064 /*eyesep*/,
+					     screen_matrix,
+					     g_screenWidthReal,
+					     g_screenHeightReal);
+  
+}
+
 void init(std::vector<std::string> const& args){
 
   std::string ext{args[0].substr(args[0].find_last_of(".") + 1)};
@@ -437,7 +462,8 @@ void frameStep (){
   glfwPollEvents();
   update_gui();
 
-  update_view_matrix();
+
+  
   draw3d();
 
   ImGui::Render();
@@ -445,31 +471,37 @@ void frameStep (){
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
-void update_view_matrix() {
-  g_camera.set();
+void update_navigation_matrix(bool load_ident) {
   
-  glMatrixMode(GL_MODELVIEW);
-  glLoadIdentity();
+  
 
   gloost::Point3 speed(0.0,0.0,0.0);
-
   glm::fvec2 speed_button1(g_navi.getOffset(0));
   glm::fvec2 speed_button2(g_navi.getOffset(1));
-  // std::cout << "speed1 " << speed_button1 << ", " << speed_button2 << std::endl;
   float fac = 0.005;
   speed[0] = speed_button1.x * fac;
   speed[1] = speed_button1.y * - 1.0 * fac;
   speed[2] = speed_button2.y * fac;
-
   gloost::Matrix camview(g_navi.get(speed));
   camview.invert();
 
+  glMatrixMode(GL_MODELVIEW);
+  if(load_ident){
+    glLoadIdentity();
+  }
   glMultMatrixf(camview.data());
 
-  gloost::Matrix modelview;
-  glGetFloatv(GL_MODELVIEW_MATRIX, modelview.data());
+  static double curr_rot = 0.0;
+  const double TAU = 2.0 * 180.0;
+  if(g_animate){
+    curr_rot += ImGui::GetIO().DeltaTime * 10.0;
+    if (curr_rot >= TAU) curr_rot = 0.0;
+  }
+  glRotatef(curr_rot, 0.0,1.0,0.0);
+
 
   g_navi.resetOffsets();
+
 }
 
 void process_textures() {
@@ -485,41 +517,55 @@ void process_textures() {
   /// main loop function, render with 3D setup
 void draw3d(void)
 {  
-  glClearColor(0, 0, 0, 0);
-  glViewport(0,0,g_screenWidth, g_screenHeight);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  static double curr_rot = 0.0;
-  const double TAU = 2.0 * 180.0;
-  if(g_animate){
-    curr_rot += ImGui::GetIO().DeltaTime * 10.0;
-    if (curr_rot >= TAU) curr_rot = 0.0;
-  }
-  glRotatef(curr_rot, 0.0,1.0,0.0);
 
-  if(g_wire){
-    glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
-  }
-  else{
-    glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
-  }
-
+  bool update_textures = false;
   if (g_play) {
-    g_update_textures = g_update_textures || g_nka->update();
+    update_textures = update_textures || g_nka->update();
   }
   
-  if (g_update_textures) {
+  if (update_textures) {
     process_textures();
   }
 
-  // draw active reconstruction
+
+  // perform integration
   if(g_recon_integration.get() == g_recons.at(g_recon_mode).get()) {
-    if(g_update_textures) {
+    if(update_textures) {
       g_recon_integration->integrate();
     }
   }
-  g_recons.at(g_recon_mode)->drawF();
 
+
+  glClearColor(g_clear_color[0],g_clear_color[1],g_clear_color[2],g_clear_color[3]);
+  glViewport(0,0,g_screenWidth, g_screenHeight);
+  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+  
+
+
+  if(g_stereo_mode == 0){
+    g_camera.set();
+    update_navigation_matrix();
+    g_recons.at(g_recon_mode)->drawF();
+  }
+  else if(g_stereo_mode == 1){ // ANAGLYPH STEREO
+
+    g_stereo_camera->setLeft();
+    update_navigation_matrix(false);
+    g_recon_integration->setColorMaskMode(1);
+    g_recons.at(g_recon_mode)->drawF();
+
+    glClear(GL_DEPTH_BUFFER_BIT);
+    g_stereo_camera->setRight();
+    update_navigation_matrix(false);
+    g_recon_integration->setColorMaskMode(2);
+    g_recons.at(g_recon_mode)->drawF();
+  }
+
+
+
+  
   if (g_draw_calibvis) {
     g_calibvis->draw();
   }
@@ -557,7 +603,6 @@ void draw3d(void)
   }
   glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
-  g_update_textures = false;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -612,9 +657,6 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
   case GLFW_KEY_O:
     g_draw_bricks = !g_draw_bricks;
     g_recon_integration->setDrawBricks(g_draw_bricks);
-    break;
-  case GLFW_KEY_W:
-    g_wire = !g_wire;
     break;
   case GLFW_KEY_Y:
     g_num_texture = (g_num_texture + 1) % g_calib_files->num();
@@ -706,14 +748,44 @@ void quit(int status) {
   glfwDestroyWindow(g_window);
   glfwTerminate();
 
+  if(g_stereo_mode > 0){
+    delete g_stereo_camera;
+  }
+
   std::exit(status);
 }
 
 int main(int argc, char *argv[]) {
-  CMDParser p("kinect_surface ...");
 
-  p.addOpt("r",2,"resolution", "set screen resolution");
+  CMDParser p("kinect_surface ...");
+  p.addOpt("s",2,"screensize", "set screen size in meter");
+  p.addOpt("r",2,"resolution", "set screen resolution in pixel");
+  p.addOpt("m",1,"stereomode", "set stereo mode 0: none, 1: anaglyph (default: 0)");
+  p.addOpt("c",4,"clearcolor", "set clear color (default: 0.0 0.0 0.0 0.0)");
   p.init(argc,argv);
+
+  if(p.isOptSet("s")){
+    g_screenWidthReal  = p.getOptsFloat("s")[0];
+    g_screenHeightReal = p.getOptsFloat("s")[1];
+  }
+  if(p.isOptSet("r")){
+    g_screenWidth  = p.getOptsInt("r")[0];
+    g_screenHeight = p.getOptsInt("r")[1];
+  }
+  if(p.isOptSet("m")){
+    g_stereo_mode = p.getOptsInt("m")[0];
+  }
+
+  if(p.isOptSet("c")){
+    g_clear_color[0]  = p.getOptsFloat("c")[0];
+    g_clear_color[1]  = p.getOptsFloat("c")[1];
+    g_clear_color[2]  = p.getOptsFloat("c")[2];
+    g_clear_color[3]  = p.getOptsFloat("c")[3];
+  }
+
+  if(g_stereo_mode == 1){
+    init_stereo();
+  }
 
   // load global variables
   init_config(p.getArgs());
