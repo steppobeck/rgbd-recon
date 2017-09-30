@@ -54,6 +54,13 @@ float    g_screenWidthReal = 1.28;
 float    g_screenHeightReal = 0.72;
 unsigned g_screenWidth  = 1280;
 unsigned g_screenHeight = 720;
+unsigned g_windowWidth  = 1280;
+unsigned g_windowHeight = 720;
+unsigned g_left_pos_x = 0;
+unsigned g_left_pos_y = 0;
+unsigned g_right_pos_x = 0;
+unsigned g_right_pos_y = 0;
+
 float    g_aspect       = g_screenWidth * 1.0/g_screenHeight;
 bool     g_play         = true;
 bool     g_draw_frustums= false;
@@ -99,11 +106,11 @@ struct shading_data_t {
   int mode = 0;
 } g_shading_buffer_data;
 
-void init_stereo();
+void init_stereo_camera();
 void init(std::vector<std::string> const& args);
 void init_config(std::vector<std::string> const& args);
 void load_config(std::string const&);
-void update_navigation_matrix(bool load_ident = true);
+void update_model_matrix(bool load_ident = true);
 void draw3d();
 void watch_gl_errors(bool activate);
 void quit(int status);
@@ -112,7 +119,7 @@ std::vector<std::shared_ptr<kinect::Reconstruction>> g_recons;// 4
 std::unique_ptr<kinect::ReconCalibs> g_calibvis;// 4
 //////////////////////////////////////////////////////////////////////////////////////////
 
-void init_stereo(){
+void init_stereo_camera(){
 
   gloost::Matrix eye_matrix;
   eye_matrix.setIdentity();
@@ -460,18 +467,22 @@ void update_gui() {
 
 void frameStep (){
   glfwPollEvents();
+
   update_gui();
 
 
   
   draw3d();
 
-  ImGui::Render();
+  if(2 != g_stereo_mode){
+    ImGui::Render();
+  }
+
   glfwSwapBuffers(g_window);
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
-void update_navigation_matrix(bool load_ident) {
+void update_model_matrix(bool load_ident) {
   
   
 
@@ -498,7 +509,6 @@ void update_navigation_matrix(bool load_ident) {
     if (curr_rot >= TAU) curr_rot = 0.0;
   }
   glRotatef(curr_rot, 0.0,1.0,0.0);
-
 
   g_navi.resetOffsets();
 
@@ -538,69 +548,95 @@ void draw3d(void)
 
 
   glClearColor(g_clear_color[0],g_clear_color[1],g_clear_color[2],g_clear_color[3]);
-  glViewport(0,0,g_screenWidth, g_screenHeight);
-  glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+
 
   
 
 
   if(g_stereo_mode == 0){
+    glViewport(0,0,g_screenWidth, g_screenHeight);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     g_camera.set();
-    update_navigation_matrix();
+    update_model_matrix();
     g_recons.at(g_recon_mode)->drawF();
   }
   else if(g_stereo_mode == 1){ // ANAGLYPH STEREO
+    glViewport(0,0,g_screenWidth, g_screenHeight);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     g_stereo_camera->setLeft();
-    update_navigation_matrix(false);
+    update_model_matrix(false);
     g_recon_integration->setColorMaskMode(1);
     g_recons.at(g_recon_mode)->drawF();
 
     glClear(GL_DEPTH_BUFFER_BIT);
     g_stereo_camera->setRight();
-    update_navigation_matrix(false);
+    update_model_matrix(false);
     g_recon_integration->setColorMaskMode(2);
     g_recons.at(g_recon_mode)->drawF();
   }
+  else if(g_stereo_mode == 2){ // SIDE-BY-SIDE STEREO
 
+    g_recon_integration->setColorFilling(false);
 
+    glViewport(0,0,g_windowWidth, g_windowHeight);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-  
-  if (g_draw_calibvis) {
-    g_calibvis->draw();
+    glViewport(g_left_pos_x, g_left_pos_y, g_screenWidth, g_screenHeight);
+    g_stereo_camera->setLeft();
+    update_model_matrix(false);
+    g_recon_integration->setViewportOffset((float) g_left_pos_x, (float) g_left_pos_y);
+    g_recons.at(g_recon_mode)->drawF();
+
+    glViewport(g_right_pos_x, g_right_pos_y, g_screenWidth, g_screenHeight);
+    g_stereo_camera->setRight();
+    update_model_matrix(false);
+    g_recon_integration->setViewportOffset((float) g_right_pos_x, (float) g_right_pos_y);
+    g_recons.at(g_recon_mode)->drawF();
+
+    glViewport(0,0,g_screenWidth, g_screenHeight);
   }
 
-  if(g_draw_frustums) {
-    g_cv->drawFrustums();
-  }
 
-  if(g_draw_bricks && g_recon_integration.get() != g_recons.at(g_recon_mode).get()) {
+  if(2 != g_stereo_mode){
+    if (g_draw_calibvis) {
+      g_calibvis->draw();
+    }
+
+    if(g_draw_frustums) {
+      g_cv->drawFrustums();
+    }
+
+    if(g_draw_bricks && g_recon_integration.get() != g_recons.at(g_recon_mode).get()) {
       g_recon_integration->drawOccupiedBricks();
+    }
+    // draw black grid on floor for fancy look
+    if(g_draw_grid) {
+      // glPushAttrib(GL_ALL_ATTRIB_BITS);
+      // glColor3f(1.0,1.0,1.0);
+      // glBegin(GL_LINES);
+      // const float lsize = 10.0f;
+      // const float gstep = 0.5f;
+      // for(float s = -lsize; s <= lsize; s += gstep){
+      //   glVertex3f(s, 0.0, -lsize);
+      //   glVertex3f(s, 0.0,  lsize);
+      
+      //   glVertex3f(-lsize, 0.0, s);
+      //   glVertex3f( lsize, 0.0, s);
+      // }
+      
+      // glEnd();
+      // glPopAttrib();
+      g_bbox.draw();
+    }
+    
+    if (g_draw_textures) {
+      unsigned num = g_num_texture % 2;
+      TextureBlitter::blit(15 + num, glm::fvec2{g_recon_integration->m_view_inpaint->resolution_full()} / 2.0f);
+    }
   }
-  // draw black grid on floor for fancy look
-  if(g_draw_grid) {
-    // glPushAttrib(GL_ALL_ATTRIB_BITS);
-    // glColor3f(1.0,1.0,1.0);
-    // glBegin(GL_LINES);
-    // const float lsize = 10.0f;
-    // const float gstep = 0.5f;
-    // for(float s = -lsize; s <= lsize; s += gstep){
-    //   glVertex3f(s, 0.0, -lsize);
-    //   glVertex3f(s, 0.0,  lsize);
 
-    //   glVertex3f(-lsize, 0.0, s);
-    //   glVertex3f( lsize, 0.0, s);
-    // }
-
-    // glEnd();
-    // glPopAttrib();
-    g_bbox.draw();
-  }
-
-  if (g_draw_textures) {
-    unsigned num = g_num_texture % 2;
-    TextureBlitter::blit(15 + num, glm::fvec2{g_recon_integration->m_view_inpaint->resolution_full()} / 2.0f);
-  }
   glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
 }
@@ -759,8 +795,13 @@ int main(int argc, char *argv[]) {
 
   CMDParser p("kinect_surface ...");
   p.addOpt("s",2,"screensize", "set screen size in meter");
-  p.addOpt("r",2,"resolution", "set screen resolution in pixel");
-  p.addOpt("m",1,"stereomode", "set stereo mode 0: none, 1: anaglyph (default: 0)");
+  p.addOpt("d",2,"displaysize", "set display size in pixel");
+
+  p.addOpt("w",2,"windowsize", "set window size in pixel for stereomode side-by-side");
+  p.addOpt("l",2,"leftpos", "set the position of the left viewport (upper left corner) in pixel for stereomode side-by-side");
+  p.addOpt("r",2,"rightpos", "set the position of the right viewport (upper left corner) in pixel for stereomode side-by-side");
+
+  p.addOpt("m",1,"stereomode", "set stereo mode 0: none, 1: anaglyph, 2: side-by-side (default: 0)");
   p.addOpt("c",4,"clearcolor", "set clear color (default: 0.0 0.0 0.0 0.0)");
   p.init(argc,argv);
 
@@ -768,10 +809,25 @@ int main(int argc, char *argv[]) {
     g_screenWidthReal  = p.getOptsFloat("s")[0];
     g_screenHeightReal = p.getOptsFloat("s")[1];
   }
-  if(p.isOptSet("r")){
-    g_screenWidth  = p.getOptsInt("r")[0];
-    g_screenHeight = p.getOptsInt("r")[1];
+  if(p.isOptSet("d")){
+    g_screenWidth  = p.getOptsInt("d")[0];
+    g_screenHeight = p.getOptsInt("d")[1];
   }
+  if(p.isOptSet("w")){
+    g_windowWidth  = p.getOptsInt("w")[0];
+    g_windowHeight = p.getOptsInt("w")[1];
+  }
+
+  if(p.isOptSet("l")){
+    g_left_pos_x = p.getOptsInt("l")[0];
+    g_left_pos_y = p.getOptsInt("l")[1];
+  }
+  if(p.isOptSet("r")){
+    g_right_pos_x = p.getOptsInt("r")[0];
+    g_right_pos_y = p.getOptsInt("r")[1];
+  }
+
+
   if(p.isOptSet("m")){
     g_stereo_mode = p.getOptsInt("m")[0];
   }
@@ -783,8 +839,8 @@ int main(int argc, char *argv[]) {
     g_clear_color[3]  = p.getOptsFloat("c")[3];
   }
 
-  if(g_stereo_mode == 1){
-    init_stereo();
+  if((1 == g_stereo_mode) || (2 == g_stereo_mode)){
+    init_stereo_camera();
   }
 
   // load global variables
@@ -804,8 +860,14 @@ int main(int argc, char *argv[]) {
 #if __APPLE__
   glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 #endif
-  
-  g_window = glfwCreateWindow(g_screenWidth, g_screenHeight, "Kinect Reconstruction", NULL, NULL); 
+
+  if((0 == g_stereo_mode) || (1 == g_stereo_mode)){
+    g_window = glfwCreateWindow(g_screenWidth, g_screenHeight, "Kinect Reconstruction", NULL, NULL); 
+  }
+  else if(2 == g_stereo_mode){
+    g_window = glfwCreateWindow(g_windowWidth, g_windowHeight, "Kinect Reconstruction", NULL, NULL); 
+  }
+
   if(!g_window) {
     glfwTerminate();
     std::exit(EXIT_FAILURE);
@@ -820,7 +882,9 @@ int main(int argc, char *argv[]) {
   glfwSetKeyCallback(g_window, key_callback);
   glfwSetCursorPosCallback(g_window, mouse_callback);
   glfwSetMouseButtonCallback(g_window, click_callback);
-  glfwSetFramebufferSizeCallback(g_window, update_view);
+  if(0 == g_stereo_mode){
+    glfwSetFramebufferSizeCallback(g_window, update_view);
+  }
   // allow unlimited mouse movement
 
   // Initialize globjects (internally initializes glbinding, and registers the current context)
@@ -836,8 +900,16 @@ int main(int argc, char *argv[]) {
   // load and intialize objects
   init(p.getArgs());
 
-  update_view(g_window, g_screenWidth, g_screenHeight);
+
+  //  update_view(g_window, g_screenWidth, g_screenHeight);
+  g_aspect       = g_screenWidth * 1.0/g_screenHeight;
+  g_camera.setAspect(g_aspect);
+  g_navi.resize(g_screenWidth, g_screenHeight);
   g_navi.setZoom(g_zoom);
+  for (auto& recon : g_recons) {
+    recon->resize(g_screenWidth, g_screenHeight);
+  }
+
 
   //start of rendering
   auto time_start =  std::chrono::high_resolution_clock::now();

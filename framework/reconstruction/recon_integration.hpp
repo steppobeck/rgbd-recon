@@ -61,7 +61,7 @@ namespace kinect{
     void drawOccupiedBricks() const;
 
     void setColorMaskMode(unsigned mode);
-
+    void setViewportOffset(float x, float y);
   private:
     void drawDepthLimits();
     void divideBox();

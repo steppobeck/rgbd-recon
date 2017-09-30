@@ -85,7 +85,8 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
   m_program->setUniform("depth_peels", 17);
   m_program->setUniform("skipSpace", m_skip_space);
   m_program->setUniform("tex_num_samples", start_image_unit + 1);
-  
+  m_program->setUniform("viewport_offset", glm::fvec2(0.0,0.0));  
+
   m_program_integration->attach(
     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/tsdf_integration.vs")
   );
@@ -484,7 +485,7 @@ void ReconIntegration::resize(std::size_t width, std::size_t height) {
 
   m_tex_num_samples->image2D(0, GL_R32F, width, height, 0, GL_RED, GL_FLOAT, nullptr);
   
-  m_program->setUniform("viewportSizeInv", glm::fvec2(1.0f/width, 1.0f/height));
+  
 
   m_program_colorfill->setUniform("num_lods", int(m_view_inpaint->numLods()));
   m_program_colorfill->setUniform("texture_offsets", m_view_inpaint->offsets());
@@ -521,6 +522,10 @@ void ReconIntegration::setSpaceSkip(bool active) {
 
   void ReconIntegration::setColorMaskMode(unsigned mode){
     m_color_mask_mode = mode;
+  }
+
+  void ReconIntegration::setViewportOffset(float x, float y){
+    m_program->setUniform("viewport_offset", glm::fvec2(x, y));  
   }
 
 }

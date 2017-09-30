@@ -26,7 +26,7 @@ uniform vec3 CameraPos;
 
 uniform bool skipSpace;
 uniform sampler2D depth_peels;
-uniform vec2 viewportSizeInv;
+uniform vec2 viewport_offset;
 uniform mat4 img_to_eye_curr;
 
 layout(r32f) uniform image2D tex_num_samples;
@@ -67,7 +67,7 @@ void main() {
   vec3 sample_pos = vec3(0.0);
 
   if (skipSpace) { 
-    vec4 posEnd = getStartPos(ivec2(gl_FragCoord.xy));
+    vec4 posEnd = getStartPos(ivec2(gl_FragCoord.xy - viewport_offset));
 
     sample_pos = posEnd.xyz;
     max_num_samples = uint(ceil(posEnd.w / sampleDistance));
@@ -385,8 +385,8 @@ vec4 getStartPos(ivec2 coords) {
   vec3 depthMinMax = texelFetch(depth_peels, coords, 0).rgb;
   // if closest back face is closest face -> front face culled
   depthMinMax.r = (depthMinMax.r >= depthMinMax.b) ? gl_DepthRange.near : depthMinMax.r;
-  vec3 pos_front = screenToVol(vec3(gl_FragCoord.xy,depthMinMax.r));
-  vec3 pos_back = screenToVol(vec3(gl_FragCoord.xy,-depthMinMax.g));
+  vec3 pos_front = screenToVol(vec3(gl_FragCoord.xy - viewport_offset,depthMinMax.r));
+  vec3 pos_back = screenToVol(vec3(gl_FragCoord.xy - viewport_offset,-depthMinMax.g));
   //no valid closest face found
   pos_back = (depthMinMax.r >= 1.0) ? pos_front : pos_back; 
   return vec4(pos_front, distance(pos_front, pos_back));
