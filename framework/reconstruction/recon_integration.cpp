@@ -110,6 +110,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
   );
   m_program_inpaint->setUniform("texture_color", 15);
   m_program_inpaint->setUniform("texture_depth", 16);
+  m_program_inpaint->setUniform("viewport_offset", glm::fvec2(0.0,0.0));  
 
   m_program_transfer->attach(
    globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/texture_passthrough.vs")
@@ -125,6 +126,7 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
   m_program_colorfill->setUniform("texture_color", 15);
   m_program_colorfill->setUniform("texture_depth", 16);
   m_program_colorfill->setUniform("out_tex", start_image_unit);
+  m_program_colorfill->setUniform("viewport_offset", glm::fvec2(0.0,0.0));  
 
   m_program_solid->attach(
     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/bricks.vs"),
@@ -525,7 +527,10 @@ void ReconIntegration::setSpaceSkip(bool active) {
   }
 
   void ReconIntegration::setViewportOffset(float x, float y){
-    m_program->setUniform("viewport_offset", glm::fvec2(x, y));  
+    m_program->setUniform("viewport_offset", glm::fvec2(x, y));
+    // currently not working
+    // m_program_colorfill->setUniform("viewport_offset", glm::fvec2(x, y));
+    // m_program_inpaint->setUniform("viewport_offset", glm::fvec2(x, y));
   }
 
 }

@@ -11,6 +11,10 @@ uniform int lod;
 uniform uvec2[20] texture_offsets;
 uniform uvec2[20] texture_resolutions;
 
+// currently does no apply here and does not work for SIDE by SIDE stereo
+uniform vec2 viewport_offset;
+
+
 out vec4 out_FragColor;
 out float gl_FragDepth;
 

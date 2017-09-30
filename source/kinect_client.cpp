@@ -578,6 +578,7 @@ void draw3d(void)
   }
   else if(g_stereo_mode == 2){ // SIDE-BY-SIDE STEREO
 
+    // currently only works without depth aware color filling
     g_recon_integration->setColorFilling(false);
 
     glViewport(0,0,g_windowWidth, g_windowHeight);
