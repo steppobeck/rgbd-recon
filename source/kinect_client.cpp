@@ -25,6 +25,7 @@ using namespace gl;
 #include <tuple>
 
 #include <CMDParser.h>
+#include <FeedbackReceiver.h>
 #include "configurator.hpp"
 #include "texture_blitter.hpp"
 
@@ -48,6 +49,7 @@ using namespace gl;
 #include "recon_mvt.hpp"
 
 /// general setup
+sys::FeedbackReceiver* g_fbr = 0;
 float    g_clear_color[4] = {0.0,0.0,0.0,0.0};
 unsigned g_stereo_mode  = 0;
 float    g_screenWidthReal = 1.28;
@@ -107,6 +109,7 @@ struct shading_data_t {
 } g_shading_buffer_data;
 
 void init_stereo_camera();
+void init_fbr(const char* client_socket);
 void init(std::vector<std::string> const& args);
 void init_config(std::vector<std::string> const& args);
 void load_config(std::string const&);
@@ -118,6 +121,8 @@ std::shared_ptr<kinect::ReconIntegration> g_recon_integration{};
 std::vector<std::shared_ptr<kinect::Reconstruction>> g_recons;// 4
 std::unique_ptr<kinect::ReconCalibs> g_calibvis;// 4
 //////////////////////////////////////////////////////////////////////////////////////////
+
+
 
 void init_stereo_camera(){
 
@@ -135,6 +140,52 @@ void init_stereo_camera(){
 					     g_screenWidthReal,
 					     g_screenHeightReal);
   
+}
+
+std::ostream& operator<< (std::ostream& os, const glm::mat4& m){
+  os << "mat4[" << std::fixed << std::endl;
+  os << "       ("               << m[0][0] << ", " << m[1][0] << ", " << m[2][0]  << ", " << m[3][0] << ")," << std::endl;
+  os << "       ("               << m[0][1] << ", " << m[1][1] << ", " << m[2][1]  << ", " << m[3][1] << ")," << std::endl;
+  os << "       ("               << m[0][2] << ", " << m[1][2] << ", " << m[2][2]  << ", " << m[3][2] << ")," << std::endl;
+  os << "       ("               << m[0][3] << ", " << m[1][3] << ", " << m[2][3]  << ", " << m[3][3] << ") ]" << std::endl;
+
+  return os;
+}
+
+gloost::Matrix glm2gloost(const glm::mat4 m){
+  gloost::Matrix tmp;
+  tmp[0] = m[0][0];
+  tmp[1] = m[0][1];
+  tmp[2] = m[0][2];
+  tmp[3] = m[0][3];
+
+  tmp[4] = m[1][0];
+  tmp[5] = m[1][1];
+  tmp[6] = m[1][2];
+  tmp[7] = m[1][3];
+
+  tmp[8]  = m[2][0];
+  tmp[9]  = m[2][1];
+  tmp[10] = m[2][2];
+  tmp[11] = m[2][3];
+
+  tmp[12] = m[3][0];
+  tmp[13] = m[3][1];
+  tmp[14] = m[3][2];
+  tmp[15] = m[3][3];
+
+
+  return tmp;
+}
+void init_fbr(const char* client_socket){
+
+  sys::feedback initial_fb;
+  initial_fb.cyclops_mat[3][0] = 0.0;
+  initial_fb.cyclops_mat[3][1] = 0.0;
+  initial_fb.cyclops_mat[3][2] = 1.0;
+
+  g_fbr = new sys::FeedbackReceiver(initial_fb, client_socket);
+
 }
 
 void init(std::vector<std::string> const& args){
@@ -576,7 +627,7 @@ void draw3d(void)
     g_recon_integration->setColorMaskMode(2);
     g_recons.at(g_recon_mode)->drawF();
   }
-  else if(g_stereo_mode == 2){ // SIDE-BY-SIDE STEREO
+  else if(g_stereo_mode == 2 && g_fbr){ // SIDE-BY-SIDE STEREO
 
     // currently only works without depth aware color filling
     g_recon_integration->setColorFilling(false);
@@ -584,15 +635,24 @@ void draw3d(void)
     glViewport(0,0,g_windowWidth, g_windowHeight);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+    sys::feedback fb = g_fbr->get();
+    gloost::Matrix cyclops_mat = glm2gloost(fb.cyclops_mat);
+    gloost::Matrix screen_mat = glm2gloost(fb.screen_mat);
+    gloost::Matrix model_mat = glm2gloost(fb.model_mat);
+    g_stereo_camera->setCyclopsMatrix(cyclops_mat);
+    g_stereo_camera->setScreenMatrix(screen_mat);
+
     glViewport(g_left_pos_x, g_left_pos_y, g_screenWidth, g_screenHeight);
     g_stereo_camera->setLeft();
-    update_model_matrix(false);
+    glMatrixMode(GL_MODELVIEW);
+    glMultMatrixf(model_mat.data());
     g_recon_integration->setViewportOffset((float) g_left_pos_x, (float) g_left_pos_y);
     g_recons.at(g_recon_mode)->drawF();
 
     glViewport(g_right_pos_x, g_right_pos_y, g_screenWidth, g_screenHeight);
     g_stereo_camera->setRight();
-    update_model_matrix(false);
+    glMatrixMode(GL_MODELVIEW);
+    glMultMatrixf(model_mat.data());
     g_recon_integration->setViewportOffset((float) g_right_pos_x, (float) g_right_pos_y);
     g_recons.at(g_recon_mode)->drawF();
 
@@ -804,6 +864,9 @@ int main(int argc, char *argv[]) {
 
   p.addOpt("m",1,"stereomode", "set stereo mode 0: none, 1: anaglyph, 2: side-by-side (default: 0)");
   p.addOpt("c",4,"clearcolor", "set clear color (default: 0.0 0.0 0.0 0.0)");
+
+  p.addOpt("f",1,"feedbacksocket", "set socket for feedback receiver (e.g. 127.0.0.1:9000)");
+ 
   p.init(argc,argv);
 
   if(p.isOptSet("s")){
@@ -838,6 +901,11 @@ int main(int argc, char *argv[]) {
     g_clear_color[1]  = p.getOptsFloat("c")[1];
     g_clear_color[2]  = p.getOptsFloat("c")[2];
     g_clear_color[3]  = p.getOptsFloat("c")[3];
+  }
+
+  if(p.isOptSet("f")){
+    std::string client_socket = p.getOptsString("f")[0].c_str();
+    init_fbr(client_socket.c_str());
   }
 
   if((1 == g_stereo_mode) || (2 == g_stereo_mode)){
