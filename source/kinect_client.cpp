@@ -49,6 +49,7 @@ using namespace gl;
 #include "recon_mvt.hpp"
 
 /// general setup
+std::string g_server_socket = "127.0.0.1:7000";
 sys::FeedbackReceiver* g_fbr = 0;
 float    g_clear_color[4] = {0.0,0.0,0.0,0.0};
 unsigned g_stereo_mode  = 0;
@@ -201,7 +202,6 @@ void init(std::vector<std::string> const& args){
 
 
   // read ks file
-  std::string serverport{};
   std::vector<std::string> calib_filenames;
   gloost::Point3 bbox_min{-1.0f ,0.0f, -1.0f};
   gloost::Point3 bbox_max{ 1.0f ,2.2f, 1.0f};
@@ -211,10 +211,7 @@ void init(std::vector<std::string> const& args){
   std::ifstream in(file_name);
   std::string token;
   while(in >> token){
-    if(token == "serverport"){
-      in >> serverport;
-    } 
-    else if (token == "kinect") {
+    if (token == "kinect") {
       in >> token;
       // detect absolute path
       if (token[0] == '/' || token[1] == ':') {
@@ -240,7 +237,7 @@ void init(std::vector<std::string> const& args){
 
   g_calib_files = std::unique_ptr<kinect::CalibrationFiles>{new kinect::CalibrationFiles(calib_filenames)};
   g_cv = std::unique_ptr<kinect::CalibVolumes>{new kinect::CalibVolumes(calib_filenames, g_bbox)};
-  g_nka = std::unique_ptr<kinect::NetKinectArray>{new kinect::NetKinectArray(serverport, g_calib_files.get(), g_cv.get())};
+  g_nka = std::unique_ptr<kinect::NetKinectArray>{new kinect::NetKinectArray(g_server_socket, g_calib_files.get(), g_cv.get())};
   
   // binds to unit 1 to 3
   g_nka->setStartTextureUnit(1);
@@ -861,8 +858,9 @@ void quit(int status) {
 }
 
 int main(int argc, char *argv[]) {
-
+  
   CMDParser p("kinect_surface ...");
+
   p.addOpt("s",2,"screensize", "set screen size in meter");
   p.addOpt("d",2,"displaysize", "set display size in pixel");
 
@@ -874,8 +872,15 @@ int main(int argc, char *argv[]) {
   p.addOpt("c",4,"clearcolor", "set clear color (default: 0.0 0.0 0.0 0.0)");
 
   p.addOpt("f",1,"feedbacksocket", "set socket for feedback receiver (e.g. 127.0.0.1:9000)");
+  p.addOpt("p",1,"serversocket", "set server socket for input stream : default " + g_server_socket);
  
   p.init(argc,argv);
+
+  if(p.isOptSet("p")){
+    g_server_socket = p.getOptsString("p")[0];
+  }
+  std::cout << "using server socket for input stream: " << g_server_socket << std::endl;
+
 
   if(p.isOptSet("s")){
     g_screenWidthReal  = p.getOptsFloat("s")[0];
