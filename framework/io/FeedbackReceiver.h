@@ -17,6 +17,7 @@ struct feedback{
   glm::mat4 cyclops_mat;
   glm::mat4 screen_mat;
   glm::mat4 model_mat;
+  unsigned recon_mode;
 };
 
 

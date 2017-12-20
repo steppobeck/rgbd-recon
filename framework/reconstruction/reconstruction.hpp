@@ -19,7 +19,8 @@ namespace kinect{
     virtual void reload();
     // mustnt be implemented by children without fbos
     virtual void resize(std::size_t width, std::size_t height);
-
+    void setColorMaskMode(unsigned mode);
+    virtual void setViewportOffset(float x, float y);
   protected:
     CalibVolumes const* m_cv;
     CalibrationFiles const* m_cf;
@@ -29,7 +30,7 @@ namespace kinect{
     unsigned m_num_kinects;
     float m_min_length;
     gloost::BoundingBox m_bbox;
-
+    unsigned m_color_mask_mode;
     static glm::uvec2 getViewportRes();
     static glm::uvec4 getViewport();
   };

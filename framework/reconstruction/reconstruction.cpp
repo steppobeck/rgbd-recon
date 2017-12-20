@@ -19,6 +19,7 @@ Reconstruction::Reconstruction(CalibrationFiles const& cfs, CalibVolumes const* 
  ,m_num_kinects{cfs.num()}
  ,m_min_length{cfs.minLength()}
  ,m_bbox{bbox}
+ ,m_color_mask_mode(0)
 {
    globjects::NamedString::create("/shading.glsl", new globjects::File("glsl/shading.glsl"));
    TimerDatabase::instance().addTimer("3recon");
@@ -47,4 +48,10 @@ glm::uvec4 Reconstruction::getViewport() {
   return glm::uvec4{vp_params[0], vp_params[1], vp_params[2], vp_params[3]};
 }
 
+  void Reconstruction::setColorMaskMode(unsigned mode){
+    m_color_mask_mode = mode;
+  }
+  void Reconstruction::setViewportOffset(float x, float y){
+    std::cerr << "Reconstruction::setViewportOffset(float x, float y) -> implement me in derived class!" << std::endl;
+  }
 }

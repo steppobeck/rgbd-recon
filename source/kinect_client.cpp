@@ -183,7 +183,7 @@ void init_fbr(const char* client_socket){
   initial_fb.cyclops_mat[3][0] = 0.0;
   initial_fb.cyclops_mat[3][1] = 0.0;
   initial_fb.cyclops_mat[3][2] = 1.0;
-
+  initial_fb.recon_mode = 1;
   g_fbr = new sys::FeedbackReceiver(initial_fb, client_socket);
 
 }
@@ -605,7 +605,7 @@ void draw3d(void)
   
 
 
-  if(g_stereo_mode == 0){
+  if(g_stereo_mode == 0){ // MONO
     glViewport(0,0,g_screenWidth, g_screenHeight);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     g_camera.set();
@@ -618,27 +618,33 @@ void draw3d(void)
 
     g_stereo_camera->setLeft();
     update_model_matrix(false);
-    g_recon_integration->setColorMaskMode(1);
+
+    // g_recon_integration->setColorMaskMode(1);
+    g_recons.at(g_recon_mode)->setColorMaskMode(1);
     g_recons.at(g_recon_mode)->drawF();
 
     glClear(GL_DEPTH_BUFFER_BIT);
     g_stereo_camera->setRight();
     update_model_matrix(false);
-    g_recon_integration->setColorMaskMode(2);
+    // g_recon_integration->setColorMaskMode(2);
+    g_recons.at(g_recon_mode)->setColorMaskMode(2);
     g_recons.at(g_recon_mode)->drawF();
   }
   else if(g_stereo_mode == 2 && g_fbr){ // SIDE-BY-SIDE STEREO
 
+    sys::feedback fb = g_fbr->get();
+    const gloost::Matrix cyclops_mat = glm2gloost(fb.cyclops_mat);
+    const gloost::Matrix screen_mat = glm2gloost(fb.screen_mat);
+    const gloost::Matrix model_mat = glm2gloost(fb.model_mat);
+    g_recon_mode = fb.recon_mode;
     // currently only works without depth aware color filling
-    g_recon_integration->setColorFilling(false);
+    if(1 == g_recon_mode){
+      g_recon_integration->setColorFilling(false);
+    }
 
     glViewport(0,0,g_windowWidth, g_windowHeight);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    sys::feedback fb = g_fbr->get();
-    gloost::Matrix cyclops_mat = glm2gloost(fb.cyclops_mat);
-    gloost::Matrix screen_mat = glm2gloost(fb.screen_mat);
-    gloost::Matrix model_mat = glm2gloost(fb.model_mat);
     g_stereo_camera->setCyclopsMatrix(cyclops_mat);
     g_stereo_camera->setScreenMatrix(screen_mat);
 
@@ -646,21 +652,23 @@ void draw3d(void)
     g_stereo_camera->setLeft();
     glMatrixMode(GL_MODELVIEW);
     glMultMatrixf(model_mat.data());
-    g_recon_integration->setViewportOffset((float) g_left_pos_x, (float) g_left_pos_y);
+    // g_recon_integration->setViewportOffset((float) g_left_pos_x, (float) g_left_pos_y);
+    g_recons.at(g_recon_mode)->setViewportOffset((float) g_left_pos_x, (float) g_left_pos_y);
     g_recons.at(g_recon_mode)->drawF();
 
     glViewport(g_right_pos_x, g_right_pos_y, g_screenWidth, g_screenHeight);
     g_stereo_camera->setRight();
     glMatrixMode(GL_MODELVIEW);
     glMultMatrixf(model_mat.data());
-    g_recon_integration->setViewportOffset((float) g_right_pos_x, (float) g_right_pos_y);
+    // g_recon_integration->setViewportOffset((float) g_right_pos_x, (float) g_right_pos_y);
+    g_recons.at(g_recon_mode)->setViewportOffset((float) g_right_pos_x, (float) g_right_pos_y);
     g_recons.at(g_recon_mode)->drawF();
 
     glViewport(0,0,g_screenWidth, g_screenHeight);
   }
 
 
-  if(2 != g_stereo_mode){
+  if(0 == g_stereo_mode){
     if (g_draw_calibvis) {
       g_calibvis->draw();
     }

@@ -57,7 +57,6 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
  ,m_draw_bricks{false}
  ,m_ratio_occupied{0.0f}
  ,m_min_voxels_per_brick{10}
- ,m_color_mask_mode(0)
 {
   m_program->attach(
     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/tsdf_raymarch.vs"),
@@ -522,9 +521,7 @@ void ReconIntegration::setSpaceSkip(bool active) {
   m_skip_space = active;
 }
 
-  void ReconIntegration::setColorMaskMode(unsigned mode){
-    m_color_mask_mode = mode;
-  }
+
 
   void ReconIntegration::setViewportOffset(float x, float y){
     m_program->setUniform("viewport_offset", glm::fvec2(x, y));
