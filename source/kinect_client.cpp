@@ -500,7 +500,11 @@ void update_gui() {
       ImTextureID cont;
       std::memcpy(&cont, &test, sizeof(test));
       glm::uvec2 res{g_nka->getDepthResolution()};
-      float aspect = float(res.x) / res.y;
+      
+      //float aspect = float(res.x) / res.y;
+      // for rotated texture visualization
+      float aspect = float(res.y) / res.x;
+
       float width = ImGui::GetWindowContentRegionWidth();
       ImGui::Image(cont, ImVec2(width, width / aspect), ImVec2(0,0), ImVec2(1,1), ImColor(255,255,255,255), ImColor(255,255,255,128));
       ImGui::End();

@@ -234,7 +234,7 @@ bool ImGui_ImplGlfwGLB_CreateDeviceObjects()
         "	Frag_Color = Color;\n"
         "	gl_Position = ProjMtx * vec4(Position.xy,0,1);\n"
         "}\n";
-
+#if 0
     const GLchar* fragment_shader =
         "#version 330\n"
         "uniform sampler2D Texture;\n"
@@ -255,6 +255,35 @@ bool ImGui_ImplGlfwGLB_CreateDeviceObjects()
 
         "	//Out_Color = Frag_Color * texture(Texture, Frag_UV.st);\n"
         "}\n";
+#else
+    // with rotated texture
+    const GLchar* fragment_shader =
+        "#version 330\n"
+        "uniform sampler2D Texture;\n"
+        "uniform sampler2DArray TextureArray;\n"
+        "uniform int Mode;\n"
+        "uniform int Layer;\n"
+        "in vec2 Frag_UV;\n"
+        "in vec4 Frag_Color;\n"
+        "out vec4 Out_Color;\n"
+        "void main()\n"
+        "{\n"
+          "if (Mode == 0) {\n"
+          "  Out_Color = Frag_Color * texture(Texture, Frag_UV);\n"
+          "}\n"
+          "else {\n"
+          "  vec2 uv = Frag_UV;\n"
+          "  float rot = radians(90.0);\n"
+          "  uv-=.5;\n"
+          "  mat2 m = mat2(cos(rot), -sin(rot), sin(rot), cos(rot));\n"
+          "  uv  = m * uv;\n"
+          "  uv+=.5;\n"
+          "  Out_Color = Frag_Color * texture(TextureArray, vec3(uv, Layer));\n"
+          "}\n"
+
+        "       //Out_Color = Frag_Color * texture(Texture, Frag_UV.st);\n"
+        "}\n";
+#endif
 
     g_ShaderHandle = glCreateProgram();
     g_VertHandle = glCreateShader(GL_VERTEX_SHADER);
