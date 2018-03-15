@@ -36,7 +36,7 @@ namespace kinect {
   class NetKinectArray {
 
   public:
-    NetKinectArray(std::string const& serverport, CalibrationFiles const* calibs, CalibVolumes const* vols, bool readfromfile = false);
+    NetKinectArray(std::string const& serverport, std::string const& slaveport, CalibrationFiles const* calibs, CalibVolumes const* vols, bool readfromfile = false);
     NetKinectArray(std::vector<KinectCalibrationFile*>& calibs);
 
     ~NetKinectArray();
@@ -62,6 +62,8 @@ namespace kinect {
     glm::uvec2 getColorResolution() const;
 
     int getTextureUnit(std::string const& name) const; 
+
+    void updateInputSocket(unsigned stream_slot);
 
   private:
     void bindToTextureUnits() const;
@@ -103,12 +105,14 @@ namespace kinect {
     bool m_filter_textures;
     bool m_refine_bound;
     std::string m_serverport;
+    std::string m_slaveport;
     std::size_t m_num_frame;
     double m_curr_frametime;
     bool m_use_processed_depth;
     unsigned m_start_texture_unit;
     CalibrationFiles const* m_calib_files;
     CalibVolumes const* m_calib_vols;
+    unsigned m_streamslot;
   };
 
 }

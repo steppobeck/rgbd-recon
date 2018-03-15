@@ -50,6 +50,7 @@ using namespace gl;
 
 /// general setup
 std::string g_server_socket = "127.0.0.1:7000";
+std::string g_slave_socket = "127.0.0.1:7001";
 sys::FeedbackReceiver* g_fbr = 0;
 float    g_clear_color[4] = {0.0,0.0,0.0,0.0};
 unsigned g_stereo_mode  = 0;
@@ -185,6 +186,7 @@ void init_fbr(const char* client_socket){
   initial_fb.cyclops_mat[3][1] = 0.0;
   initial_fb.cyclops_mat[3][2] = 1.0;
   initial_fb.recon_mode = 1;
+  initial_fb.stream_slot = 0;
   g_fbr = new sys::FeedbackReceiver(initial_fb, client_socket);
 
 }
@@ -237,7 +239,7 @@ void init(std::vector<std::string> const& args){
 
   g_calib_files = std::unique_ptr<kinect::CalibrationFiles>{new kinect::CalibrationFiles(calib_filenames)};
   g_cv = std::unique_ptr<kinect::CalibVolumes>{new kinect::CalibVolumes(calib_filenames, g_bbox)};
-  g_nka = std::unique_ptr<kinect::NetKinectArray>{new kinect::NetKinectArray(g_server_socket, g_calib_files.get(), g_cv.get())};
+  g_nka = std::unique_ptr<kinect::NetKinectArray>{new kinect::NetKinectArray(g_server_socket, g_slave_socket, g_calib_files.get(), g_cv.get())};
   
   // binds to unit 1 to 3
   g_nka->setStartTextureUnit(1);
@@ -638,6 +640,7 @@ void draw3d(void)
     const gloost::Matrix screen_mat = glm2gloost(fb.screen_mat);
     const gloost::Matrix model_mat = glm2gloost(fb.model_mat);
     g_recon_mode = fb.recon_mode;
+    g_nka->updateInputSocket(fb.stream_slot);
     // currently only works without depth aware color filling
     if(1 == g_recon_mode){
       g_recon_integration->setColorFilling(false);
@@ -877,13 +880,19 @@ int main(int argc, char *argv[]) {
 
   p.addOpt("f",1,"feedbacksocket", "set socket for feedback receiver (e.g. 127.0.0.1:9000)");
   p.addOpt("p",1,"serversocket", "set server socket for input stream : default " + g_server_socket);
- 
+  p.addOpt("x",1,"slavesocket", "set slave socket for input stream : default " + g_slave_socket);
+
   p.init(argc,argv);
 
   if(p.isOptSet("p")){
     g_server_socket = p.getOptsString("p")[0];
+    std::cout << "using server socket for input stream: " << g_server_socket << std::endl;
   }
-  std::cout << "using server socket for input stream: " << g_server_socket << std::endl;
+  
+  if(p.isOptSet("x")){
+    g_slave_socket = p.getOptsString("x")[0];
+    std::cout << "using slave socket for input stream: " << g_slave_socket << std::endl;
+  }
 
 
   if(p.isOptSet("s")){

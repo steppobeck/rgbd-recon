@@ -39,7 +39,7 @@ using namespace gl;
 
 namespace kinect{
   static const std::size_t s_num_bg_frames = 20;
-  NetKinectArray::NetKinectArray(std::string const& serverport, CalibrationFiles const* calibs, CalibVolumes const* vols, bool readfromfile)
+  NetKinectArray::NetKinectArray(std::string const& serverport, std::string const& slaveport, CalibrationFiles const* calibs, CalibVolumes const* vols, bool readfromfile)
     : m_numLayers(0),
       m_colorArray(),
       m_depthArray_raw(),
@@ -63,12 +63,14 @@ namespace kinect{
       m_filter_textures(true),
       m_refine_bound(true),
       m_serverport(serverport),
+      m_slaveport(slaveport),
       m_num_frame{0},
       m_curr_frametime{0.0},
       m_use_processed_depth{true},
       m_start_texture_unit(0),
       m_calib_files{calibs},
-      m_calib_vols{vols}
+      m_calib_vols{vols},
+      m_streamslot(0)
   {
     m_programs.emplace("filter", new globjects::Program());
     m_programs.emplace("normal", new globjects::Program());
@@ -483,14 +485,21 @@ void NetKinectArray::readLoop(){
   // open multicast listening connection to server and port
 
   zmq::context_t ctx(1); // means single threaded
-  zmq::socket_t  socket(ctx, ZMQ_SUB); // means a subscriber
 
+  zmq::socket_t  socket(ctx, ZMQ_SUB); // means a subscriber
   socket.setsockopt(ZMQ_SUBSCRIBE, "", 0);
   uint32_t hwm = 1;
   socket.setsockopt(ZMQ_RCVHWM, &hwm, sizeof(hwm));
-
   std::string endpoint("tcp://" + m_serverport);
   socket.connect(endpoint.c_str());
+
+  zmq::socket_t  slave_socket(ctx, ZMQ_SUB); // means a subscriber
+  slave_socket.setsockopt(ZMQ_SUBSCRIBE, "", 0);
+  uint32_t slave_hwm = 1;
+  slave_socket.setsockopt(ZMQ_RCVHWM, &slave_hwm, sizeof(slave_hwm));
+  std::string slave_endpoint("tcp://" + m_slaveport);
+  slave_socket.connect(slave_endpoint.c_str());
+
 
   //const unsigned pixelcountc = m_calib_files->getWidthC() * m_calib_files->getHeightC();    
   const unsigned colorsize = m_colorsize;
@@ -501,7 +510,13 @@ void NetKinectArray::readLoop(){
   while(m_running){
     zmq::message_t zmqm((colorsize + depthsize) * m_calib_files->num());
     
-    socket.recv(&zmqm); // blocking
+    if(1 == m_streamslot){
+      slave_socket.recv(&zmqm); // blocking  
+    }
+    else{
+      socket.recv(&zmqm); // blocking  
+    }
+    
     
     { 
       // lock pbos
@@ -745,6 +760,13 @@ NetKinectArray::readFromFiles(){
     }
     m_pbo_colors.dirty = true;
     m_pbo_depths.dirty = true;
+  }
+}
+
+void
+NetKinectArray::updateInputSocket(unsigned stream_slot){
+  if(stream_slot != m_streamslot){
+    m_streamslot = stream_slot;
   }
 }
 
