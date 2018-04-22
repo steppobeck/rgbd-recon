@@ -301,7 +301,7 @@ BoundingBox::draw()
   glPushAttrib(GL_ALL_ATTRIB_BITS);
   {
     glEnable(GL_COLOR_MATERIAL);
-    glColor4f(1.0, 1.0, 1.0, 0.75);
+    glColor4f(0.0, 0.0, 0.0, 0.0);
     // glColor4f(1.0, 1.0, 1.0, 0.75);
     // glColor4f(1.0, 0.3, 0.3, 0.75);
 
