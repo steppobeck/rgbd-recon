@@ -378,6 +378,7 @@ void update_gui() {
     if (ImGui::CollapsingHeader("Integration ")) {
       if (ImGui::DragFloat("TSDF Limit", &g_tsdf_limit, 0.001f, 0.001f, 0.03f, "%.3f")) {
         g_recon_integration->setTsdfLimit(g_tsdf_limit);
+        g_calibvis->setTsdfLimit(g_tsdf_limit);p
       }
       if (ImGui::DragFloat("Voxel Size", &g_voxel_size, 0.001f, 0.003f, 0.1f, "%.3f")) {
         g_recon_integration->setVoxelSize(g_voxel_size);

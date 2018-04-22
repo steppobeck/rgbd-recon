@@ -82,6 +82,8 @@ ReconMVT::~ReconMVT() {
 }
 
 void ReconMVT::draw(){
+  std::cerr << "ReconMVT::draw() is not implemented any more!" << std::endl;
+  return;
   // calculate img_to_eye for this view
   gloost::Matrix projection_matrix;
   glGetFloatv(GL_PROJECTION_MATRIX, projection_matrix.data());

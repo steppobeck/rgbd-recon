@@ -20,12 +20,13 @@ namespace kinect{
     void draw() override;
 
     void setActiveKinect(unsigned num_kinect);
-
+    void setTsdfLimit(float limit);
   private:
     globjects::Program* m_program;
     VolumeSampler       m_sampler;
 
     unsigned            m_active_kinect;
+    float m_tsdf_limit;
   };
 }
 

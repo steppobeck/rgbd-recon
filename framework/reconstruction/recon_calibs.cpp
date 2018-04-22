@@ -17,13 +17,14 @@ using namespace gl;
 
 namespace kinect{
 
-static float limit = 0.01f;
+//static float limit = 0.01f;
 
 ReconCalibs::ReconCalibs(CalibrationFiles const& cfs, CalibVolumes const* cv, gloost::BoundingBox const&  bbox)
  :Reconstruction(cfs, cv, bbox)
  ,m_program{new globjects::Program()}
  ,m_sampler{cv->getVolumeRes()}
  ,m_active_kinect{0}
+ ,m_tsdf_limit(0.01f)
 {
   m_program->attach(
     globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/calib_vis.vs"),
@@ -44,7 +45,7 @@ ReconCalibs::ReconCalibs(CalibrationFiles const& cfs, CalibVolumes const* cv, gl
   vol_to_world = glm::translate(glm::fmat4{1.0f}, bbox_translation) * vol_to_world;
   m_program->setUniform("vol_to_world", vol_to_world);
 
-  m_program->setUniform("limit", limit);
+  m_program->setUniform("limit", m_tsdf_limit);
 }
 
 ReconCalibs::~ReconCalibs() {
@@ -55,6 +56,7 @@ void ReconCalibs::draw(){
   m_program->use();
 
   m_program->setUniform("layer", m_active_kinect);
+  m_program->setUniform("limit", m_tsdf_limit);
   m_sampler.sample();
 
   m_program->release();  
@@ -62,6 +64,11 @@ void ReconCalibs::draw(){
 
 void ReconCalibs::setActiveKinect(unsigned num_kinect) {
   m_active_kinect = num_kinect;
+}
+
+void
+ReconCalibs::setTsdfLimit(float limit){
+  m_tsdf_limit = limit;
 }
 
 }
