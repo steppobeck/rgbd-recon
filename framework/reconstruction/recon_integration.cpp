@@ -445,12 +445,23 @@ void ReconIntegration::updateOccupiedBricks() {
 }
 
 void ReconIntegration::drawOccupiedBricks() const {
+
+  //glPushAttrib(GL_ALL_ATTRIB_BITS);
+  //{
+  //glLineWidth(2.8);
+
+
+
   m_program_solid->use();
   m_program_solid->setUniform("Color", glm::fvec3{1.0f, 0.0f, 0.0f});
 
   UnitCube::drawWireInstanced(m_bricks_occupied.size());
 
   m_program_solid->release();
+
+  //}
+  //glPopAttrib();
+
 }
 
 void ReconIntegration::setTsdfLimit(float limit) {
