@@ -128,8 +128,8 @@ ReconIntegration::ReconIntegration(CalibrationFiles const& cfs, CalibVolumes con
   m_program_colorfill->setUniform("viewport_offset", glm::fvec2(0.0,0.0));  
 
   m_program_solid->attach(
-    globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/bricks.vs"),
-    globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/solid.fs")
+    globjects::Shader::fromFile(GL_VERTEX_SHADER,   "glsl/bricks_color.vs"),
+    globjects::Shader::fromFile(GL_FRAGMENT_SHADER, "glsl/solid_color.fs")
   );
 
   m_program_bricks->attach(
@@ -163,6 +163,7 @@ void ReconIntegration::drawF() {
     TimerDatabase::instance().end("holefill");
   }
 
+  
   if (m_draw_bricks) {
     drawOccupiedBricks();
   }
@@ -446,21 +447,21 @@ void ReconIntegration::updateOccupiedBricks() {
 
 void ReconIntegration::drawOccupiedBricks() const {
 
-  //glPushAttrib(GL_ALL_ATTRIB_BITS);
-  //{
-  //glLineWidth(2.8);
+  glPushAttrib(GL_ALL_ATTRIB_BITS);
+  {
+  glLineWidth(2.0);
 
 
 
   m_program_solid->use();
-  m_program_solid->setUniform("Color", glm::fvec3{1.0f, 0.0f, 0.0f});
+  m_program_solid->setUniform("Color", glm::fvec3{0.0f, 1.0f, 0.0f});
 
   UnitCube::drawWireInstanced(m_bricks_occupied.size());
 
   m_program_solid->release();
 
-  //}
-  //glPopAttrib();
+  }
+  glPopAttrib();
 
 }
 

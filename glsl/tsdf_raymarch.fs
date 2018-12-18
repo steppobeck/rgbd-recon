@@ -131,6 +131,14 @@ void submitFragment(const in vec3 sample_pos) {
   }
   // apply projection matrix on z component of view-space position
   gl_FragDepth = (gl_ProjectionMatrix[2].z *view_pos.z + gl_ProjectionMatrix[3].z) / -view_pos.z * 0.5f + 0.5f;
+
+#if 0
+  // from here for Paper 2018 , cull away every thing under 0.6 meter relativ to boundingbox.
+  if(sample_pos.y < 0.27272727272727272727){
+	discard;
+  }
+#endif
+  
 }
 
 float sample(const vec3 pos) {
