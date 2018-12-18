@@ -110,4 +110,56 @@ namespace kinect{
     res.v = a.v + b.v;
     return res;
   }
+
+
+  xyz getTrilinear(xyz* data, unsigned width, unsigned height, unsigned depth, float x, float y, float z){
+
+    // calculate weights and boundaries along x direction
+    unsigned xa = std::floor(x);
+    unsigned xb = std::ceil(x);
+    float w_xb = x - xa;
+    float w_xa = 1.0 - w_xb;
+
+    // calculate weights and boundaries along y direction
+    unsigned ya = std::floor(y);
+    unsigned yb = std::ceil(y);
+    float w_yb = y - ya;
+    float w_ya = 1.0 - w_yb;
+
+    // calculate weights and boundaries along z direction
+    unsigned za = std::floor(z);
+    unsigned zb = std::ceil(z);
+    float w_zb = z - za;
+    float w_za = 1.0 - w_zb;
+
+    // calculate indices to access data
+    const unsigned idmax = width * height * depth;
+    unsigned id000 = std::min( za * width * height + ya * width + xa  , idmax);
+    unsigned id100 = std::min( za * width * height + ya * width + xb  , idmax);
+    unsigned id110 = std::min( za * width * height + yb * width + xb  , idmax);
+    unsigned id010 = std::min( za * width * height + yb * width + xa  , idmax);
+
+    unsigned id001 = std::min( zb * width * height + ya * width + xa  , idmax);
+    unsigned id101 = std::min( zb * width * height + ya * width + xb  , idmax);
+    unsigned id111 = std::min( zb * width * height + yb * width + xb  , idmax);
+    unsigned id011 = std::min( zb * width * height + yb * width + xa  , idmax);
+
+
+
+    // 1. interpolate between x direction: 4 times;
+    xyz   tmp_000_100 = w_xa * data[id000] + w_xb * data[id100];
+    xyz   tmp_010_110 = w_xa * data[id010] + w_xb * data[id110];
+    xyz   tmp_001_101 = w_xa * data[id001] + w_xb * data[id101];
+    xyz   tmp_011_111 = w_xa * data[id011] + w_xb * data[id111];
+
+    // 2. interpolate between y direction: 2 times;
+
+    xyz   tmp_A = w_ya * tmp_000_100 + w_yb * tmp_010_110;
+    xyz   tmp_B = w_ya * tmp_001_101 + w_yb * tmp_011_111;
+
+    xyz result = w_za * tmp_A + w_zb * tmp_B;
+
+    return result;
+  }
+
 }

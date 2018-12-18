@@ -69,6 +69,8 @@ extern uv_d operator* (const float, const uv_d&);
 
 extern xyz_d operator+ (const xyz_d&, const xyz&);
 extern uv_d operator+ (const uv_d&, const uv&);
+
+xyz getTrilinear(xyz* data, unsigned width, unsigned height, unsigned depth, float x, float y, float z);
 }
 
 #endif // #ifndef KINECT_DATATYPES_H
